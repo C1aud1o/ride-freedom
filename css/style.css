@@ -146,3 +146,18 @@ body.game-open { overflow: hidden; }
 .prog li.done { color: var(--ok); }
 .prog-ach { margin-top: 8px !important; color: var(--muted); }
 .prog details summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
+
+/* ---------- Strava ---------- */
+.strava { background: var(--panel); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.strava-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.strava label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+.strava input[type=text], .strava input:not([type]), .strava input[type=password] { font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.strava label.check { display: flex; align-items: center; gap: 8px; color: var(--text); }
+.strava-steps { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.strava code { background: var(--bg); padding: 1px 5px; border-radius: 4px; color: var(--text); }
+#stravaSetup, #stravaLinked { display: grid; gap: 10px; }
+#stravaSetup[hidden], #stravaLinked[hidden] { display: none; }
+.strava-btn { background: #fc4c02; border-color: #fc4c02; color: #fff; font-weight: 600; }
+.finish { font-weight: 600; }
+#stravaMsg:empty { display: none; }
+#stravaMsg a { color: #fc4c02; font-weight: 600; }

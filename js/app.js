@@ -3,6 +3,7 @@ import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit } from './fit.js';
+import { Strava } from './strava.js';
 import { setupDebug } from './debugview.js';
 import { Strike } from './games/strike.js';
 import { Racer } from './games/racer.js';
@@ -267,7 +268,8 @@ $('startStop').addEventListener('click', () => {
 });
 $('reset').addEventListener('click', () => {
   if (!state.ride.saved && !confirm('Azzerare la sessione? I dati non salvati in .FIT andranno persi.')) return;
-  Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true });
+  Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true, stravaUrl: null });
+  stravaMsg('');
   persist();
   $('startStop').textContent = 'Avvia';
   render();
@@ -319,6 +321,8 @@ function render() {
   $('kj').textContent = Math.round(r.energy);
   $('saveFit').disabled = !r.log.length;
   $('shareFit').disabled = !r.log.length;
+  $('finishRide').disabled = !r.log.length;
+  $('uploadStrava').disabled = !r.log.length || stravaBusy;
 
   $('gearNum').textContent = state.gear + 1;
   $('gearRatio').textContent = GEARS[state.gear].toFixed(2);
@@ -339,7 +343,7 @@ function persist() {
   try {
     const r = state.ride;
     localStorage.setItem(STORE, JSON.stringify({ elapsed: r.elapsed, distance: r.distance, energy: r.energy,
-      powerSum: r.powerSum, samples: r.samples, log: r.log, saved: r.saved }));
+      powerSum: r.powerSum, samples: r.samples, log: r.log, saved: r.saved, stravaUrl: r.stravaUrl || null }));
   } catch { /* spazio esaurito o storage non disponibile */ }
 }
 function restore() {
@@ -452,6 +456,67 @@ $('gameCanvas').addEventListener('pointerdown', (e) => {
   const r = e.currentTarget.getBoundingClientRect();
   activeGame.input(e.clientX - r.left < r.width / 2 ? -1 : +1);
 });
+// ---------- Strava ----------
+const strava = new Strava();
+let stravaBusy = false;
+function stravaMsg(text, html = false) { $('stravaMsg')[html ? 'innerHTML' : 'textContent'] = text; }
+function renderStrava() {
+  $('stravaSite').textContent = location.origin;
+  $('stravaDomain').textContent = location.hostname;
+  $('stravaId').value = strava.cfg.clientId || '';
+  $('stravaSecret').value = strava.cfg.clientSecret || '';
+  $('stravaSetup').hidden = strava.connected;
+  $('stravaLinked').hidden = !strava.connected;
+  $('stravaAuto').checked = !!strava.cfg.auto;
+  $('uploadStrava').hidden = !strava.connected;
+  setStatus('stravaStatus', strava.connected ? `Collegato${strava.athlete ? ` · ${strava.athlete}` : ''}` : 'Non collegato', strava.connected);
+}
+$('stravaConnect').addEventListener('click', () => {
+  const id = $('stravaId').value.trim(); const secret = $('stravaSecret').value.trim();
+  if (!/^\d+$/.test(id) || secret.length < 20) { stravaMsg('Controlla Client ID (solo numeri) e Client Secret (stringa lunga).'); return; }
+  strava.setCredentials(id, secret);
+  persist();
+  strava.authorize();
+});
+$('stravaDisconnect').addEventListener('click', () => { strava.disconnect(); renderStrava(); stravaMsg('Strava scollegato.'); });
+$('stravaAuto').addEventListener('change', (e) => { strava.cfg.auto = e.target.checked; strava.save(); });
+
+async function uploadToStrava() {
+  const r = state.ride;
+  if (!r.log.length || stravaBusy) return;
+  if (r.stravaUrl) { stravaMsg(`Già caricato: <a href="${r.stravaUrl}" target="_blank" rel="noopener">apri su Strava</a>`, true); return; }
+  stravaBusy = true; render();
+  try {
+    const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
+    const res = await strava.upload(fitFile(), {
+      name: `Rullo · ${fmtTime(r.elapsed)} · ${avgW} W`,
+      description: `Allenamento sul rullo con Ride Freedom. Potenza media ${avgW} W, ${Math.round(r.energy)} kJ, ${(r.distance / 1000).toFixed(1)} km.`,
+      externalId: `ridefreedom-${r.log[0].t}`,
+    }, (m) => stravaMsg(m));
+    r.saved = true;
+    if (res.url) { r.stravaUrl = res.url; stravaMsg(`✅ ${res.message} <a href="${res.url}" target="_blank" rel="noopener">Apri su Strava</a>`, true); }
+    else stravaMsg(res.message);
+    persist();
+    log(res.message);
+  } catch (err) {
+    stravaMsg(`Errore Strava: ${err.message}. Il file .FIT resta disponibile con "Salva .FIT".`);
+    log(`Errore Strava: ${err.message}`);
+  } finally { stravaBusy = false; render(); }
+}
+$('uploadStrava').addEventListener('click', uploadToStrava);
+$('finishRide').addEventListener('click', () => {
+  if (state.ride.running) $('startStop').click(); // pausa
+  if (strava.connected && strava.cfg.auto) uploadToStrava();
+  else if (strava.connected) stravaMsg('Allenamento terminato. Premi "Carica su Strava" o "Salva .FIT".');
+  else stravaMsg('Allenamento terminato. Salvalo con "Salva .FIT", oppure collega Strava qui sotto per caricarlo in automatico.');
+  $('stravaBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+strava.handleRedirect().then((res) => {
+  if (res) { stravaMsg(res.message); log(res.message); }
+  renderStrava();
+}).catch((err) => { stravaMsg(`Errore collegamento Strava: ${err.message}`); renderStrava(); });
+renderStrava();
+
 restore();
 syncInputs();
 document.body.dataset.mode = state.mode;

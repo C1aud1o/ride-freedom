@@ -84,9 +84,32 @@
       <button id="reset">Azzera</button>
       <button id="saveFit" disabled>Salva .FIT</button>
       <button id="shareFit" disabled hidden>Condividi .FIT</button>
+      <button id="finishRide" class="finish" disabled>🏁 Termina</button>
+      <button id="uploadStrava" class="strava-btn" disabled hidden>Carica su Strava</button>
       <p class="hint fit-hint">Il file .FIT si carica su Garmin Connect da
         <a href="https://connect.garmin.com/modern/import-data" target="_blank" rel="noopener">connect.garmin.com → Importa dati</a>.
         Se Garmin Connect è collegato a Strava, l'attività arriva anche lì.</p>
+    </section>
+
+    <section class="strava" id="stravaBox">
+      <div class="strava-head"><b>Strava</b><span id="stravaStatus" class="status">Non collegato</span></div>
+      <div id="stravaSetup">
+        <p class="hint">Per uso personale, senza server. Si fa una volta sola:</p>
+        <ol class="hint strava-steps">
+          <li>Apri <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a> e crea un'applicazione
+            (nome a piacere, categoria "Training", sito <code id="stravaSite"></code>).</li>
+          <li>In <b>Authorization Callback Domain</b> scrivi <code id="stravaDomain"></code>.</li>
+          <li>Copia qui <b>Client ID</b> e <b>Client Secret</b>: restano solo su questo telefono.</li>
+        </ol>
+        <label>Client ID <input id="stravaId" inputmode="numeric" autocomplete="off"></label>
+        <label>Client Secret <input id="stravaSecret" type="password" autocomplete="off"></label>
+        <button id="stravaConnect" class="strava-btn">Collega Strava</button>
+      </div>
+      <div id="stravaLinked" hidden>
+        <label class="check"><input type="checkbox" id="stravaAuto"> Carica automaticamente quando premi 🏁 Termina</label>
+        <button id="stravaDisconnect" class="small">Scollega</button>
+      </div>
+      <p id="stravaMsg" class="hint"></p>
     </section>
 
     <details>
