@@ -35,7 +35,8 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 
 ## Pubblicazione
 
-Il workflow `.github/workflows/pages.yml` pubblica il sito su GitHub Pages a ogni push su `main`
+Il sito è pubblicato su **https://mta-world.com** (file `CNAME`). Il workflow `.github/workflows/pages.yml`
+pubblica su GitHub Pages a ogni push su `main` (o sul branch di sviluppo)
 (abilita *Settings → Pages → Source: GitHub Actions*). In locale:
 
 ```sh
