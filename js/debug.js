@@ -55,6 +55,11 @@ export class SensorDebug extends EventTarget {
     if (dir === 'rx') {
       this.lastRaw[name] = { hex: h, at: Date.now() };
       this.counts[name] = (this.counts[name] || 0) + 1;
+      // pacchetti identici al precedente dello stesso tipo: contati ma non ripetuti nel log
+      const key = `${name}|${h.slice(0, 2)}`;
+      this.prev ||= {};
+      if (this.prev[key] === h) { this.repeats = (this.repeats || 0) + 1; this.changed(); return; }
+      this.prev[key] = h;
     }
     this.log(`${dir === 'rx' ? '←' : '→'} ${name}: ${h}`);
   }
@@ -94,10 +99,10 @@ export class SensorDebug extends EventTarget {
     if (Object.keys(this.values).length) out.push(`Valori: ${JSON.stringify(this.values)}`);
     if (Object.keys(this.extra).length) out.push(`Extra: ${JSON.stringify(this.extra)}`);
     for (const [k, v] of Object.entries(this.lastRaw)) out.push(`Ultimo ${k} (${this.counts[k]} pacchetti): ${v.hex}`);
-    out.push('--- log ---', ...this.lines);
+    out.push(`--- log (pacchetti ripetuti identici omessi: ${this.repeats || 0}) ---`, ...this.lines);
     return out.join('\n');
   }
 
-  clear() { this.lines = []; this.counts = {}; this.lastRaw = {}; this.changed(); }
+  clear() { this.lines = []; this.counts = {}; this.lastRaw = {}; this.prev = {}; this.repeats = 0; this.changed(); }
   changed() { this.dispatchEvent(new Event('change')); }
 }

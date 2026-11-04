@@ -1,4 +1,4 @@
-const CACHE = 'ride-freedom-v3';
+const CACHE = 'ride-freedom-v4';
 const ASSETS = ['./', 'index.html', 'css/style.css', 'js/app.js', 'js/ftms.js', 'js/click.js', 'js/gears.js', 'js/hr.js', 'js/fit.js', 'js/debug.js', 'js/debugview.js', 'manifest.webmanifest', 'icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
