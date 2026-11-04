@@ -3,6 +3,7 @@ import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit } from './fit.js';
+import { setupDebug } from './debugview.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
@@ -58,6 +59,7 @@ $('connectTrainer').addEventListener('click', async () => {
   } catch (err) {
     setStatus('trainerStatus', 'Non connesso');
     log(`Errore rullo: ${err.message}`);
+    trainer.dbg.log(`Errore: ${err.message}`);
   }
 });
 
@@ -94,6 +96,7 @@ $('connectClick').addEventListener('click', async () => {
   } catch (err) {
     setStatus('clickStatus', 'Non connesso');
     log(`Errore Click: ${err.message}`);
+    click.dbg.log(`Errore: ${err.message}`);
   }
 });
 click.addEventListener('disconnected', () => {
@@ -114,6 +117,7 @@ $('connectHr').addEventListener('click', async () => {
   } catch (err) {
     setStatus('hrStatus', 'Non connesso');
     log(`Errore cardio: ${err.message}`);
+    hrm.dbg.log(`Errore: ${err.message}`);
   }
 });
 hrm.addEventListener('hr', (e) => { state.data.hr = e.detail; render(); });
@@ -352,6 +356,7 @@ try {
   $('shareFit').hidden = !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
 } catch { /* non supportato */ }
 
+setupDebug({ trainer, click, hrm, appLog: () => $('log').textContent });
 restore();
 syncInputs();
 document.body.dataset.mode = state.mode;

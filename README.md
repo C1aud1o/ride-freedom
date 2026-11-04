@@ -21,6 +21,9 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 - **Registrazione in file .FIT** (formato Garmin), da importare in Garmin Connect
   (connect.garmin.com → Importa dati) e, a cascata, Strava. La sessione resta salvata nel telefono
   anche se ricarichi la pagina.
+- **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
+  valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
+  assegnarli a cambiata +/−.
 - **Cardio**: fascia Bluetooth o orologio Garmin con "Trasmetti frequenza cardiaca" attivo.
 
 ## Requisiti

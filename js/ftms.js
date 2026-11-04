@@ -1,6 +1,8 @@
 // Gestione Bluetooth del rullo: FTMS (Fitness Machine Service) con fallback
 // su Cycling Power / Cycling Speed & Cadence. Il Van Rysel D100 espone FTMS.
 
+import { SensorDebug } from './debug.js';
+
 const FTMS = 0x1826;
 const CPS = 0x1818;
 const CSC = 0x1816;
@@ -42,6 +44,7 @@ export class Trainer extends EventTarget {
     this.ranges = { power: [0, 600, 1], resistance: [0, 25.5, 0.1] };
     this.crank = null; // stato per calcolo cadenza da CPS/CSC
     this.wheel = null;
+    this.dbg = new SensorDebug('trainer', 'Rullo');
   }
 
   get connected() { return !!this.device?.gatt?.connected; }
@@ -52,7 +55,7 @@ export class Trainer extends EventTarget {
       filters: [{ services: [FTMS] }, { services: [CPS] }, { namePrefix: 'D100' }, { namePrefix: 'VAN RYSEL' }, { namePrefix: 'Van Rysel' }],
       optionalServices: [FTMS, CPS, CSC, HRS],
     });
-    this.device.addEventListener('gattserverdisconnected', () => this.emit('disconnected'));
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.emit('disconnected'); });
     await this.setup();
     return this.device.name || 'Rullo';
   }
@@ -63,7 +66,9 @@ export class Trainer extends EventTarget {
   }
 
   async setup() {
+    this.dbg.setStatus('Connessione…');
     const server = await this.device.gatt.connect();
+    await this.dbg.describe(this.device, server);
     this.cp = null;
     let ftms = null;
     try { ftms = await server.getPrimaryService(FTMS); } catch { /* niente FTMS */ }
@@ -71,22 +76,25 @@ export class Trainer extends EventTarget {
     if (ftms) {
       await this.readFeatures(ftms);
       const ibd = await ftms.getCharacteristic(CH.indoorBikeData);
-      ibd.addEventListener('characteristicvaluechanged', (e) => this.onIndoorBikeData(e.target.value));
+      ibd.addEventListener('characteristicvaluechanged', (e) => { this.dbg.raw('rx', CH.indoorBikeData, e.target.value); this.onIndoorBikeData(e.target.value); });
       await ibd.startNotifications();
 
       try {
         this.cp = await ftms.getCharacteristic(CH.controlPoint);
-        this.cp.addEventListener('characteristicvaluechanged', (e) => this.onControlPointResponse(e.target.value));
+        this.cp.addEventListener('characteristicvaluechanged', (e) => { this.dbg.raw('rx', CH.controlPoint, e.target.value); this.onControlPointResponse(e.target.value); });
         await this.cp.startNotifications();
         await this.command([OP.requestControl]);
         await this.command([OP.startResume]).catch(() => {});
       } catch (err) {
         this.cp = null;
         this.emit('log', `Controllo resistenza non disponibile: ${err.message}`);
+        this.dbg.log(`Control point non disponibile: ${err.message}`);
       }
     } else {
       await this.setupFallback(server);
     }
+    this.dbg.setStatus(ftms ? `Connesso (FTMS${this.cp ? ', controllabile' : ', sola lettura'})` : 'Connesso (senza FTMS)');
+    this.dbg.extra = { features: this.features, ranges: this.ranges };
     this.emit('connected', { name: this.device.name, ftms: !!ftms, features: this.features });
   }
 
@@ -116,13 +124,13 @@ export class Trainer extends EventTarget {
     try {
       const cps = await server.getPrimaryService(CPS);
       const c = await cps.getCharacteristic(CH.cpMeasurement);
-      c.addEventListener('characteristicvaluechanged', (e) => this.onCyclingPower(e.target.value));
+      c.addEventListener('characteristicvaluechanged', (e) => { this.dbg.raw('rx', CH.cpMeasurement, e.target.value); this.onCyclingPower(e.target.value); });
       await c.startNotifications();
     } catch { /* assente */ }
     try {
       const csc = await server.getPrimaryService(CSC);
       const c = await csc.getCharacteristic(CH.cscMeasurement);
-      c.addEventListener('characteristicvaluechanged', (e) => this.onCsc(e.target.value));
+      c.addEventListener('characteristicvaluechanged', (e) => { this.dbg.raw('rx', CH.cscMeasurement, e.target.value); this.onCsc(e.target.value); });
       await c.startNotifications();
     } catch { /* assente */ }
     try {
@@ -130,6 +138,7 @@ export class Trainer extends EventTarget {
       const c = await hrs.getCharacteristic(CH.hrMeasurement);
       c.addEventListener('characteristicvaluechanged', (e) => {
         const v = e.target.value;
+        this.dbg.raw('rx', CH.hrMeasurement, v);
         const hr = v.getUint8(0) & 1 ? v.getUint16(1, true) : v.getUint8(1);
         this.emit('data', { hr });
       });
@@ -157,6 +166,7 @@ export class Trainer extends EventTarget {
     if (flags & 0x0080) o += 2; // potenza media
     if (flags & 0x0100) o += 5; // energia
     if (flags & 0x0200) { d.hr = v.getUint8(o); o += 1; }
+    this.dbg.setValues(d);
     this.emit('data', d);
   }
 
@@ -176,6 +186,7 @@ export class Trainer extends EventTarget {
       const c = this.calcRate('crank', revs, t, 1024, 0xffff);
       if (c != null) d.cadence = c * 60;
     }
+    this.dbg.setValues(d);
     this.emit('data', d);
   }
 
@@ -193,6 +204,7 @@ export class Trainer extends EventTarget {
       const c = this.calcRate('crank', revs, t, 1024, 0xffff);
       if (c != null) d.cadence = c * 60;
     }
+    this.dbg.setValues(d);
     this.emit('data', d);
   }
 
@@ -217,6 +229,7 @@ export class Trainer extends EventTarget {
     if (op !== p.op) return;
     this.pending = null;
     clearTimeout(p.timer);
+    this.dbg.log(`Risposta comando 0x${op.toString(16)}: ${RESULT[result] || result}`);
     if (result === 1) p.resolve();
     else p.reject(new Error(`Comando 0x${op.toString(16)}: ${RESULT[result] || result}`));
   }
@@ -228,6 +241,7 @@ export class Trainer extends EventTarget {
       const op = bytes[0];
       const timer = setTimeout(() => { this.pending = null; resolve(); }, 1500); // alcuni rulli non rispondono sempre
       this.pending = { op, resolve, reject, timer };
+      this.dbg.raw('tx', CH.controlPoint, new Uint8Array(bytes));
       this.cp.writeValueWithResponse(new Uint8Array(bytes)).catch((err) => {
         clearTimeout(timer); this.pending = null; reject(err);
       });

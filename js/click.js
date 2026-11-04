@@ -1,87 +1,193 @@
-// Supporto SPERIMENTALE per il telecomando Zwift Click (cambiate +/-).
-// Protocollo ricostruito da progetti open source: handshake "RideOn" e
-// notifiche protobuf con lo stato dei pulsanti (0 = premuto).
-// Se il firmware del Click richiede la cifratura, i tasti potrebbero non arrivare:
-// in quel caso usa i pulsanti a schermo o la tastiera.
+// Supporto SPERIMENTALE per i telecomandi Zwift (Click v1, Click v2 / Ride, Play).
+// Protocollo ricostruito da progetti open source: handshake "RideOn", poi messaggi
+// [tipo][protobuf]. I pulsanti sono "attivi bassi": 0 = premuto.
+//  0x37 Click v1     campo 1 = +, campo 2 = −
+//  0x23 Ride/Click v2 campo 1 = maschera di bit (bit a 0 = premuto)
+//  0x07 Play          campi 1..7 = singoli pulsanti
+//  0x19 batteria, 0x15 keep-alive
+
+import { SensorDebug, hex } from './debug.js';
 
 const SERVICES = ['00000001-19ca-4651-86e5-fa29dcdd09d1', 0xfc82];
 const ASYNC = '00000002-19ca-4651-86e5-fa29dcdd09d1';
 const SYNC_RX = '00000003-19ca-4651-86e5-fa29dcdd09d1';
 const SYNC_TX = '00000004-19ca-4651-86e5-fa29dcdd09d1';
-const RIDE_ON = [0x52, 0x69, 0x64, 0x65, 0x4f, 0x6e];
-const CLICK_MSG = 0x37;
+export const RIDE_ON = [0x52, 0x69, 0x64, 0x65, 0x4f, 0x6e];
+
+const MSG = { CLICK: 0x37, RIDE: 0x23, PLAY: 0x07, BATTERY: 0x19, KEEPALIVE: 0x15 };
+
+// Nomi noti dei bit del protocollo "Ride"
+export const RIDE_BITS = {
+  0: 'Sinistra', 1: 'Su', 2: 'Destra', 3: 'Giù', 4: 'A', 5: 'B', 6: 'Y', 7: 'X', 8: 'Z',
+  9: 'Cambio su (sx)', 10: 'Cambio giù (sx)', 11: 'Power-up (sx)', 12: 'On/Off (sx)',
+  13: 'Cambio su (dx)', 14: 'Cambio giù (dx)', 16: 'Power-up (dx)', 17: 'On/Off (dx)',
+};
+const PLAY_FIELDS = { 1: 'Pad destro', 2: 'Y/Su', 3: 'Z/Sinistra', 4: 'A/Destra', 5: 'B/Giù', 6: 'Leva cambio', 7: 'Power' };
+
+// Assegnazione predefinita dei pulsanti alle cambiate (modificabile dalla pagina di debug)
+const DEFAULT_MAP = {
+  'v1:1': +1, 'v1:2': -1,
+  'ride:1': +1, 'ride:3': -1, 'ride:9': +1, 'ride:10': -1, 'ride:13': +1, 'ride:14': -1,
+  'play:2': +1, 'play:5': -1,
+};
+
+export function buttonLabel(id) {
+  const [proto, n] = id.split(':');
+  if (proto === 'v1') return n === '1' ? 'Click +' : n === '2' ? 'Click −' : `Click campo ${n}`;
+  if (proto === 'ride') return `${RIDE_BITS[n] || 'Bit'} (bit ${n})`;
+  if (proto === 'play') return `${PLAY_FIELDS[n] || 'Campo'} (campo ${n})`;
+  return id;
+}
 
 export class ZwiftClick extends EventTarget {
   constructor() {
     super();
     this.device = null;
-    this.state = { plus: false, minus: false };
+    this.rx = null;
+    this.pressed = new Set();
+    this.seenHigh = 0; // bit visti almeno una volta a 1 (rilasciati) nel protocollo Ride
+    this.dbg = new SensorDebug('click', 'Zwift Click');
+    this.dbg.extra = { pressed: [], lastPressed: null, battery: null, protocol: null };
+    try { this.map = { ...DEFAULT_MAP, ...JSON.parse(localStorage.getItem('clickMap') || '{}') }; } catch { this.map = { ...DEFAULT_MAP }; }
   }
+
+  get connected() { return !!this.device?.gatt?.connected; }
 
   async connect() {
     this.device = await navigator.bluetooth.requestDevice({
       filters: [{ namePrefix: 'Zwift' }],
-      optionalServices: SERVICES,
+      optionalServices: [...SERVICES, 'battery_service', 'device_information'],
     });
-    this.device.addEventListener('gattserverdisconnected', () => this.emit('disconnected'));
+    this.dbg.setStatus('Connessione…');
+    this.device.addEventListener('gattserverdisconnected', () => {
+      this.dbg.setStatus('Disconnesso');
+      this.emit('disconnected');
+    });
     const server = await this.device.gatt.connect();
+    await this.dbg.describe(this.device, server);
 
     let service = null;
     for (const uuid of SERVICES) {
-      try { service = await server.getPrimaryService(uuid); break; } catch { /* prova il prossimo */ }
+      try { service = await server.getPrimaryService(uuid); this.dbg.log(`Servizio Zwift trovato: ${service.uuid}`); break; } catch { /* prova il prossimo */ }
     }
     if (!service) throw new Error('Servizio Zwift non trovato sul dispositivo');
 
-    const onValue = (e) => this.onMessage(new Uint8Array(e.target.value.buffer));
     for (const uuid of [ASYNC, SYNC_TX]) {
       try {
         const c = await service.getCharacteristic(uuid);
-        c.addEventListener('characteristicvaluechanged', onValue);
+        c.addEventListener('characteristicvaluechanged', (e) => this.onMessage(uuid, e.target.value));
         await c.startNotifications();
-      } catch { /* opzionale */ }
+        this.dbg.log(`Notifiche attive su ${uuid.slice(0, 8)}`);
+      } catch (err) {
+        this.dbg.log(`Notifiche NON attive su ${uuid.slice(0, 8)}: ${err.message}`);
+      }
     }
-    const rx = await service.getCharacteristic(SYNC_RX);
-    await rx.writeValueWithResponse(new Uint8Array(RIDE_ON));
+    this.rx = await service.getCharacteristic(SYNC_RX);
+    await this.write(RIDE_ON);
+    this.dbg.setStatus('Connesso, handshake inviato');
     return this.device.name || 'Zwift Click';
   }
 
-  disconnect() {
-    if (this.device?.gatt?.connected) this.device.gatt.disconnect();
+  async write(bytes) {
+    if (!this.rx) throw new Error('Click non connesso');
+    const data = new Uint8Array(bytes);
+    this.dbg.raw('tx', SYNC_RX, data);
+    await this.rx.writeValueWithResponse(data);
   }
 
-  onMessage(bytes) {
-    if (bytes.length < 2 || bytes[0] !== CLICK_MSG) return;
-    const fields = parseVarintFields(bytes.subarray(1));
-    const plus = fields[1] === 0;
-    const minus = fields[2] === 0;
-    if (plus && !this.state.plus) this.emit('shift', +1);
-    if (minus && !this.state.minus) this.emit('shift', -1);
-    this.state = { plus, minus };
+  disconnect() { if (this.connected) this.device.gatt.disconnect(); }
+
+  onMessage(uuid, value) {
+    this.dbg.raw('rx', uuid, value);
+    const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    if (bytes.length >= 6 && String.fromCharCode(...bytes.subarray(0, 6)) === 'RideOn') {
+      this.dbg.log(`Risposta handshake "RideOn" (${bytes.length} byte${bytes.length > 6 ? ': richiede probabilmente cifratura → ' + hex(bytes.subarray(6)) : ''})`);
+      this.dbg.extra.handshake = bytes.length > 6 ? 'RideOn + dati' : 'RideOn';
+      return;
+    }
+    const type = bytes[0];
+    const fields = parseFields(bytes.subarray(1));
+    let pressed = null;
+
+    if (type === MSG.CLICK) {
+      this.dbg.extra.protocol = 'Click v1 (0x37)';
+      pressed = new Set();
+      for (const [f, v] of Object.entries(fields)) if (v === 0) pressed.add(`v1:${f}`);
+    } else if (type === MSG.RIDE) {
+      this.dbg.extra.protocol = 'Ride / Click v2 (0x23)';
+      const mask = fields[1];
+      if (typeof mask === 'number') {
+        this.seenHigh |= mask;
+        pressed = new Set();
+        for (let bit = 0; bit < 32; bit++) {
+          if ((this.seenHigh >>> bit) & 1 && !((mask >>> bit) & 1)) pressed.add(`ride:${bit}`);
+        }
+        this.dbg.extra.mask = `0x${(mask >>> 0).toString(16)} (${(mask >>> 0).toString(2).padStart(18, '0')})`;
+      }
+    } else if (type === MSG.PLAY) {
+      this.dbg.extra.protocol = 'Play (0x07)';
+      pressed = new Set();
+      for (const [f, v] of Object.entries(fields)) if (Number(f) <= 7 && v === 0) pressed.add(`play:${f}`);
+    } else if (type === MSG.BATTERY) {
+      this.dbg.extra.battery = fields[1] ?? null;
+    } else if (type === MSG.KEEPALIVE) {
+      // nulla da fare
+    } else {
+      this.dbg.log(`Tipo messaggio sconosciuto 0x${type.toString(16)} campi ${JSON.stringify(fields)}`);
+    }
+    if (Object.keys(fields).length) this.dbg.extra.fields = fields;
+
+    if (pressed) {
+      for (const id of pressed) {
+        if (!this.pressed.has(id)) {
+          this.dbg.extra.lastPressed = id;
+          const dir = this.map[id];
+          this.dbg.log(`Premuto ${buttonLabel(id)}${dir ? ` → cambiata ${dir > 0 ? '+' : '−'}` : ' (non assegnato)'}`);
+          if (dir) this.emit('shift', dir);
+        }
+      }
+      this.pressed = pressed;
+      this.dbg.extra.pressed = [...pressed];
+    }
+    this.dbg.changed();
+  }
+
+  assign(id, dir) {
+    for (const k of Object.keys(this.map)) if (this.map[k] === dir && k.split(':')[0] === id.split(':')[0]) delete this.map[k];
+    if (dir) this.map[id] = dir; else delete this.map[id];
+    localStorage.setItem('clickMap', JSON.stringify(this.map));
+    this.dbg.log(`${buttonLabel(id)} assegnato a ${dir > 0 ? '+' : dir < 0 ? '−' : 'nessuna azione'}`);
+  }
+
+  resetMap() {
+    this.map = { ...DEFAULT_MAP };
+    localStorage.removeItem('clickMap');
+    this.dbg.log('Assegnazioni pulsanti ripristinate');
   }
 
   emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
 }
 
-// Decodifica minimale protobuf: solo campi varint (wire type 0).
-function parseVarintFields(buf) {
+// Decodifica protobuf minimale: varint (wire 0) come numeri, length-delimited (wire 2) come hex.
+export function parseFields(buf) {
   const out = {};
   let i = 0;
   const readVarint = () => {
-    let shift = 0; let val = 0;
+    let val = 0; let mul = 1;
     while (i < buf.length) {
       const b = buf[i++];
-      val |= (b & 0x7f) << shift;
+      val += (b & 0x7f) * mul;
       if (!(b & 0x80)) break;
-      shift += 7;
+      mul *= 128;
     }
     return val;
   };
   while (i < buf.length) {
     const key = readVarint();
-    const field = key >> 3; const wire = key & 7;
+    const field = Math.floor(key / 8); const wire = key & 7;
     if (wire === 0) out[field] = readVarint();
-    else if (wire === 2) { const len = readVarint(); i += len; }
-    else break;
+    else if (wire === 2) { const len = readVarint(); out[field] = hex(buf.subarray(i, i + len)); i += len; }
+    else if (wire === 5) { i += 4; } else if (wire === 1) { i += 8; } else break;
   }
   return out;
 }
