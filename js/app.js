@@ -4,6 +4,7 @@ import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit } from './fit.js';
 import { setupDebug } from './debugview.js';
+import { Game } from './game.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
@@ -104,7 +105,7 @@ click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
   $('connectClick').textContent = 'Connetti Zwift Click';
 });
-click.addEventListener('shift', (e) => shift(e.detail));
+click.addEventListener('shift', (e) => (game?.active ? game.input(e.detail) : shift(e.detail)));
 
 $('connectHr').addEventListener('click', async () => {
   if (hrm.connected) { hrm.disconnect(); return; }
@@ -162,6 +163,12 @@ $('down').addEventListener('click', () => step(-1));
 // Tastiera / telecomandi Bluetooth che inviano frecce o pagina su/giù
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
+  if (game?.active) {
+    if (['ArrowRight', 'ArrowUp', 'PageUp', '+', '='].includes(e.key)) { e.preventDefault(); game.input(+1); }
+    if (['ArrowLeft', 'ArrowDown', 'PageDown', '-'].includes(e.key)) { e.preventDefault(); game.input(-1); }
+    if (e.key === 'Escape') closeGame();
+    return;
+  }
   if (['ArrowUp', 'ArrowRight', 'PageUp', '+', '='].includes(e.key)) { e.preventDefault(); step(+1); }
   if (['ArrowDown', 'ArrowLeft', 'PageDown', '-'].includes(e.key)) { e.preventDefault(); step(-1); }
 });
@@ -376,6 +383,42 @@ try {
 } catch { /* non supportato */ }
 
 setupDebug({ trainer, click, hrm, appLog: () => $('log').textContent });
+
+// ---------- Gioco ----------
+let gradeBeforeGame = 0;
+const game = new Game($('gameCanvas'), {
+  connected: () => trainer.connected,
+  speedKmh: () => (state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : state.data.speed || 0),
+  stats: () => ({ power: Math.round(state.data.power || 0), gear: state.mode === 'gears' ? state.gear + 1 : null }),
+  setGrade: (g) => {
+    state.grade = g == null ? gradeBeforeGame : Math.max(-10, Math.min(15, g));
+    syncInputs(); render(); applyMode(true);
+  },
+});
+function openGame() {
+  gradeBeforeGame = state.grade;
+  // il gioco controlla la pendenza: serve la modalità Cambio o Pendenza
+  if (state.mode !== 'gears' && state.mode !== 'sim') {
+    document.querySelector('[name=mode][value=gears]').checked = true;
+    state.mode = 'gears'; document.body.dataset.mode = 'gears'; state.lastSent = null;
+  }
+  if (trainer.connected && !state.ride.running) $('startStop').click();
+  $('gamePanel').hidden = false;
+  document.body.classList.add('game-open');
+  requestWakeLock();
+  game.start();
+}
+function closeGame() {
+  game.stop();
+  $('gamePanel').hidden = true;
+  document.body.classList.remove('game-open');
+}
+$('openGame').addEventListener('click', openGame);
+$('closeGame').addEventListener('click', closeGame);
+$('gameCanvas').addEventListener('pointerdown', (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  game.input(e.clientX - r.left < r.width / 2 ? -1 : +1);
+});
 restore();
 syncInputs();
 document.body.dataset.mode = state.mode;

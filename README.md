@@ -21,6 +21,10 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 - **Registrazione in file .FIT** (formato Garmin), da importare in Garmin Connect
   (connect.garmin.com → Importa dati) e, a cascata, Strava. La sessione resta salvata nel telefono
   anche se ricarichi la pagina.
+- **Gioco "Turbo Pedali"** (pulsante *🎮 Gioca*): corsa arcade originale. La velocità è quella delle
+  tue pedalate, i tasti +/− del Click cambiano corsia (o tocca i lati dello schermo / frecce), e le
+  salite del percorso (fino al 6%) vengono inviate al rullo come pendenza reale. Monete, ostacoli,
+  rivali da sorpassare e turbo ×2. Senza rullo parte in modalità demo.
 - **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
   valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
   assegnarli a cambiata +/−.

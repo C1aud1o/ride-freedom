@@ -12,7 +12,7 @@
 </head>
 <body data-mode="gears">
   <header>
-    <div class="topbar"><h1>Ride Freedom</h1><button id="openDebug" class="small">Debug</button></div>
+    <div class="topbar"><h1>Ride Freedom</h1><span class="top-actions"><button id="openGame" class="primary small">🎮 Gioca</button><button id="openDebug" class="small">Debug</button></span></div>
     <div class="conn">
       <div class="conn-row">
         <button id="connectTrainer" class="primary">Connetti rullo</button>
@@ -94,6 +94,15 @@
       <pre id="log"></pre>
     </details>
   </main>
+
+  <div id="gamePanel" class="game-panel" hidden>
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-bar">
+      <strong>Turbo Pedali</strong>
+      <span class="game-help">+/− del Click o tocca i lati: cambi corsia</span>
+      <button id="closeGame" class="small">Esci</button>
+    </div>
+  </div>
 
   <div id="debugPanel" class="debug-panel" hidden>
     <div class="debug-head">
