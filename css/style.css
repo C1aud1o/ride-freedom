@@ -1,0 +1,77 @@
+:root {
+  --bg: #0f1115; --panel: #191c23; --line: #2a2f3a; --text: #eef1f6; --muted: #8b93a3;
+  --accent: #fc6719; --ok: #33c27f; --warn: #f2b84b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  max-width: 640px; margin: 0 auto;
+  -webkit-tap-highlight-color: transparent;
+}
+h1 { font-size: 1.1rem; margin: 0 0 10px; letter-spacing: .02em; }
+button {
+  font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 14px; cursor: pointer; touch-action: manipulation;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button:disabled { opacity: .4; }
+.conn { display: grid; gap: 8px; }
+.conn-row { display: flex; align-items: center; gap: 10px; }
+.conn-row button { flex: 0 0 auto; min-width: 180px; }
+.status { color: var(--muted); font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status.ok { color: var(--ok); }
+.warn { color: var(--warn); font-size: .9rem; }
+
+main { display: grid; gap: 14px; margin-top: 14px; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.metric { background: var(--panel); border-radius: 12px; padding: 10px; text-align: center; }
+.metric span { display: block; font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.metric small { color: var(--muted); }
+.metric.big { grid-column: 1 / -1; }
+.metric.big span { font-size: 4rem; line-height: 1; color: var(--accent); }
+
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--panel); border-radius: 12px; padding: 4px; }
+.modes input { position: absolute; opacity: 0; pointer-events: none; }
+.modes span { display: block; text-align: center; padding: 8px 2px; border-radius: 9px; font-size: .9rem; color: var(--muted); }
+.modes input:checked + span { background: var(--line); color: var(--text); font-weight: 600; }
+.modes input:focus-visible + span { outline: 2px solid var(--accent); }
+
+.control { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; align-items: stretch; }
+.shift { font-size: 3rem; font-weight: 300; min-height: 130px; border-radius: 16px; }
+.shift:active { background: var(--accent); }
+.control-display { background: var(--panel); border-radius: 16px; padding: 10px; text-align: center; display: grid; align-content: center; gap: 4px; }
+.control-value { font-size: 3.2rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.control-unit, .target { color: var(--muted); font-size: .8rem; }
+.gearbar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.gearbar div { height: 100%; width: 50%; background: var(--accent); transition: width .15s; }
+
+.settings { display: grid; gap: 12px; background: var(--panel); border-radius: 12px; padding: 12px; }
+.settings label { display: grid; gap: 6px; font-size: .9rem; color: var(--muted); }
+.settings label b { color: var(--text); }
+.settings label.inline { grid-template-columns: 1fr 90px; align-items: center; }
+.settings input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+.settings input[type=number] { font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; width: 100%; }
+.hint { margin: 0; font-size: .8rem; color: var(--muted); }
+
+body:not([data-mode=gears]) .only-gears:not(.only-sim),
+body:not([data-mode=erg]) .only-erg,
+body:not([data-mode=resistance]) .only-resistance,
+body:not([data-mode=gears]):not([data-mode=sim]) .only-sim { display: none; }
+
+.ride { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+.ride div { background: var(--panel); border-radius: 10px; padding: 8px 4px; }
+.ride small { display: block; color: var(--muted); font-size: .75rem; }
+.ride span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ride button { grid-column: span 2; }
+
+details { color: var(--muted); font-size: .85rem; }
+pre { white-space: pre-wrap; max-height: 180px; overflow: auto; background: var(--panel); padding: 8px; border-radius: 8px; }
+
+@media (max-width: 380px) {
+  .conn-row button { min-width: 150px; }
+  .metric.big span { font-size: 3.2rem; }
+  .shift { min-height: 110px; }
+}
