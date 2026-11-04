@@ -155,9 +155,11 @@ body.game-open { overflow: hidden; }
 .strava label.check { display: flex; align-items: center; gap: 8px; color: var(--text); }
 .strava-steps { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .strava code { background: var(--bg); padding: 1px 5px; border-radius: 4px; color: var(--text); }
-#stravaSetup, #stravaLinked { display: grid; gap: 10px; }
-#stravaSetup[hidden], #stravaLinked[hidden] { display: none; }
+#stravaSetup, #stravaLinked, #stravaPublic { display: grid; gap: 10px; }
+#stravaSetup[hidden], #stravaLinked[hidden], #stravaPublic[hidden] { display: none; }
 .strava-btn { background: #fc4c02; border-color: #fc4c02; color: #fff; font-weight: 600; }
 .finish { font-weight: 600; }
 #stravaMsg:empty { display: none; }
 #stravaMsg a { color: #fc4c02; font-weight: 600; }
+.strava-connect { background: #fc4c02; border: 0; color: #fff; font-weight: 700; padding: 12px 16px; border-radius: 6px; }
+.strava .powered { margin: 0; font-size: .7rem; color: #fc4c02; text-align: right; letter-spacing: .03em; }

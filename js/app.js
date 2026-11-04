@@ -4,6 +4,7 @@ import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit } from './fit.js';
 import { Strava } from './strava.js';
+import { STRAVA_PROXY } from './config.js';
 import { setupDebug } from './debugview.js';
 import { Strike } from './games/strike.js';
 import { Racer } from './games/racer.js';
@@ -457,7 +458,7 @@ $('gameCanvas').addEventListener('pointerdown', (e) => {
   activeGame.input(e.clientX - r.left < r.width / 2 ? -1 : +1);
 });
 // ---------- Strava ----------
-const strava = new Strava();
+const strava = new Strava(STRAVA_PROXY);
 let stravaBusy = false;
 function stravaMsg(text, html = false) { $('stravaMsg')[html ? 'innerHTML' : 'textContent'] = text; }
 function renderStrava() {
@@ -465,7 +466,8 @@ function renderStrava() {
   $('stravaDomain').textContent = location.hostname;
   $('stravaId').value = strava.cfg.clientId || '';
   $('stravaSecret').value = strava.cfg.clientSecret || '';
-  $('stravaSetup').hidden = strava.connected;
+  $('stravaSetup').hidden = strava.connected || strava.publicMode;
+  $('stravaPublic').hidden = strava.connected || !strava.publicMode;
   $('stravaLinked').hidden = !strava.connected;
   $('stravaAuto').checked = !!strava.cfg.auto;
   $('uploadStrava').hidden = !strava.connected;
@@ -476,7 +478,11 @@ $('stravaConnect').addEventListener('click', () => {
   if (!/^\d+$/.test(id) || secret.length < 20) { stravaMsg('Controlla Client ID (solo numeri) e Client Secret (stringa lunga).'); return; }
   strava.setCredentials(id, secret);
   persist();
-  strava.authorize();
+  strava.authorize().catch((err) => stravaMsg(`Errore: ${err.message}`));
+});
+$('stravaPublicConnect').addEventListener('click', async () => {
+  persist();
+  try { await strava.authorize(); } catch (err) { stravaMsg(`Errore: ${err.message}`); }
 });
 $('stravaDisconnect').addEventListener('click', () => { strava.disconnect(); renderStrava(); stravaMsg('Strava scollegato.'); });
 $('stravaAuto').addEventListener('change', (e) => { strava.cfg.auto = e.target.checked; strava.save(); });

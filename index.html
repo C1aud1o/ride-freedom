@@ -93,6 +93,10 @@
 
     <section class="strava" id="stravaBox">
       <div class="strava-head"><b>Strava</b><span id="stravaStatus" class="status">Non collegato</span></div>
+      <div id="stravaPublic" hidden>
+        <p class="hint">Collega il tuo account: a fine allenamento, con 🏁 Termina, la pedalata arriva su Strava da sola.</p>
+        <button id="stravaPublicConnect" class="strava-connect">Connetti con Strava</button>
+      </div>
       <div id="stravaSetup">
         <p class="hint">Per uso personale, senza server. Si fa una volta sola:</p>
         <ol class="hint strava-steps">
@@ -110,6 +114,7 @@
         <button id="stravaDisconnect" class="small">Scollega</button>
       </div>
       <p id="stravaMsg" class="hint"></p>
+      <p class="powered">Compatibile con Strava</p>
     </section>
 
     <details>

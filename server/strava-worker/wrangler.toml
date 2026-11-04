@@ -1,0 +1,9 @@
+name = "ride-freedom-strava"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://mta-world.com,https://www.mta-world.com"
+# STRAVA_CLIENT_ID e STRAVA_CLIENT_SECRET si impostano come segreti:
+#   npx wrangler secret put STRAVA_CLIENT_ID
+#   npx wrangler secret put STRAVA_CLIENT_SECRET

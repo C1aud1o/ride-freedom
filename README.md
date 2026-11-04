@@ -30,9 +30,9 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 - **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
   valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
   assegnarli a cambiata +/−.
-- **Strava**: caricamento automatico con il tasto 🏁 *Termina*, senza server. Ognuno crea la propria
-  app su strava.com/settings/api (Authorization Callback Domain = il dominio del sito) e inserisce
-  Client ID e Client Secret, che restano solo nel suo browser.
+- **Strava**: caricamento automatico con il tasto 🏁 *Termina*. Per tutti gli utenti ("Connetti con
+  Strava" → Consenti) grazie a un piccolo ponte su Cloudflare Workers che custodisce il Client Secret:
+  vedi [docs/strava.md](docs/strava.md). Senza ponte resta la modalità personale (ognuno la propria app).
 - **Cardio**: fascia Bluetooth o orologio Garmin con "Trasmetti frequenza cardiaca" attivo.
 
 ## Requisiti
