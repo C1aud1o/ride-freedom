@@ -4,8 +4,9 @@ import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit } from './fit.js';
 import { setupDebug } from './debugview.js';
-import { Game } from './game.js';
-import { Shooter } from './shooter.js';
+import { Strike } from './games/strike.js';
+import { Racer } from './games/racer.js';
+import { GameAudio } from './games/audio.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
@@ -390,15 +391,16 @@ let gradeBeforeGame = 0;
 const gameHooks = {
   connected: () => trainer.connected,
   speedKmh: () => (state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : state.data.speed || 0),
-  stats: () => ({ power: Math.round(state.data.power || 0), gear: state.mode === 'gears' ? state.gear + 1 : null }),
+  stats: () => ({ power: Math.round(state.data.power || 0), cadence: Math.round(currentCadence()), gear: state.mode === 'gears' ? state.gear + 1 : null }),
   setGrade: (g) => {
     state.grade = g == null ? gradeBeforeGame : Math.max(-10, Math.min(15, g));
     syncInputs(); render(); applyMode(true);
   },
 };
+const gameAudio = new GameAudio();
 const games = {
-  racer: { game: new Game($('gameCanvas'), gameHooks), title: 'Turbo Pedali', help: '+ destra · − sinistra (o tocca i lati)' },
-  shooter: { game: new Shooter($('gameCanvas'), gameHooks), title: 'Pedal Strike', help: '+ salta · − bomba · più watt = più colpi' },
+  racer: { game: new Racer($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali', help: '+ destra · − sinistra · sprint = oggetto' },
+  shooter: { game: new Strike($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
 };
 let activeGame = null;
 
@@ -411,6 +413,7 @@ function openGame() {
 }
 function startGame(kind) {
   const g = games[kind];
+  gameAudio.ensure(); // l'audio va sbloccato da un tocco dell'utente
   gradeBeforeGame = state.grade;
   // il gioco controlla la pendenza: serve la modalità Cambio o Pendenza
   if (state.mode !== 'gears' && state.mode !== 'sim') {
@@ -434,6 +437,8 @@ function closeGame() {
 document.querySelectorAll('.game-card').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.game)));
 $('openGame').addEventListener('click', openGame);
 $('closeGame').addEventListener('click', closeGame);
+$('muteGame').textContent = gameAudio.muted ? '🔇' : '🔊';
+$('muteGame').addEventListener('click', () => { $('muteGame').textContent = gameAudio.toggleMute() ? '🔇' : '🔊'; });
 $('gameCanvas').addEventListener('pointerdown', (e) => {
   if (!activeGame?.active) return;
   const r = e.currentTarget.getBoundingClientRect();

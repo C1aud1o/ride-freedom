@@ -21,13 +21,12 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 - **Registrazione in file .FIT** (formato Garmin), da importare in Garmin Connect
   (connect.garmin.com → Importa dati) e, a cascata, Strava. La sessione resta salvata nel telefono
   anche se ricarichi la pagina.
-- **Gioco "Turbo Pedali"** (pulsante *🎮 Gioca*, poi scegli il gioco): corsa arcade originale. La velocità è quella delle
-  tue pedalate, i tasti +/− del Click cambiano corsia (o tocca i lati dello schermo / frecce), e le
-  salite del percorso (fino al 6%) vengono inviate al rullo come pendenza reale. Monete, ostacoli,
-  rivali da sorpassare e turbo ×2. Senza rullo parte in modalità demo.
-- **Gioco "Pedal Strike"**: sparatutto a scorrimento orizzontale originale. Avanzi pedalando, la
-  cadenza di tiro dipende dai watt, + salta e − lancia una bomba. Robot, droni, mine, casse con
-  potenziamenti e un carro armato boss ogni ~600 m (lì conta solo la potenza). Il terreno ha salite reali.
+- **Giochi** (pulsante *🎮 Gioca*), grafica pixel-art, musica chiptune che segue la tua cadenza,
+  le salite arrivano sul rullo come pendenza reale. Vedi [docs/giochi.md](docs/giochi.md).
+  - **Turbo Pedali**: gara a 8 ciclisti con nome e carattere, 3 circuiti, 3 giri, scia
+    aerodinamica, monete, oggetti attivati con uno sprint vero, podio e record.
+  - **Pedal Strike**: sparatutto a scorrimento con 3 eroi, 3 missioni, 5 armi, prigionieri da
+    liberare, 3 boss; i watt decidono la cadenza di tiro e lo sprint scatena l'OVERDRIVE.
 - **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
   valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
   assegnarli a cambiata +/−.
