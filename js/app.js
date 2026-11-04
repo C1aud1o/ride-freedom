@@ -5,6 +5,7 @@ import { HeartRate } from './hr.js';
 import { encodeFit } from './fit.js';
 import { setupDebug } from './debugview.js';
 import { Game } from './game.js';
+import { Shooter } from './shooter.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
@@ -105,7 +106,7 @@ click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
   $('connectClick').textContent = 'Connetti Zwift Click';
 });
-click.addEventListener('shift', (e) => (game?.active ? game.input(e.detail) : shift(e.detail)));
+click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : shift(e.detail)));
 
 $('connectHr').addEventListener('click', async () => {
   if (hrm.connected) { hrm.disconnect(); return; }
@@ -163,9 +164,9 @@ $('down').addEventListener('click', () => step(-1));
 // Tastiera / telecomandi Bluetooth che inviano frecce o pagina su/giù
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
-  if (game?.active) {
-    if (['ArrowRight', 'ArrowUp', 'PageUp', '+', '='].includes(e.key)) { e.preventDefault(); game.input(+1); }
-    if (['ArrowLeft', 'ArrowDown', 'PageDown', '-'].includes(e.key)) { e.preventDefault(); game.input(-1); }
+  if (activeGame?.active) {
+    if (['ArrowRight', 'ArrowUp', 'PageUp', '+', '=', ' '].includes(e.key)) { e.preventDefault(); activeGame.input(+1); }
+    if (['ArrowLeft', 'ArrowDown', 'PageDown', '-'].includes(e.key)) { e.preventDefault(); activeGame.input(-1); }
     if (e.key === 'Escape') closeGame();
     return;
   }
@@ -386,7 +387,7 @@ setupDebug({ trainer, click, hrm, appLog: () => $('log').textContent });
 
 // ---------- Gioco ----------
 let gradeBeforeGame = 0;
-const game = new Game($('gameCanvas'), {
+const gameHooks = {
   connected: () => trainer.connected,
   speedKmh: () => (state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : state.data.speed || 0),
   stats: () => ({ power: Math.round(state.data.power || 0), gear: state.mode === 'gears' ? state.gear + 1 : null }),
@@ -394,8 +395,22 @@ const game = new Game($('gameCanvas'), {
     state.grade = g == null ? gradeBeforeGame : Math.max(-10, Math.min(15, g));
     syncInputs(); render(); applyMode(true);
   },
-});
+};
+const games = {
+  racer: { game: new Game($('gameCanvas'), gameHooks), title: 'Turbo Pedali', help: '+ destra · − sinistra (o tocca i lati)' },
+  shooter: { game: new Shooter($('gameCanvas'), gameHooks), title: 'Pedal Strike', help: '+ salta · − bomba · più watt = più colpi' },
+};
+let activeGame = null;
+
 function openGame() {
+  $('gamePanel').hidden = false;
+  $('gameMenu').hidden = false;
+  $('gameTitle').textContent = 'Giochi';
+  $('gameHelp').textContent = '';
+  document.body.classList.add('game-open');
+}
+function startGame(kind) {
+  const g = games[kind];
   gradeBeforeGame = state.grade;
   // il gioco controlla la pendenza: serve la modalità Cambio o Pendenza
   if (state.mode !== 'gears' && state.mode !== 'sim') {
@@ -403,21 +418,26 @@ function openGame() {
     state.mode = 'gears'; document.body.dataset.mode = 'gears'; state.lastSent = null;
   }
   if (trainer.connected && !state.ride.running) $('startStop').click();
-  $('gamePanel').hidden = false;
-  document.body.classList.add('game-open');
+  $('gameMenu').hidden = true;
+  $('gameTitle').textContent = g.title;
+  $('gameHelp').textContent = g.help;
   requestWakeLock();
-  game.start();
+  activeGame = g.game;
+  activeGame.start();
 }
 function closeGame() {
-  game.stop();
+  activeGame?.stop();
+  activeGame = null;
   $('gamePanel').hidden = true;
   document.body.classList.remove('game-open');
 }
+document.querySelectorAll('.game-card').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.game)));
 $('openGame').addEventListener('click', openGame);
 $('closeGame').addEventListener('click', closeGame);
 $('gameCanvas').addEventListener('pointerdown', (e) => {
+  if (!activeGame?.active) return;
   const r = e.currentTarget.getBoundingClientRect();
-  game.input(e.clientX - r.left < r.width / 2 ? -1 : +1);
+  activeGame.input(e.clientX - r.left < r.width / 2 ? -1 : +1);
 });
 restore();
 syncInputs();

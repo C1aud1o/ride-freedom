@@ -122,3 +122,12 @@ body.game-open { overflow: hidden; }
 .game-bar { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; background: linear-gradient(rgba(0,0,0,.6), transparent); color: #fff; }
 .game-bar strong { font-size: 1rem; }
 .game-help { flex: 1; font-size: .75rem; color: #c9cfdb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.game-menu { position: absolute; inset: 0; display: grid; align-content: center; gap: 14px; padding: 80px 16px 24px; max-width: 560px; margin: 0 auto; background: var(--bg); }
+.game-menu[hidden] { display: none; }
+.game-menu h2 { margin: 0 0 4px; font-size: 1.3rem; }
+.game-card { display: flex; gap: 14px; align-items: center; text-align: left; padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.game-card:active { border-color: var(--accent); }
+.game-card b { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+.game-card small { color: var(--muted); font-size: .85rem; line-height: 1.35; }
+.game-emoji { font-size: 2.4rem; }

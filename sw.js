@@ -1,5 +1,5 @@
-const CACHE = 'ride-freedom-v6';
-const ASSETS = ['./', 'index.html', 'css/style.css', 'js/app.js', 'js/ftms.js', 'js/click.js', 'js/gears.js', 'js/hr.js', 'js/fit.js', 'js/debug.js', 'js/debugview.js', 'js/game.js', 'manifest.webmanifest', 'icons/icon.svg'];
+const CACHE = 'ride-freedom-v7';
+const ASSETS = ['./', 'index.html', 'css/style.css', 'js/app.js', 'js/ftms.js', 'js/click.js', 'js/gears.js', 'js/hr.js', 'js/fit.js', 'js/debug.js', 'js/debugview.js', 'js/game.js', 'js/shooter.js', 'manifest.webmanifest', 'icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

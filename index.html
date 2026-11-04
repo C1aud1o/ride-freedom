@@ -98,9 +98,21 @@
   <div id="gamePanel" class="game-panel" hidden>
     <canvas id="gameCanvas"></canvas>
     <div class="game-bar">
-      <strong>Turbo Pedali</strong>
-      <span class="game-help">+/− del Click o tocca i lati: cambi corsia</span>
+      <strong id="gameTitle">Giochi</strong>
+      <span id="gameHelp" class="game-help"></span>
       <button id="closeGame" class="small">Esci</button>
+    </div>
+    <div id="gameMenu" class="game-menu">
+      <h2>Scegli il gioco</h2>
+      <button class="game-card" data-game="racer">
+        <span class="game-emoji">🏁</span>
+        <span><b>Turbo Pedali</b><small>Corsa arcade: + / − cambi corsia, raccogli monete, sorpassa i rivali. Le salite arrivano sul rullo.</small></span>
+      </button>
+      <button class="game-card" data-game="shooter">
+        <span class="game-emoji">💥</span>
+        <span><b>Pedal Strike</b><small>Sparatutto a scorrimento: più watt = più colpi. + salta, − bomba. Abbatti i carri armati boss.</small></span>
+      </button>
+      <p class="hint">Con il rullo connesso la registrazione parte da sola. Durante il gioco la marcia resta quella scelta prima.</p>
     </div>
   </div>
 
