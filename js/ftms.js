@@ -90,7 +90,12 @@ export class Trainer extends EventTarget {
         this.emit('log', `Controllo resistenza non disponibile: ${err.message}`);
         this.dbg.log(`Control point non disponibile: ${err.message}`);
       }
+      // Alcuni rulli (es. Van Rysel D100) non mettono la cadenza nei dati FTMS:
+      // proviamo a leggerla dal servizio Cycling Power.
+      this.ftmsActive = true;
+      await this.setupCyclingPower(server);
     } else {
+      this.ftmsActive = false;
       await this.setupFallback(server);
     }
     this.dbg.setStatus(ftms ? `Connesso (FTMS${this.cp ? ', controllabile' : ', sola lettura'})` : 'Connesso (senza FTMS)');
@@ -120,13 +125,23 @@ export class Trainer extends EventTarget {
     } catch { /* opzionale */ }
   }
 
-  async setupFallback(server) {
+  async setupCyclingPower(server) {
     try {
       const cps = await server.getPrimaryService(CPS);
+      try {
+        const f = await (await cps.getCharacteristic(0x2a65)).readValue();
+        const feat = f.getUint32(0, true);
+        this.dbg.log(`CP Feature 0x${feat.toString(16)}: giri pedivella ${feat & 0x08 ? 'sì' : 'no'}, giri ruota ${feat & 0x04 ? 'sì' : 'no'}`);
+      } catch { /* opzionale */ }
       const c = await cps.getCharacteristic(CH.cpMeasurement);
       c.addEventListener('characteristicvaluechanged', (e) => { this.dbg.raw('rx', CH.cpMeasurement, e.target.value); this.onCyclingPower(e.target.value); });
       await c.startNotifications();
-    } catch { /* assente */ }
+      this.dbg.log('Notifiche Cycling Power attive');
+    } catch (err) { this.dbg.log(`Cycling Power non disponibile: ${err.message}`); }
+  }
+
+  async setupFallback(server) {
+    await this.setupCyclingPower(server);
     try {
       const csc = await server.getPrimaryService(CSC);
       const c = await csc.getCharacteristic(CH.cscMeasurement);
@@ -158,7 +173,7 @@ export class Trainer extends EventTarget {
     const d = {};
     if (!(flags & 0x0001)) { d.speed = v.getUint16(o, true) / 100; o += 2; }
     if (flags & 0x0002) o += 2; // velocità media
-    if (flags & 0x0004) { d.cadence = v.getUint16(o, true) / 2; o += 2; }
+    if (flags & 0x0004) { d.cadence = v.getUint16(o, true) / 2; o += 2; this.hasCadence = true; }
     if (flags & 0x0008) o += 2; // cadenza media
     if (flags & 0x0010) { d.distance = v.getUint16(o, true) | (v.getUint8(o + 2) << 16); o += 3; }
     if (flags & 0x0020) { d.resistance = v.getInt16(o, true); o += 2; }
@@ -166,6 +181,12 @@ export class Trainer extends EventTarget {
     if (flags & 0x0080) o += 2; // potenza media
     if (flags & 0x0100) o += 5; // energia
     if (flags & 0x0200) { d.hr = v.getUint8(o); o += 1; }
+    // byte in più non dichiarati dai flag (il D100 ne invia 10): li mostriamo nel debug
+    if (o < v.byteLength) {
+      const extra = [];
+      for (let i = o; i + 1 < v.byteLength; i += 2) extra.push(v.getUint16(i, true));
+      this.dbg.setValues({ byteExtra: extra.join(' / '), cadenzaStimata: d.speed != null ? Math.round(d.speed * 7.37) : '-' });
+    }
     this.dbg.setValues(d);
     this.emit('data', d);
   }
@@ -186,6 +207,12 @@ export class Trainer extends EventTarget {
       const c = this.calcRate('crank', revs, t, 1024, 0xffff);
       if (c != null) d.cadence = c * 60;
     }
+    if (this.ftmsActive) {
+      // con FTMS attivo usiamo da qui solo la cadenza (potenza e velocità arrivano da FTMS)
+      delete d.power; delete d.speed;
+      if (d.cadence != null) this.dbg.setValues({ cadenzaCP: Math.round(d.cadence) });
+    }
+    if (d.cadence != null) this.hasCadence = true;
     this.dbg.setValues(d);
     this.emit('data', d);
   }

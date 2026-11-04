@@ -21,6 +21,7 @@ const state = {
   mass: Number(localStorage.getItem('mass')) || 80,
   data: { power: 0, cadence: 0, speed: 0, hr: null },
   cadenceSmooth: 0,
+  speedSmooth: 0, // m/s dal rullo, smussata
   lastSent: null,
   lastSentAt: 0,
   ride: { running: false, start: 0, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true },
@@ -182,9 +183,25 @@ function syncInputs() {
 }
 
 // Calcola il target per la modalità corrente
+// Cadenza (rpm) usata dal cambio virtuale.
+// Il D100 non trasmette la cadenza nei dati FTMS. Con lo Zwift Cog la trasmissione reale
+// è fissa, quindi la velocità del volano è proporzionale alla pedalata: la stimiamo.
+// 7.37 rpm per km/h viene dai dati del D100 (campo extra ≈ cadenza×10 = velocità×7.37).
+const RPM_PER_KMH = 7.37;
+function currentCadence() {
+  if (trainer.hasCadence) return state.cadenceSmooth;
+  return state.speedSmooth * 3.6 * RPM_PER_KMH;
+}
+
+// Velocità virtuale (m/s) nella marcia scelta: cadenza × rapporto × ruota.
+function currentVirtualSpeed() {
+  const cad = currentCadence();
+  return cad < 15 ? 0 : virtualSpeed(cad, GEARS[state.gear]);
+}
+
 function gearTarget() {
-  const v = virtualSpeed(state.cadenceSmooth, GEARS[state.gear]);
-  if (state.cadenceSmooth < 15) return 0;
+  const v = currentVirtualSpeed();
+  if (v <= 0) return 0;
   return Math.min(MAX_W, powerForSpeed(v, { grade: state.grade, mass: state.mass }));
 }
 
@@ -194,7 +211,8 @@ async function applyMode(force = false) {
   let key; let fn;
   switch (state.mode) {
     case 'gears': {
-      const w = Math.round(gearTarget());
+      const [minW, maxW] = trainer.ranges.power;
+      const w = Math.round(Math.min(Math.max(gearTarget(), Math.max(minW, 0)), maxW || MAX_W));
       // evita di intasare il Bluetooth: invia solo variazioni significative
       if (!force && state.lastSent?.mode === 'gears' && Math.abs(state.lastSent.value - w) < 3) return;
       key = { mode: 'gears', value: w }; fn = () => trainer.setTargetPower(w);
@@ -257,16 +275,17 @@ document.addEventListener('visibilitychange', () => {
 setInterval(() => {
   const d = state.data;
   state.cadenceSmooth = state.cadenceSmooth * 0.5 + (d.cadence || 0) * 0.5;
+  state.speedSmooth = state.speedSmooth * 0.5 + ((d.speed || 0) / 3.6) * 0.5;
   const r = state.ride;
   if (r.running) {
     r.elapsed = (performance.now() - r.start) / 1000;
-    const speedMs = state.mode === 'gears' ? virtualSpeed(state.cadenceSmooth, GEARS[state.gear]) : (d.speed || 0) / 3.6;
+    const speedMs = state.mode === 'gears' ? currentVirtualSpeed() : (d.speed || 0) / 3.6;
     r.distance += speedMs;
     r.energy += (d.power || 0) / 1000;
     r.powerSum += d.power || 0;
     r.samples += 1;
     r.log.push({
-      t: Date.now(), power: Math.round(d.power || 0), cadence: Math.round(d.cadence || 0),
+      t: Date.now(), power: Math.round(d.power || 0), cadence: Math.round(trainer.hasCadence ? d.cadence || 0 : currentCadence()),
       hr: d.hr || null, speed: +speedMs.toFixed(3), distance: +r.distance.toFixed(1),
     });
     r.saved = false;
@@ -280,8 +299,8 @@ setInterval(() => {
 function render() {
   const d = state.data; const r = state.ride;
   $('power').textContent = Math.round(d.power || 0);
-  $('cadence').textContent = Math.round(d.cadence || 0);
-  const speed = state.mode === 'gears' ? virtualSpeed(state.cadenceSmooth, GEARS[state.gear]) * 3.6 : d.speed || 0;
+  $('cadence').textContent = trainer.hasCadence ? Math.round(d.cadence || 0) : trainer.connected ? `~${Math.round(currentCadence())}` : '0';
+  const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
   $('speed').textContent = speed.toFixed(1);
   $('hr').textContent = d.hr ? d.hr : '--';
   $('time').textContent = fmtTime(r.elapsed);
