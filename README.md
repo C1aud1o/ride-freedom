@@ -18,6 +18,10 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
   pagina su/giù, oppure con lo **Zwift Click** (supporto sperimentale).
 - Contatore sessione (tempo, distanza, W medi, kJ), schermo sempre acceso durante l'allenamento,
   installabile come app sulla home.
+- **Registrazione in file .FIT** (formato Garmin), da importare in Garmin Connect
+  (connect.garmin.com → Importa dati) e, a cascata, Strava. La sessione resta salvata nel telefono
+  anche se ricarichi la pagina.
+- **Cardio**: fascia Bluetooth o orologio Garmin con "Trasmetti frequenza cardiaca" attivo.
 
 ## Requisiti
 
@@ -50,5 +54,7 @@ python3 -m http.server 8000
   non può esserlo contemporaneamente. La webapp sostituisce Zwift per il controllo dell'intensità.
 - Il cambio virtuale "nativo" di Zwift usa un protocollo proprietario: qui il cambio virtuale è
   implementato dalla webapp tramite comandi FTMS standard (ERG).
+- Il caricamento su Garmin Connect non è automatico: l'API di upload Garmin è riservata ai partner
+  approvati e richiede un server. Si carica a mano il file .FIT.
 - Il supporto Zwift Click è ricostruito da progetti open source: se il firmware del Click richiede la
   cifratura i tasti potrebbero non arrivare; in quel caso usa i pulsanti a schermo.

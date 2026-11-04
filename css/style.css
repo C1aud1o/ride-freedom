@@ -66,6 +66,8 @@ body:not([data-mode=gears]):not([data-mode=sim]) .only-sim { display: none; }
 .ride small { display: block; color: var(--muted); font-size: .75rem; }
 .ride span { font-weight: 700; font-variant-numeric: tabular-nums; }
 .ride button { grid-column: span 2; }
+.ride .fit-hint { grid-column: 1 / -1; text-align: left; }
+.hint a { color: var(--accent); }
 
 details { color: var(--muted); font-size: .85rem; }
 pre { white-space: pre-wrap; max-height: 180px; overflow: auto; background: var(--panel); padding: 8px; border-radius: 8px; }

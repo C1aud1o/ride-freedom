@@ -22,6 +22,10 @@
         <button id="connectClick">Connetti Zwift Click</button>
         <span id="clickStatus" class="status">Non connesso</span>
       </div>
+      <div class="conn-row">
+        <button id="connectHr">Connetti cardio</button>
+        <span id="hrStatus" class="status">Non connesso</span>
+      </div>
     </div>
     <p id="unsupported" class="warn" hidden>
       Questo browser non supporta Web Bluetooth. Su Android usa Chrome; su iPhone usa l'app <strong>Bluefy</strong>.
@@ -78,6 +82,11 @@
       <div><small>kJ</small><span id="kj">0</span></div>
       <button id="startStop" class="primary">Avvia</button>
       <button id="reset">Azzera</button>
+      <button id="saveFit" disabled>Salva .FIT</button>
+      <button id="shareFit" disabled hidden>Condividi .FIT</button>
+      <p class="hint fit-hint">Il file .FIT si carica su Garmin Connect da
+        <a href="https://connect.garmin.com/modern/import-data" target="_blank" rel="noopener">connect.garmin.com → Importa dati</a>.
+        Se Garmin Connect è collegato a Strava, l'attività arriva anche lì.</p>
     </section>
 
     <details>

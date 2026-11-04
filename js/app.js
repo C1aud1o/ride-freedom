@@ -1,10 +1,13 @@
 import { Trainer } from './ftms.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
+import { HeartRate } from './hr.js';
+import { encodeFit } from './fit.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
 const click = new ZwiftClick();
+const hrm = new HeartRate();
 
 const MAX_W = 600; // limite dichiarato del Van Rysel D100
 
@@ -19,7 +22,8 @@ const state = {
   cadenceSmooth: 0,
   lastSent: null,
   lastSentAt: 0,
-  ride: { running: false, start: 0, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0 },
+  ride: { running: false, start: 0, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true },
+  hrFromSensor: false,
 };
 
 // ---------- UI helpers ----------
@@ -41,6 +45,7 @@ if (!('bluetooth' in navigator)) {
   $('unsupported').hidden = false;
   $('connectTrainer').disabled = true;
   $('connectClick').disabled = true;
+  $('connectHr').disabled = true;
 }
 
 // ---------- Connessioni ----------
@@ -72,7 +77,9 @@ trainer.addEventListener('disconnected', async () => {
 });
 trainer.addEventListener('log', (e) => log(e.detail));
 trainer.addEventListener('data', (e) => {
-  Object.assign(state.data, e.detail);
+  const d = { ...e.detail };
+  if (state.hrFromSensor) delete d.hr; // la fascia/orologio ha la precedenza
+  Object.assign(state.data, d);
   render();
 });
 
@@ -94,6 +101,28 @@ click.addEventListener('disconnected', () => {
   $('connectClick').textContent = 'Connetti Zwift Click';
 });
 click.addEventListener('shift', (e) => shift(e.detail));
+
+$('connectHr').addEventListener('click', async () => {
+  if (hrm.connected) { hrm.disconnect(); return; }
+  try {
+    setStatus('hrStatus', 'Connessione…');
+    const name = await hrm.connect();
+    state.hrFromSensor = true;
+    setStatus('hrStatus', name, true);
+    $('connectHr').textContent = 'Disconnetti cardio';
+    log(`Cardio connesso: ${name}`);
+  } catch (err) {
+    setStatus('hrStatus', 'Non connesso');
+    log(`Errore cardio: ${err.message}`);
+  }
+});
+hrm.addEventListener('hr', (e) => { state.data.hr = e.detail; render(); });
+hrm.addEventListener('disconnected', () => {
+  state.hrFromSensor = false;
+  state.data.hr = null;
+  setStatus('hrStatus', 'Non connesso');
+  $('connectHr').textContent = 'Connetti cardio';
+});
 
 // ---------- Modalità e comandi ----------
 document.querySelectorAll('[name=mode]').forEach((r) => r.addEventListener('change', () => {
@@ -205,7 +234,9 @@ $('startStop').addEventListener('click', () => {
   $('startStop').textContent = r.running ? 'Pausa' : 'Avvia';
 });
 $('reset').addEventListener('click', () => {
-  Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0 });
+  if (!state.ride.saved && !confirm('Azzerare la sessione? I dati non salvati in .FIT andranno persi.')) return;
+  Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true });
+  persist();
   $('startStop').textContent = 'Avvia';
   render();
 });
@@ -230,6 +261,12 @@ setInterval(() => {
     r.energy += (d.power || 0) / 1000;
     r.powerSum += d.power || 0;
     r.samples += 1;
+    r.log.push({
+      t: Date.now(), power: Math.round(d.power || 0), cadence: Math.round(d.cadence || 0),
+      hr: d.hr || null, speed: +speedMs.toFixed(3), distance: +r.distance.toFixed(1),
+    });
+    r.saved = false;
+    if (r.log.length % 10 === 0) persist();
   }
   if (state.mode === 'gears') applyMode();
   render();
@@ -247,6 +284,8 @@ function render() {
   $('distance').textContent = (r.distance / 1000).toFixed(2);
   $('avgPower').textContent = r.samples ? Math.round(r.powerSum / r.samples) : 0;
   $('kj').textContent = Math.round(r.energy);
+  $('saveFit').disabled = !r.log.length;
+  $('shareFit').disabled = !r.log.length;
 
   $('gearNum').textContent = state.gear + 1;
   $('gearRatio').textContent = GEARS[state.gear].toFixed(2);
@@ -261,6 +300,59 @@ function render() {
   $('controlUnit').textContent = unit[state.mode];
 }
 
+// ---------- Registrazione e file FIT ----------
+const STORE = 'ride-freedom-session';
+function persist() {
+  try {
+    const r = state.ride;
+    localStorage.setItem(STORE, JSON.stringify({ elapsed: r.elapsed, distance: r.distance, energy: r.energy,
+      powerSum: r.powerSum, samples: r.samples, log: r.log, saved: r.saved }));
+  } catch { /* spazio esaurito o storage non disponibile */ }
+}
+function restore() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (saved?.log?.length) {
+      Object.assign(state.ride, saved, { running: false });
+      log(`Sessione precedente ripristinata (${fmtTime(saved.elapsed)}). Premi Avvia per continuare o salvala in .FIT.`);
+    }
+  } catch { /* ignora */ }
+}
+window.addEventListener('pagehide', persist);
+
+function fitFile() {
+  const bytes = encodeFit(state.ride.log);
+  const d = new Date(state.ride.log[0].t);
+  const pad = (n) => String(n).padStart(2, '0');
+  const name = `ride-freedom-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.fit`;
+  return new File([bytes], name, { type: 'application/vnd.ant.fit' });
+}
+
+$('saveFit').addEventListener('click', () => {
+  try {
+    const file = fitFile();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    state.ride.saved = true; persist();
+    log(`Salvato ${file.name}`);
+  } catch (err) { log(`Errore salvataggio: ${err.message}`); }
+});
+
+$('shareFit').addEventListener('click', async () => {
+  try {
+    const file = fitFile();
+    await navigator.share({ files: [file], title: 'Allenamento Ride Freedom' });
+    state.ride.saved = true; persist();
+  } catch (err) { if (err.name !== 'AbortError') log(`Errore condivisione: ${err.message}`); }
+});
+try {
+  $('shareFit').hidden = !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
+} catch { /* non supportato */ }
+
+restore();
 syncInputs();
 document.body.dataset.mode = state.mode;
 render();
