@@ -7,6 +7,7 @@ import { setupDebug } from './debugview.js';
 import { Strike } from './games/strike.js';
 import { Racer } from './games/racer.js';
 import { GameAudio } from './games/audio.js';
+import { Progress } from './games/progress.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
@@ -388,7 +389,9 @@ setupDebug({ trainer, click, hrm, appLog: () => $('log').textContent });
 
 // ---------- Gioco ----------
 let gradeBeforeGame = 0;
+const progress = new Progress();
 const gameHooks = {
+  progress,
   connected: () => trainer.connected,
   speedKmh: () => (state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : state.data.speed || 0),
   stats: () => ({ power: Math.round(state.data.power || 0), cadence: Math.round(currentCadence()), gear: state.mode === 'gears' ? state.gear + 1 : null }),
@@ -407,6 +410,7 @@ let activeGame = null;
 function openGame() {
   $('gamePanel').hidden = false;
   $('gameMenu').hidden = false;
+  progress.renderMenu($('progressPanel'));
   $('gameTitle').textContent = 'Giochi';
   $('gameHelp').textContent = '';
   document.body.classList.add('game-open');
@@ -429,8 +433,12 @@ function startGame(kind) {
   activeGame.start();
 }
 function closeGame() {
-  activeGame?.stop();
-  activeGame = null;
+  if (activeGame) { // dal gioco si torna al menu, dal menu si esce
+    activeGame.stop();
+    activeGame = null;
+    openGame();
+    return;
+  }
   $('gamePanel').hidden = true;
   document.body.classList.remove('game-open');
 }

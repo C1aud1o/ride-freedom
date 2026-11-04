@@ -29,7 +29,16 @@ Due giochi originali pensati per il rullo: si controllano con i tasti +/− dell
 - **Oggetti** (scatole "?"): Gel Turbo, Vento a favore, Chiodini, Scudo. Si usano con uno **sprint** di 1,2 s.
 - I rivali hanno nome, carattere e battute; i record per circuito vengono salvati.
 
+## Dalla conoscenza di game design (oltre la ricerca)
+- **Ciclo di ritorno quotidiano**: esperienza e livelli condivisi tra i giochi, 3 **sfide del giorno**
+  (uguali per tutto il giorno, cambiano a mezzanotte) e 15 **obiettivi** con notifiche.
+- **Corsa con la cultura del ciclismo**: **traguardo volante** e **Gran Premio della Montagna** a ogni
+  giro (5/3/1 punti), con **maglia verde** e **maglia a pois** che indossi davvero se sei in testa.
+- **Fantasma**: il tuo miglior tempo per circuito corre con te, con il distacco in secondi.
+- **Sparatutto più profondo**: *colpo di pompa* automatico a contatto, veicolo **Cargo-Cannone**
+  (corazza + cannone, a metà missione), **punti deboli** lampeggianti sui boss (danno ×2),
+  i robot **scappano** quando sei in OVERDRIVE.
+
 ## Idee per il futuro
-- Sfida contro il proprio "fantasma" (miglior giro registrato).
 - Sessioni strutturate: livelli = blocchi di un allenamento a intervalli.
 - Classifiche condivise tra amici.

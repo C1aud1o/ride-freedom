@@ -3,7 +3,7 @@
 // Stare dietro a un rivale dà la SCIA (+velocità), come nel ciclismo vero.
 // Le salite del circuito vengono inviate al rullo come pendenza reale.
 
-import { PixelScreen, sprite, bandedSky, hash, hudText, Effort, rand, clamp, lerp, pick, pring, pline, ptext } from './engine.js';
+import { PixelScreen, sprite, whiten, bandedSky, hash, hudText, Effort, rand, clamp, lerp, pick, pring, pline, ptext } from './engine.js';
 import { SONGS } from './audio.js';
 
 const SEG = 200; // unità per segmento (1 segmento = 5 m)
@@ -79,6 +79,10 @@ export class Racer {
     this.onResize = () => this.screen?.resize();
     this.loop = this.loop.bind(this);
     this.playerSprites = riderSprites('#fc6719', '#ffffff');
+    this.greenSprites = riderSprites('#2fa84f', '#ffffff');
+    this.polkaSprites = riderSprites('#ffffff', '#e63946'); // bianca con pois rossi (le pieghe 'j')
+    this.ghostSprites = this.playerSprites.map(whiten);
+    this.labels = { SPRINT: labelSprite('SPRINT', '#2fa84f'), GPM: labelSprite('GPM', '#e63946') };
     this.rivalSprites = RIVALS.map((r) => riderSprites(r.jersey, r.helmet));
     this.buildScenerySprites();
   }
@@ -137,6 +141,13 @@ export class Racer {
       if (i > 20 && i % 45 === 0) for (const l of LANES) s.items.push({ type: 'box', x: l, taken: 0 });
       if (i > 10 && i % 28 === 14) { const l = LANES[Math.floor(hash(i) * 3)]; for (let k = 0; k < 4; k++) segs[(i + k * 2) % segs.length].items.push({ type: 'coin', x: l, taken: 0 }); }
     });
+    // traguardo volante a metà giro, Gran Premio della Montagna nel punto più alto
+    let top = 0; segs.forEach((sg, i) => { if (sg.p2.y > segs[top].p2.y) top = i; });
+    if (segs[top].p2.y < 50) top = Math.floor(segs.length * 0.8);
+    const mid = Math.floor(segs.length * 0.45);
+    this.lines = [{ type: 'green', seg: mid, z: mid * SEG }, { type: 'kom', seg: top, z: top * SEG }];
+    segs[mid].sprites.push({ kind: 'arch', label: 'SPRINT', offset: 0 });
+    segs[top].sprites.push({ kind: 'arch', label: 'GPM', offset: 0 });
     this.segs = segs;
     this.trackLen = segs.length * SEG;
   }
@@ -170,6 +181,9 @@ export class Racer {
     this.item = null; this.itemT = 0; this.boost = 0; this.boostKind = null; this.shield = false; this.bumpT = 0;
     this.draft = 0; this.coins = 0; this.sprintHeld = 0; this.finished = false;
     this.tacks = []; this.lean = 0;
+    this.points = { green: {}, kom: {} }; this.lineCount = {}; this.draftAcc = 0;
+    this.ghostRec = []; this.ghostT = 0;
+    try { this.ghost = JSON.parse(localStorage.getItem(`racerGhost${this.trackIndex}`) || 'null'); } catch { this.ghost = null; }
     // griglia di partenza: il giocatore parte in fondo
     this.rivals = RIVALS.map((r, i) => ({
       ...r, i, sprites: this.rivalSprites[i],
@@ -236,7 +250,12 @@ export class Racer {
     this.speed = v;
     this.x = lerp(this.x, LANES[this.lane], Math.min(1, dt * 8));
     if (!this.finished) this.raceT += dt;
+    const prevPos = this.pos;
     this.pos += v * UNITS_PER_M * dt;
+    this.checkLines('TU', prevPos, this.pos, this.lap);
+    this.ghostT += dt;
+    if (this.ghostT >= 0.25) { this.ghostT -= 0.25; this.ghostRec.push(Math.round(this.raceDist / UNITS_PER_M)); }
+    if (this.draft >= 1) { this.draftAcc += dt; if (this.draftAcc >= 1) { this.draftAcc -= 1; this.prog('draftSec', 1, 1); } }
     if (this.pos >= this.trackLen) {
       this.pos -= this.trackLen; this.lap++;
       if (this.lap > LAPS) this.finish();
@@ -259,12 +278,42 @@ export class Racer {
 
   say(text, color = '#ffd34d', t = 1.5, big = false) { this.texts.push({ text, color, t, big }); }
 
+  prog(stat, n = 1, xp = 0) { this.hooks.progress?.event(stat, n, xp); }
+
+  // traguardo volante e GPM: punti 5/3/1 ai primi tre che passano, a ogni giro
+  checkLines(name, from, to, lap) {
+    for (const ln of this.lines) {
+      if (!(from < ln.z && to >= ln.z)) continue;
+      const key = `${ln.type}${lap}`;
+      const n = this.lineCount[key] || 0; this.lineCount[key] = n + 1;
+      if (n > 2) continue;
+      const pts = [5, 3, 1][n];
+      this.points[ln.type][name] = (this.points[ln.type][name] || 0) + pts;
+      if (name === 'TU') {
+        this.audio.sfx(n === 0 ? 'win' : 'coin');
+        this.say(`${ln.type === 'kom' ? 'GPM' : 'TRAGUARDO VOLANTE'}: ${n + 1}° · +${pts} punti`, ln.type === 'kom' ? '#e63946' : '#2fa84f', 2, n === 0);
+      }
+    }
+  }
+
+  leader(type) {
+    const e = Object.entries(this.points?.[type] || {}).sort((a, b) => b[1] - a[1])[0];
+    return e ? { name: e[0], pts: e[1] } : null;
+  }
+
+  ghostDistAt(t) {
+    const g = this.ghost; if (!g || !g.length) return null;
+    const i = t / 0.25; const a = Math.floor(i);
+    if (a >= g.length - 1) return g[g.length - 1] * UNITS_PER_M;
+    return lerp(g[a], g[a + 1], i - a) * UNITS_PER_M;
+  }
+
   pickups() {
     const seg = this.segAt(this.pos + CAM_H * 1.6);
     for (const it of seg.items) {
       if (it.taken > this.t - 6 || Math.abs(it.x - this.x) > 0.3) continue;
       it.taken = this.t;
-      if (it.type === 'coin') { this.coins++; this.audio.sfx('coin'); if (this.coins === 10) this.say('10 MONETE: VELOCITÀ MAX +10%', '#ffcc33', 2); }
+      if (it.type === 'coin') { this.coins++; this.audio.sfx('coin'); this.prog('coins', 1, 1); if (this.coins === 10) this.say('10 MONETE: VELOCITÀ MAX +10%', '#ffcc33', 2); }
       else if (it.type === 'box' && !this.item) this.rollItem();
     }
     // chiodini lasciati dai rivali
@@ -287,6 +336,7 @@ export class Racer {
   useItem() {
     const it = this.item; this.item = null;
     this.audio.sfx('overdrive');
+    this.prog('itemsUsed', 1, 10);
     if (it === 'gel') { this.boost = 4; this.boostKind = 'gel'; this.audio.sfx('boost'); }
     if (it === 'wind') { this.boost = 7; this.boostKind = 'wind'; this.audio.sfx('boost'); }
     if (it === 'shield') this.shield = true;
@@ -319,7 +369,9 @@ export class Racer {
       if (r.boost > 0) { r.boost -= dt; target *= 1.3; }
       if (r.slow > 0) { r.slow -= dt; target *= 0.6; }
       r.speed = lerp(r.speed, target, Math.min(1, dt * 0.8));
+      const pz = r.z;
       r.z += r.speed * UNITS_PER_M * dt;
+      this.checkLines(r.name, pz, r.z, r.laps + 1);
       if (r.z >= this.trackLen) { r.z -= this.trackLen; r.laps++; if (r.laps >= LAPS) r.finished = this.raceT; }
       // cambi di corsia e oggetti casuali
       if (Math.random() < dt * 0.25) r.targetX = pick(LANES);
@@ -366,7 +418,17 @@ export class Racer {
     const key = `racerBest${this.trackIndex}`;
     const best = Number(localStorage.getItem(key)) || Infinity;
     this.newBest = this.raceT < best;
-    if (this.newBest) localStorage.setItem(key, this.raceT.toFixed(1));
+    if (this.newBest) {
+      localStorage.setItem(key, this.raceT.toFixed(1));
+      try { localStorage.setItem(`racerGhost${this.trackIndex}`, JSON.stringify(this.ghostRec)); } catch { /* spazio */ }
+      if (this.ghost) this.prog('ghostBeaten', 1, 100);
+    }
+    this.prog('races', 1, 60 + ([100, 70, 50][place - 1] || 0));
+    if (place <= 3) this.prog('podiums', 1, 0);
+    if (place === 1) { this.prog('wins', 1, 0); this.hooks.progress?.addToList('tracksWon', this.trackIndex); }
+    this.jerseyWon = [];
+    if (this.leader('green')?.name === 'TU') { this.jerseyWon.push('green'); this.prog('green', 1, 80); this.prog('jerseys', 1, 0); }
+    if (this.leader('kom')?.name === 'TU') { this.jerseyWon.push('kom'); this.prog('kom', 1, 80); this.prog('jerseys', 1, 0); }
     this.hooks.setGrade(0);
   }
 
@@ -435,6 +497,19 @@ export class Racer {
       const sx = lerp(p1.x, p2.x, pct) + lerp(p1.w, p2.w, pct) * r.x; const sy = lerp(p1.y, p2.y, pct); const s = lerp(p1.w, p2.w, pct);
       sprites.push({ kind: 'rival', r, sx, sy, s, clip: seg.clip, d: p1.cz - pct * SEG });
     }
+    // fantasma del tuo record
+    if (this.ghost && this.state === 'race') {
+      const gd = this.ghostDistAt(this.raceT);
+      if (gd != null) {
+        const gz = gd % this.trackLen;
+        const rel = ((gz - this.pos) % this.trackLen + this.trackLen) % this.trackLen;
+        const seg = segOf(gz);
+        if (rel > CAM_H * 0.8 && rel < DRAW * SEG * 0.8 && seg.proj && seg.proj.p1.cz > DEPTH) {
+          const pct = (gz % SEG) / SEG; const { p1, p2 } = seg.proj;
+          sprites.push({ kind: 'ghost', sx: lerp(p1.x, p2.x, pct), sy: lerp(p1.y, p2.y, pct), s: lerp(p1.w, p2.w, pct), clip: seg.clip, d: p1.cz - pct * SEG });
+        }
+      }
+    }
     sprites.sort((a, b) => b.d - a.d);
     for (const sp of sprites) this.drawSprite(g, sp);
 
@@ -493,7 +568,10 @@ export class Racer {
     const S = this.S;
     let img;
     let worldW = 0.5; // larghezza rispetto alla mezza strada
+    if (sp.kind === 'arch') { this.drawArch(g, sp); return; }
+    if (sp.kind === 'ghost') g.globalAlpha = 0.45;
     switch (sp.kind) {
+      case 'ghost': img = this.ghostSprites[frame2(this.t * 3)]; worldW = 0.2; break;
       case 'rival': img = sp.r.sprites[frame2(this.t * Math.max(1, sp.r.speed / 2.5))]; worldW = 0.2; break;
       case 'palm': img = S.palm; worldW = 0.9; break;
       case 'pine': img = S.pine; worldW = 0.9; break;
@@ -519,14 +597,29 @@ export class Racer {
     if (clipH <= 0) return;
     const srcH = Math.min(img.height, Math.ceil((clipH / dh) * img.height));
     g.drawImage(img, 0, 0, img.width, srcH, Math.round(sp.sx - dw / 2), dy, dw, Math.round((srcH / img.height) * dh));
+    g.globalAlpha = 1;
     if (sp.kind === 'rival' && dw > 14) {
       const r = sp.r;
       g.fillStyle = r.jersey; g.fillRect(Math.round(sp.sx - 1), dy - 4, 3, 2);
     }
   }
 
+  drawArch(g, sp) {
+    const half = sp.s * 1.15; const hgt = Math.round(sp.s * 0.75);
+    if (hgt < 2) return;
+    const top = sp.sy - hgt;
+    if (sp.clip != null && top > sp.clip) return;
+    const pw = Math.max(1, Math.round(sp.s * 0.04));
+    g.fillStyle = '#ddd';
+    g.fillRect(Math.round(sp.sx - half), top, pw, hgt); g.fillRect(Math.round(sp.sx + half - pw), top, pw, hgt);
+    const lab = this.labels[sp.label];
+    const bh = Math.max(2, Math.round(sp.s * 0.16));
+    g.drawImage(lab, Math.round(sp.sx - half), top, Math.round(half * 2), bh);
+  }
+
   drawPlayer(g, w, h) {
-    const img = this.playerSprites[frame2(this.t * Math.max(2, (this.cadence || 0) / 30))];
+    const set = this.leader('kom')?.name === 'TU' ? this.polkaSprites : this.leader('green')?.name === 'TU' ? this.greenSprites : this.playerSprites;
+    const img = set[frame2(this.t * Math.max(2, (this.cadence || 0) / 30))];
     const scale = Math.max(2, Math.round(w / 60));
     const dw = img.width * scale; const dh = img.height * scale;
     const px = Math.round(w / 2 - dw / 2 + this.lean * 4); const py = Math.round(h * 0.92 - dh);
@@ -569,6 +662,16 @@ export class Racer {
         ctx.fillStyle = this.draft >= 1 ? '#4de3ff' : '#2a6f97'; ctx.fillRect(W - 134, iy, 120 * this.draft, 16);
         hudText(ctx, this.draft >= 1 ? 'IN SCIA +12%' : 'scia…', W - 74, iy + 12, { size: 11, align: 'center' });
       }
+      // maglie e fantasma
+      const gr = this.leader('green'); const km = this.leader('kom');
+      hudText(ctx, `🟢 ${gr ? `${gr.name === 'TU' ? 'TU' : gr.name.split(' ')[0]} ${gr.pts}` : '-'}   🔴⚪ ${km ? `${km.name === 'TU' ? 'TU' : km.name.split(' ')[0]} ${km.pts}` : '-'}`, W - 14, top + 76 + 40, { size: 11, align: 'right', color: '#e8e8e8' });
+      if (this.ghost && this.state === 'race') {
+        const gd = this.ghostDistAt(this.raceT);
+        if (gd != null) {
+          const gap = (gd - this.raceDist) / UNITS_PER_M / Math.max(1, this.speed);
+          hudText(ctx, `👻 ${gap > 0 ? '+' : '−'}${Math.abs(gap).toFixed(1)}s`, W - 14, top + 76 + 58, { size: 13, align: 'right', color: gap > 0 ? '#ff6b6b' : '#06d6a0' });
+        }
+      }
       // classifica live
       const list = this.standing || this.ranking();
       list.slice(0, 8).forEach((r, i) => {
@@ -598,6 +701,7 @@ export class Racer {
       hudText(ctx, this.T.name, W / 2, H * 0.4 + 36, { size: 14, align: 'center' });
     }
     if (this.state === 'results') this.drawResults(ctx, W, H);
+    this.hooks.progress?.drawToasts(ctx, W, this.lastDt || 0.016);
   }
 
   drawResults(ctx, W, H) {
@@ -615,7 +719,9 @@ export class Racer {
       hudText(ctx, String(idx + 1), x, base + 30, { size: 22, align: 'center', color: '#1b1b2f', stroke: 'transparent' });
       hudText(ctx, r.me ? 'TU' : r.name.split(' ')[0], x, base - heights[k] + 30, { size: 13, align: 'center', color: r.me ? '#fc6719' : '#fff' });
     });
-    this.standing.forEach((r, i) => hudText(ctx, `${i + 1}. ${r.me ? 'TU' : r.name}${r.fin != null ? '  ' + fmt(r.fin) : ''}`, W / 2, H * 0.58 + i * 20, { size: 13, align: 'center', color: r.me ? '#fc6719' : '#e8e8e8' }));
+    const gr = this.leader('green'); const km = this.leader('kom');
+    hudText(ctx, `Maglia verde: ${gr ? (gr.name === 'TU' ? 'TU!' : gr.name) : '-'}   ·   Maglia a pois: ${km ? (km.name === 'TU' ? 'TU!' : km.name) : '-'}`, W / 2, H * 0.53, { size: 12, align: 'center', color: '#e8e8e8' });
+    this.standing.forEach((r, i) => hudText(ctx, `${i + 1}. ${r.me ? 'TU' : r.name}${r.fin != null ? '  ' + fmt(r.fin) : ''}`, W / 2, H * 0.57 + i * 19, { size: 13, align: 'center', color: r.me ? '#fc6719' : '#e8e8e8' }));
     if (this.stateT > 1.5) hudText(ctx, '+ rivincita   ·   − cambia circuito', W / 2, H * 0.92, { size: 15, align: 'center', color: '#ffd34d' });
   }
 
@@ -638,19 +744,28 @@ export class Racer {
     const best = Number(localStorage.getItem(`racerBest${this.trackIndex}`));
     if (best) hudText(ctx, `Record: ${fmt(best)}`, W / 2, H * 0.3 + 80, { size: 12, align: 'center', color: '#cfd6e4' });
     hudText(ctx, TRACKS.map((x, i) => (i === this.trackIndex ? '●' : '○')).join(' '), W / 2, H * 0.3 + 104, { size: 14, align: 'center' });
-    const tips = ['+ / − cambi corsia', 'Monete: +1% velocità (max 10)', 'Stai dietro a un rivale: SCIA +12%', 'Scatole ?: oggetti. Si usano con uno SPRINT', 'In salita la resistenza sale davvero'];
-    tips.forEach((tip, i) => hudText(ctx, '• ' + tip, W / 2, H * 0.58 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
-    hudText(ctx, '−  cambia circuito        +  via!', W / 2, H * 0.88, { size: 15, align: 'center', color: '#ffd34d' });
+    const tips = ['+ / − cambi corsia', 'Monete: +1% velocità (max 10)', 'Stai dietro a un rivale: SCIA +12%', 'Scatole ?: oggetti. Si usano con uno SPRINT', 'In salita la resistenza sale davvero', 'Traguardo volante e GPM: maglia verde e a pois', 'Batti il tuo FANTASMA 👻'];
+    tips.forEach((tip, i) => hudText(ctx, '• ' + tip, W / 2, H * 0.55 + i * 19, { size: 12, align: 'center', color: '#e8e8e8' }));
+    this.hooks.progress?.drawToasts(ctx, W, this.lastDt || 0.016);
+    hudText(ctx, '−  cambia circuito        +  via!', W / 2, H * 0.92, { size: 15, align: 'center', color: '#ffd34d' });
   }
 
   loop(now) {
     if (!this.active) return;
     const dt = clamp((now - this.last) / 1000, 0, 0.05);
     this.last = now;
+    this.lastDt = dt;
     this.update(dt);
     this.draw();
     requestAnimationFrame(this.loop);
   }
+}
+
+function labelSprite(text, bg) {
+  const c = document.createElement('canvas'); c.width = text.length * 4 + 3; c.height = 7;
+  const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height);
+  ptext(g, text, 2, 1, '#fff');
+  return c;
 }
 
 function frame2(n) { return ((Math.floor(n) % 2) + 2) % 2 || 0; }

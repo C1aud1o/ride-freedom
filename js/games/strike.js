@@ -151,7 +151,7 @@ export class Strike {
   newGame() {
     const h = HEROES[this.heroIndex];
     this.hero = h;
-    this.p = { x: 0, y: 0, vy: 0, onGround: true, hp: h.hp, maxHp: h.hp, hurt: 0, bombs: h.bombs, fireT: 0, anim: 0, aim: 0, recoil: 0 };
+    this.p = { x: 0, y: 0, vy: 0, onGround: true, hp: h.hp, maxHp: h.hp, hurt: 0, bombs: h.bombs, fireT: 0, anim: 0, aim: 0, recoil: 0, pumpCd: 0, pumpT: 0, vehicle: null, cannonT: 0 };
     this.weapon = 'blaster'; this.ammo = Infinity;
     this.score = 0; this.combo = 0; this.comboT = 0; this.kills = 0; this.rescued = 0;
     this.loopN = 0; this.levelIndex = 0;
@@ -166,7 +166,7 @@ export class Strike {
     this.terrain = [{ x0: -60, x1: 40, y0: 0, slope: 0 }];
     while (this.terrainEnd() < 300) this.addTerrain();
     this.bullets = []; this.ebullets = []; this.enemies = []; this.items = []; this.fx = []; this.props = []; this.texts = [];
-    this.nextSpawn = 20; this.nextCage = 70; this.nextChallenge = 110;
+    this.nextSpawn = 20; this.nextCage = 70; this.nextChallenge = 110; this.vehicleSpawned = false;
     this.boss = null; this.bossArena = null;
     this.camY = 0; this.shake = 0; this.freeze = 0; this.slow = 0; this.flash = 0;
     this.challenge = null; this.sentGrade = null;
@@ -234,6 +234,7 @@ export class Strike {
   onScreen(x) { return x > this.camX - 0.5 && x < this.camX + this.viewW + 0.5; }
 
   say(text, color = '#ffd34d', t = 1.6, big = false) { this.texts.push({ text, color, t, life: t, big }); }
+  prog(stat, n = 1, xp = 0) { this.hooks.progress?.event(stat, n, xp); }
 
   // ---------- aggiornamento ----------
   update(dt) {
@@ -284,7 +285,7 @@ export class Strike {
       this.odMeter = clamp(this.odMeter + (sprinting ? dt / 4 : -dt / 20), 0, 1);
       if (this.odMeter >= 1) {
         this.overdrive = 8; this.odMeter = 0; this.audio.transpose = 2;
-        this.audio.sfx('overdrive'); this.say('OVERDRIVE!', '#4de3ff', 2, true); this.flash = 0.2;
+        this.audio.sfx('overdrive'); this.say('OVERDRIVE!', '#4de3ff', 2, true); this.flash = 0.2; this.prog('overdrives', 1, 15);
       }
     }
 
@@ -324,6 +325,7 @@ export class Strike {
         }
         if (Math.random() < 0.6) this.fx.push({ type: 'smoke', x: b.x, y: b.y, vx: 0, vy: 0.5, t: 0, life: 0.4, r: 1.5 });
       }
+      if (b.grav) b.vy -= G * 0.3 * dt;
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
       if (b.y < this.ground(b.x) - 0.1) { b.life = 0; if (b.splash) this.explode(b.x, b.y + 0.2, 1.2, b.dmg); else this.spark(b.x, b.y + 0.1, b.color); }
     }
@@ -336,6 +338,7 @@ export class Strike {
     for (const e of this.enemies) this.updateEnemy(e, dt);
     if (this.boss) this.updateBoss(this.boss, dt);
 
+    this.melee(dt);
     this.collisions();
 
     this.bullets = this.bullets.filter((b) => b.life > 0);
@@ -359,6 +362,17 @@ export class Strike {
   shoot(dt) {
     const p = this.p;
     const w = WEAPONS[this.weapon];
+    if (p.vehicle) { // cannone del Cargo-Cannone, in aggiunta all'arma
+      p.cannonT -= dt;
+      if (p.cannonT <= 0) {
+        p.cannonT = 1.1 / (this.overdrive > 0 ? 1.6 : 1);
+        const a = clamp(p.aim + 0.12, -0.3, 1);
+        this.bullets.push({ x: p.x + 1.1, y: p.y + 0.95, vx: Math.cos(a) * 17, vy: Math.sin(a) * 17, life: 1.6, dmg: 6, kind: 'shell', splash: true, grav: true, color: '#ffd166' });
+        this.fx.push({ type: 'muzzle', x: p.x + 1.2, y: p.y + 0.95, t: 0, life: 0.08, color: '#ffd166' });
+        this.fx.push({ type: 'smoke', x: p.x + 1.2, y: p.y + 1, vx: 1, vy: 0.5, t: 0, life: 0.5, r: 3 });
+        this.audio.sfx('boom'); this.shake = Math.max(this.shake, 0.06);
+      }
+    }
     const muzzle = { x: p.x + 0.55, y: p.y + 1.1 };
     // mira automatica sul bersaglio più vicino davanti (± 55°)
     const tgt = this.nearestTarget(muzzle.x, muzzle.y, this.weapon === 'flame' ? 5 : 15);
@@ -404,6 +418,7 @@ export class Strike {
       this.nextSpawn = p.x + rand(4.5, 9) / Math.min(1.8, this.diff);
     }
     if (p.x >= this.nextCage) { this.spawnEnemy('cage', edge + 2); this.nextCage = p.x + rand(70, 110); }
+    if (!this.vehicleSpawned && p.x > LEVEL_LEN * 0.4) { this.vehicleSpawned = true; this.items.push({ kind: 'vehicle', x: edge + 1, y: this.ground(edge + 1), t: 0 }); }
   }
 
   spawnEnemy(type, x) {
@@ -441,7 +456,8 @@ export class Strike {
     const near = e.x - p.x;
     switch (e.type) {
       case 'walker': case 'shield': {
-        if (near < this.viewW * 0.75) e.x -= (e.type === 'shield' ? 0.6 : 1.1) * dt;
+        if (this.overdrive > 0 && e.type === 'walker') e.x += 1.6 * dt; // scappano!
+        else if (near < this.viewW * 0.75) e.x -= (e.type === 'shield' ? 0.6 : 1.1) * dt;
         e.y = this.ground(e.x);
         e.fire -= dt;
         if (e.fire <= 0 && this.onScreen(e.x) && near > 2) {
@@ -481,6 +497,12 @@ export class Strike {
       }
       default: break;
     }
+  }
+
+  weakPoint(b) {
+    if (b.kind === 'tank') return { x: b.x - 0.2, y: b.y + 2.0 };
+    if (b.kind === 'heli') return { x: b.x - 1.05, y: b.y + 0.6 };
+    return { x: b.x + 0.4, y: b.y + 2.8 };
   }
 
   updateBoss(b, dt) {
@@ -561,8 +583,13 @@ export class Strike {
             if (e.shield <= 0) { this.say('SCUDO ROTTO!', '#ffd166', 0.8); this.debris(e.x - 0.5, e.y + 0.6, '#ffb703', 6); }
             break;
           }
-          if (b.splash) { this.explode(b.x, b.y, 1.3, b.dmg); b.life = 0; break; }
-          this.damage(e, b.dmg);
+          let dmg = b.dmg;
+          if (e === this.boss) { // punto debole: danno doppio
+            const wp = this.weakPoint(e);
+            if (Math.hypot(b.x - wp.x, b.y - wp.y) < 0.6) { dmg *= 2; this.fx.push({ type: 'spark', x: b.x, y: b.y, vx: 0, vy: 2, t: 0, life: 0.25, color: '#ffffff' }); if (Math.random() < 0.15) this.texts.push({ text: 'CRITICO!', color: '#ffd34d', t: 0.6, life: 0.6, wx: wp.x, wy: wp.y + 0.6 }); }
+          }
+          if (b.splash) { this.explode(b.x, b.y, 1.3, dmg); b.life = 0; break; }
+          this.damage(e, dmg);
           if (b.pierce) { b.hits = b.hits || new Set(); b.hits.add(e); } else { b.life = 0; this.spark(b.x, b.y, b.color); break; }
         }
       }
@@ -604,12 +631,13 @@ export class Strike {
       return;
     }
     this.kills++; this.levelStats.kills++;
+    this.prog('kills', 1, 2);
     this.combo++; this.comboT = 2.2;
     const mult = Math.min(8, 1 + Math.floor(this.combo / 3));
     const pts = ENEMY_BASE[e.type].score * mult;
     this.score += pts;
     this.texts.push({ text: `+${pts}`, color: mult > 1 ? '#ffd34d' : '#fff', t: 0.8, life: 0.8, wx: e.x, wy: e.y + e.h + 0.3 });
-    if (this.combo >= 3 && this.combo % 3 === 0) this.say(`COMBO ×${mult}!`, '#ff9f1c', 1);
+    if (this.combo >= 3 && this.combo % 3 === 0) { this.say(`COMBO ×${mult}!`, '#ff9f1c', 1); this.hooks.progress?.setMax('maxCombo', mult); }
     this.explode(e.x, e.y + e.h / 2, e.type === 'mine' || e.type === 'barrel' ? 1.3 : 0.9, 0);
     this.debris(e.x, e.y + e.h / 2, e.type === 'drone' ? '#2ec4b6' : '#a8b2c1', 6);
     this.freeze = Math.max(this.freeze, 0.035);
@@ -618,6 +646,7 @@ export class Strike {
 
   freePrisoner(e) {
     this.rescued++; this.levelStats.rescued++;
+    this.prog('rescued', 1, 20);
     this.score += 500;
     this.audio.sfx('rescue');
     this.debris(e.x, e.y + 0.8, '#9aa3b5', 8);
@@ -629,6 +658,8 @@ export class Strike {
   killBoss(b) {
     b.dead = true;
     const bonus = Math.round(2000 * this.diff);
+    this.prog('bosses', 1, 150);
+    if (this.levelIndex === LEVELS.length - 1) this.prog('campaigns', 1, 300);
     this.score += bonus;
     this.slow = 1.6; this.shake = 1.2; this.flash = 0.5;
     this.audio.sfx('bigboom');
@@ -637,12 +668,41 @@ export class Strike {
     this.say(`${b.name} DISTRUTTO! +${bonus}`, '#ffd34d', 3, true);
     setTimeout(() => {
       this.boss = null; this.bossArena = null; this.state = 'clear'; this.stateT = 0;
+      this.hooks.progress?.addXp(100);
       this.audio.sfx('win'); this.audio.stopSong();
     }, 2200);
   }
 
+  // colpo di pompa automatico sui nemici a contatto: salva la pelle e dà soddisfazione
+  melee(dt) {
+    const p = this.p;
+    p.pumpCd -= dt; p.pumpT = Math.max(0, p.pumpT - dt);
+    if (p.pumpCd > 0) return;
+    for (const e of this.enemies) {
+      if (e.dead || !['walker', 'shield', 'drone', 'barrel'].includes(e.type)) continue;
+      const dx = e.x - p.x;
+      if (dx > 0 && dx < 1.25 && e.y < p.y + 1.6 && e.y + e.h > p.y + 0.2) {
+        p.pumpCd = 0.35; p.pumpT = 0.15;
+        e.shield = 0;
+        this.damage(e, 99);
+        this.freeze = 0.06; this.audio.sfx('clank');
+        this.say(pick(['POMPA!', 'TOC!', 'GONFIATO!', 'PAF!']), '#fff', 0.6);
+        this.prog('pumps', 1, 3);
+        break;
+      }
+    }
+  }
+
   hurt() {
     const p = this.p;
+    if (p.vehicle) {
+      p.vehicle.hp--; p.hurt = 0.8; this.shake = 0.3; this.audio.sfx('clank');
+      if (p.vehicle.hp <= 0) {
+        p.vehicle = null; p.hurt = 2;
+        this.explode(p.x + 0.6, p.y + 0.6, 1.5, 4); this.say('CARGO DISTRUTTO!', '#ff6b6b', 1.4);
+      }
+      return;
+    }
     p.hp--; p.hurt = 1.6; this.shake = 0.35; this.flash = 0.12;
     this.combo = 0;
     this.audio.sfx('hurt');
@@ -662,6 +722,7 @@ export class Strike {
       this.say(WEAPONS[it.kind].name + '!', WEAPONS[it.kind].color, 1.4, true);
     } else if (it.kind === 'bomb') { p.bombs++; this.say('+1 BOMBA', '#ffd166', 1); }
     else if (it.kind === 'heart') { p.hp = Math.min(p.maxHp, p.hp + 1); this.say('+1 VITA', '#ff5a7a', 1); }
+    else if (it.kind === 'vehicle') { p.vehicle = { hp: 6, max: 6 }; this.say('CARGO-CANNONE!', '#ffd166', 2, true); this.audio.sfx('overdrive'); }
     this.audio.sfx('pickup');
   }
 
@@ -683,6 +744,7 @@ export class Strike {
         this.challenge = null; this.nextChallenge = p.x + rand(150, 220);
         this.score += 1000; this.items.push({ kind: pick(WEAPON_KEYS), x: p.x + 3, y: this.ground(p.x + 3), t: 0 });
         this.p.bombs++; this.audio.sfx('win'); this.say('SFIDA SPRINT VINTA! +1000', '#06d6a0', 2.2, true);
+        this.prog('sprintsWon', 1, 40);
       } else if (c.time > 20) {
         this.challenge = null; this.nextChallenge = p.x + rand(120, 180);
         this.say('SFIDA PERSA... LA PROSSIMA!', '#9aa3b5', 1.6);
@@ -854,6 +916,21 @@ export class Strike {
     const ax = Math.cos(p.aim); const ay = -Math.sin(p.aim);
     pline(g, sh.x, sh.y, sh.x + ax * len, sh.y + ay * len, '#3d4451', 3);
     pline(g, sh.x + ax * 3, sh.y + ay * 3, sh.x + ax * len, sh.y + ay * len, this.weapon === 'blaster' ? '#9aa5b1' : w.color, 1);
+    if (p.pumpT > 0) { // colpo di pompa
+      const k = 1 - p.pumpT / 0.15;
+      const a = -1.2 + k * 2.2;
+      pline(g, sh.x, sh.y, sh.x + Math.cos(a) * 13, sh.y + Math.sin(a) * 13, '#e0e0e0', 2);
+      g.fillStyle = '#fff'; g.fillRect(Math.round(sh.x + Math.cos(a) * 13) - 1, Math.round(sh.y + Math.sin(a) * 13) - 1, 3, 3);
+    }
+    if (p.vehicle) { // Cargo-Cannone: cassone corazzato con cannone
+      const bx = gx + 3; const by = gy - 15;
+      g.fillStyle = '#4a5d23'; g.fillRect(bx, by, 16, 10);
+      g.fillStyle = '#6b8e23'; g.fillRect(bx, by, 16, 2);
+      g.fillStyle = '#2f3d14'; for (let i = 0; i < 3; i++) g.fillRect(bx + 2 + i * 5, by + 4, 2, 2);
+      const ca = clamp(p.aim + 0.12, -0.3, 1);
+      pline(g, bx + 10, by, bx + 10 + Math.cos(ca) * 11, by - Math.sin(ca) * 11, '#2b2b2b', 3);
+      for (let i = 0; i < p.vehicle.max; i++) { g.fillStyle = i < p.vehicle.hp ? '#06d6a0' : '#333'; g.fillRect(bx + i * 3, by - 4, 2, 2); }
+    }
   }
 
   leg(g, hip, foot, color) {
@@ -874,8 +951,9 @@ export class Strike {
     switch (e.type) {
       case 'walker': case 'shield': {
         const frames = e.type === 'shield' ? (fl ? this.shieldW : this.shieldBot) : (fl ? this.walkerW : this.walker);
-        const spr = frames[Math.floor(e.t * 5) % 2];
+        const spr = frames[Math.floor(e.t * (this.overdrive > 0 ? 12 : 5)) % 2];
         g.drawImage(spr, x - 7, y - 18);
+        if (this.overdrive > 0 && e.type === 'walker') ptext(g, '!', x - 1, y - 26, Math.floor(this.t * 8) % 2 ? '#ffd34d' : '#fff');
         if (e.type === 'shield' && e.shield > 0) {
           g.fillStyle = '#ffb703'; g.fillRect(x - 10, y - 19, 3, 17);
           g.fillStyle = '#1b1b1b'; for (let i = 0; i < 4; i++) g.fillRect(x - 10, y - 17 + i * 4, 3, 1);
@@ -933,6 +1011,13 @@ export class Strike {
   drawBoss(g, b) {
     const x = this.sx(b.x); const y = this.sy(b.y);
     const fl = b.flash > 0;
+    this.drawBossBody(g, b, x, y, fl);
+    const wp = this.weakPoint(b);
+    const pulse = Math.floor(this.t * 6) % 2;
+    pring(g, this.sx(wp.x), this.sy(wp.y), 3 + pulse, pulse ? '#ffd34d' : '#ff3b3b');
+  }
+
+  drawBossBody(g, b, x, y, fl) {
     const c = (col) => (fl ? '#ffffff' : col);
     if (b.kind === 'tank') {
       g.fillStyle = c('#2b2d42'); g.fillRect(x - 30, y - 10, 60, 10);
@@ -973,6 +1058,12 @@ export class Strike {
   drawItem(g, it) {
     const x = this.sx(it.x); const y = this.sy(it.y) - 6 - Math.round(Math.abs(Math.sin(it.t * 4)) * 3);
     const w = WEAPONS[it.kind];
+    if (it.kind === 'vehicle') { // cassa speciale lampeggiante
+      g.fillStyle = Math.floor(it.t * 6) % 2 ? '#ffd166' : '#4a5d23'; g.fillRect(x - 7, y - 6, 15, 12);
+      g.fillStyle = '#1b1b2f'; g.fillRect(x - 7, y - 6, 15, 1); g.fillRect(x - 7, y + 5, 15, 1);
+      ptext(g, 'V', x - 1, y - 2, '#1b1b2f');
+      return;
+    }
     const col = w ? w.color : it.kind === 'bomb' ? '#ffd166' : '#ff5a7a';
     pring(g, x, y, 5, '#1b1b2f', true); pring(g, x, y, 4, col, true);
     ptext(g, w ? w.letter : it.kind === 'bomb' ? 'B' : '+', x - 1, y - 2, '#1b1b2f');
@@ -983,6 +1074,7 @@ export class Strike {
     for (const b of this.bullets) {
       const x = this.sx(b.x); const y = this.sy(b.y);
       if (b.kind === 'laser') { pline(g, x - b.vx / 40 * 10, y + b.vy / 40 * 10, x, y, b.color, 2); g.fillStyle = '#fff'; g.fillRect(x - 1, y, 2, 1); }
+      else if (b.kind === 'shell') { pring(g, x, y, 2, '#2b2b2b', true); g.fillStyle = '#ffd166'; g.fillRect(x - 1, y - 1, 1, 1); }
       else if (b.kind === 'rocket') { g.fillStyle = '#ddd'; g.fillRect(x - 2, y - 1, 4, 2); g.fillStyle = '#ff6b35'; g.fillRect(x - 4, y - 1, 2, 2); }
       else if (b.kind === 'flame') { const k = 1 - b.life / 0.38; g.fillStyle = k < 0.3 ? '#fff3b0' : k < 0.6 ? '#ff9f1c' : '#e85d04'; const r = 1 + Math.round(k * 3); g.fillRect(x - r, y - r, r * 2, r * 2); }
       else { g.fillStyle = b.color; g.fillRect(x - 2, y - 1, 4, 2); g.fillStyle = '#fff'; g.fillRect(x, y - 1, 2, 1); }
@@ -1078,7 +1170,8 @@ export class Strike {
       }
       ctx.globalAlpha = 1;
     }
-    if (this.state === 'title') this.card(`MISSIONE ${this.levelIndex + 1}`, this.level.name, this.levelIndex === 0 && !this.loopN ? 'Libera i ciclisti prigionieri, raccogli le armi, abbatti il boss!' : '');
+    this.hooks.progress?.drawToasts(ctx, W, this.lastDt || 0.016);
+    if (this.state === 'title') this.card(`MISSIONE ${this.levelIndex + 1}`, this.level.name, this.levelIndex === 0 && !this.loopN ? 'Libera i prigionieri, prendi le armi, batti il boss!' : '');
     if (this.state === 'clear') {
       const s = this.levelStats;
       this.card('MISSIONE COMPIUTA!', `Robot distrutti: ${s.kills} · Ciclisti liberati: ${s.rescued}`, `Punti missione: ${this.score - s.start}`);
@@ -1122,8 +1215,9 @@ export class Strike {
     hudText(ctx, h.perk, W / 2, H * 0.68 + 24, { size: 13, align: 'center', color: '#06d6a0' });
     hudText(ctx, HEROES.map((x, i) => (i === this.heroIndex ? '●' : '○')).join(' '), W / 2, H * 0.68 + 48, { size: 14, align: 'center' });
     hudText(ctx, '−  cambia eroe        +  inizia', W / 2, H * 0.84, { size: 15, align: 'center', color: '#ffd34d' });
-    hudText(ctx, 'In gioco: + salta · − bomba · più watt = più colpi', W / 2, H * 0.84 + 24, { size: 11, align: 'center', color: '#9aa3b5' });
+    hudText(ctx, 'In gioco: + salta · − bomba · avvicinati: colpo di pompa', W / 2, H * 0.84 + 24, { size: 11, align: 'center', color: '#9aa3b5' });
     hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.84 + 44, { size: 11, align: 'center', color: '#9aa3b5' });
+    this.hooks.progress?.drawToasts(ctx, W, this.lastDt || 0.016);
   }
 
   loop(now) {
@@ -1132,6 +1226,7 @@ export class Strike {
     this.last = now;
     if (this.freeze > 0) { this.freeze -= dt; dt = 0; }
     if (this.slow > 0) { this.slow -= dt; dt *= 0.35; }
+    this.lastDt = dt;
     this.update(dt);
     this.draw();
     requestAnimationFrame(this.loop);
