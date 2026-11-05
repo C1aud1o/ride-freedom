@@ -26,8 +26,12 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
   - **Turbo Pedali 3D**: tappa in linea in 3D (Three.js + modelli Kenney CC0) con 8 corridori con
     nome e carattere, 3 tappe (mare, montagna, colline), scia, monete, oggetti attivati con uno sprint
     vero, traguardo volante e GPM con maglie, profilo altimetrico, podio e record.
-  - **Pedal Strike**: sparatutto a scorrimento con 3 eroi, 3 missioni, 5 armi, prigionieri da
-    liberare, 3 boss; i watt decidono la cadenza di tiro e lo sprint scatena l'OVERDRIVE.
+  - **Pedal Strike 3D**: sparatutto a scorrimento laterale in 3D con 3 eroi, 3 missioni (campagna,
+    deserto, cimitero del Barone), 5 armi, prigionieri da liberare, 3 boss; i watt decidono la cadenza
+    di tiro e lo sprint scatena l'OVERDRIVE.
+  - **L'Orda**: sparatutto "a orde" in 3D. Si parte con una pistola contro pochi zombi, le ondate
+    crescono senza fine (scheletri, fantasmi, vampiri, il Custode gigante), l'arma evolve in 10 passi
+    fino al laser e i portali danno alleati che sparano con te. Più watt = più colpi.
 - **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
   valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
   assegnarli a cambiata +/−.
@@ -73,5 +77,7 @@ python3 -m http.server 8000
   cifratura i tasti potrebbero non arrivare; in quel caso usa i pulsanti a schermo.
 
 ## Crediti
-- Modelli 3D: [Kenney](https://kenney.nl) — Racing Kit, Nature Kit, Blocky Characters (CC0), in `assets/3d`.
+- Modelli 3D: [Kenney](https://kenney.nl) — Racing Kit, Nature Kit, Blocky Characters, Graveyard Kit,
+  Blaster Kit (CC0), in `assets/3d`.
+- Jingle: Kenney — Music Jingles (CC0), in `assets/audio/jingles`.
 - Motore 3D: [three.js](https://threejs.org) (MIT), in `vendor/three`.

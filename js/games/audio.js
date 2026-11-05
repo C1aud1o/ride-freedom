@@ -2,6 +2,11 @@
 
 const mtof = (n) => 440 * 2 ** ((n - 69) / 12);
 
+// Jingle originali Kenney "Music Jingles" (CC0) in assets/audio/jingles.
+// Ogni effetto sotto, se ha un jingle, usa quello; altrimenti il suono sintetizzato.
+const JINGLE_FOR = { win: 'win', lose: 'lose', go: 'go', rescue: 'reward', overdrive: 'levelup', alarm: 'boss', menu: 'menu' };
+const JINGLE_FILES = ['win', 'win2', 'lose', 'lose2', 'go', 'reward', 'levelup', 'boss', 'menu'];
+
 export class GameAudio {
   constructor() {
     this.ctx = null;
@@ -24,9 +29,31 @@ export class GameAudio {
       this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.loadJingles();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
+  }
+
+  async loadJingles() {
+    this.jingles = {};
+    await Promise.all(JINGLE_FILES.map(async (n) => {
+      try {
+        const res = await fetch(`assets/audio/jingles/${n}.mp3`);
+        this.jingles[n] = await this.ctx.decodeAudioData(await res.arrayBuffer());
+      } catch { /* resta il suono sintetizzato */ }
+    }));
+  }
+
+  // suona un jingle (con piccola variazione tra le versioni disponibili)
+  jingle(name, vol = 0.9) {
+    if (!this.ensure() || this.muted || !this.jingles) return false;
+    const alt = this.jingles[`${name}2`] && Math.random() < 0.4 ? `${name}2` : name;
+    const buf = this.jingles[alt]; if (!buf) return false;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    src.connect(g); g.connect(this.master); src.start();
+    return true;
   }
 
   toggleMute() {
@@ -58,6 +85,7 @@ export class GameAudio {
 
   sfx(name) {
     if (!this.ensure() || this.muted) return;
+    if (JINGLE_FOR[name] && this.jingle(JINGLE_FOR[name])) return;
     const t = this.ctx.currentTime;
     switch (name) {
       case 'shot': this.tone({ freq: 900, to: 300, dur: 0.05, vol: 0.05 }); break;

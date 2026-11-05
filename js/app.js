@@ -6,8 +6,9 @@ import { encodeFit } from './fit.js';
 import { Strava } from './strava.js';
 import { STRAVA_PROXY } from './config.js';
 import { setupDebug } from './debugview.js';
-import { Strike } from './games/strike.js';
+import { Strike3D } from './games/strike3d.js';
 import { Racer3D } from './games/racer3d.js';
+import { Horde } from './games/horde.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
@@ -440,8 +441,9 @@ const gameHooks = {
 };
 const gameAudio = new GameAudio();
 const games = {
+  horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: '+ / − corsia · watt = colpi · sprint = overdrive' },
   racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },
-  shooter: { game: new Strike($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
+  shooter: { game: new Strike3D($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
 };
 let activeGame = null;
 
