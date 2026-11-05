@@ -23,8 +23,9 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
   anche se ricarichi la pagina.
 - **Giochi** (pulsante *🎮 Gioca*), grafica pixel-art, musica chiptune che segue la tua cadenza,
   le salite arrivano sul rullo come pendenza reale. Vedi [docs/giochi.md](docs/giochi.md).
-  - **Turbo Pedali**: gara a 8 ciclisti con nome e carattere, 3 circuiti, 3 giri, scia
-    aerodinamica, monete, oggetti attivati con uno sprint vero, podio e record.
+  - **Turbo Pedali 3D**: tappa in linea in 3D (Three.js + modelli Kenney CC0) con 8 corridori con
+    nome e carattere, 3 tappe (mare, montagna, colline), scia, monete, oggetti attivati con uno sprint
+    vero, traguardo volante e GPM con maglie, profilo altimetrico, podio e record.
   - **Pedal Strike**: sparatutto a scorrimento con 3 eroi, 3 missioni, 5 armi, prigionieri da
     liberare, 3 boss; i watt decidono la cadenza di tiro e lo sprint scatena l'OVERDRIVE.
 - **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
@@ -70,3 +71,7 @@ python3 -m http.server 8000
   approvati e richiede un server. Si carica a mano il file .FIT.
 - Il supporto Zwift Click è ricostruito da progetti open source: se il firmware del Click richiede la
   cifratura i tasti potrebbero non arrivare; in quel caso usa i pulsanti a schermo.
+
+## Crediti
+- Modelli 3D: [Kenney](https://kenney.nl) — Racing Kit, Nature Kit, Blocky Characters (CC0), in `assets/3d`.
+- Motore 3D: [three.js](https://threejs.org) (MIT), in `vendor/three`.

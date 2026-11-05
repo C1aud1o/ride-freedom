@@ -7,7 +7,7 @@ import { Strava } from './strava.js';
 import { STRAVA_PROXY } from './config.js';
 import { setupDebug } from './debugview.js';
 import { Strike } from './games/strike.js';
-import { Racer } from './games/racer.js';
+import { Racer3D } from './games/racer3d.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
@@ -440,7 +440,7 @@ const gameHooks = {
 };
 const gameAudio = new GameAudio();
 const games = {
-  racer: { game: new Racer($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali', help: '+ destra · − sinistra · sprint = oggetto' },
+  racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },
   shooter: { game: new Strike($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
 };
 let activeGame = null;
