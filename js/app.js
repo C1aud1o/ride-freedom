@@ -25,6 +25,7 @@ const state = {
   erg: 150,
   resistance: 30,
   mass: Number(localStorage.getItem('mass')) || 80,
+  ftp: Number(localStorage.getItem('ftp')) || 200,
   data: { power: 0, cadence: 0, speed: 0, hr: null },
   cadenceSmooth: 0,
   speedSmooth: 0, // m/s dal rullo, smussata
@@ -43,6 +44,7 @@ function setStatus(id, text, ok) {
   const el = $(id);
   el.textContent = text;
   el.classList.toggle('ok', !!ok);
+  el.closest('.sensor')?.classList.toggle('on', !!ok);
 }
 function fmtTime(s) {
   const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = Math.floor(s % 60);
@@ -73,7 +75,6 @@ $('connectTrainer').addEventListener('click', async () => {
 trainer.addEventListener('connected', (e) => {
   const { name, ftms, features } = e.detail;
   setStatus('trainerStatus', `${name || 'Rullo'}${ftms ? ' · FTMS' : ''}`, true);
-  $('connectTrainer').textContent = 'Disconnetti';
   log(`Funzioni: ERG ${features.power ? '✓' : '✗'} · Pendenza ${features.simulation ? '✓' : '✗'} · Resistenza ${features.resistance ? '✓' : '✗'}`);
   if (!trainer.controllable) log('Il rullo è in sola lettura (nessun controllo resistenza).');
   state.lastSent = null;
@@ -81,7 +82,6 @@ trainer.addEventListener('connected', (e) => {
 });
 trainer.addEventListener('disconnected', async () => {
   setStatus('trainerStatus', 'Disconnesso');
-  $('connectTrainer').textContent = 'Connetti rullo';
   log('Rullo disconnesso');
 });
 trainer.addEventListener('log', (e) => log(e.detail));
@@ -98,7 +98,6 @@ $('connectClick').addEventListener('click', async () => {
     setStatus('clickStatus', 'Connessione…');
     const name = await click.connect();
     setStatus('clickStatus', name, true);
-    $('connectClick').textContent = 'Disconnetti Click';
     log(`Connesso a ${name} (sperimentale)`);
   } catch (err) {
     setStatus('clickStatus', 'Non connesso');
@@ -108,7 +107,6 @@ $('connectClick').addEventListener('click', async () => {
 });
 click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
-  $('connectClick').textContent = 'Connetti Zwift Click';
 });
 click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : shift(e.detail)));
 
@@ -119,7 +117,6 @@ $('connectHr').addEventListener('click', async () => {
     const name = await hrm.connect();
     state.hrFromSensor = true;
     setStatus('hrStatus', name, true);
-    $('connectHr').textContent = 'Disconnetti cardio';
     log(`Cardio connesso: ${name}`);
   } catch (err) {
     setStatus('hrStatus', 'Non connesso');
@@ -132,7 +129,6 @@ hrm.addEventListener('disconnected', () => {
   state.hrFromSensor = false;
   state.data.hr = null;
   setStatus('hrStatus', 'Non connesso');
-  $('connectHr').textContent = 'Connetti cardio';
 });
 
 // ---------- Modalità e comandi ----------
@@ -181,6 +177,12 @@ window.addEventListener('keydown', (e) => {
 $('grade').addEventListener('input', (e) => { state.grade = +e.target.value; render(); applyMode(true); });
 $('erg').addEventListener('input', (e) => { state.erg = +e.target.value; render(); applyMode(true); });
 $('resistance').addEventListener('input', (e) => { state.resistance = +e.target.value; render(); applyMode(true); });
+$('ftp').addEventListener('change', (e) => {
+  state.ftp = Math.min(500, Math.max(80, +e.target.value || 200));
+  e.target.value = state.ftp;
+  localStorage.setItem('ftp', state.ftp);
+  render();
+});
 $('mass').addEventListener('change', (e) => {
   state.mass = Math.min(200, Math.max(30, +e.target.value || 80));
   e.target.value = state.mass;
@@ -192,6 +194,7 @@ function syncInputs() {
   $('erg').value = state.erg;
   $('resistance').value = state.resistance;
   $('mass').value = state.mass;
+  $('ftp').value = state.ftp;
 }
 
 // Calcola il target per la modalità corrente
@@ -266,6 +269,7 @@ $('startStop').addEventListener('click', () => {
   r.running = !r.running;
   if (r.running) { r.start = performance.now() - r.elapsed * 1000; requestWakeLock(); }
   $('startStop').textContent = r.running ? 'Pausa' : 'Avvia';
+  $('startStop').classList.toggle('running', r.running);
 });
 $('reset').addEventListener('click', () => {
   if (!state.ride.saved && !confirm('Azzerare la sessione? I dati non salvati in .FIT andranno persi.')) return;
@@ -273,6 +277,8 @@ $('reset').addEventListener('click', () => {
   stravaMsg('');
   persist();
   $('startStop').textContent = 'Avvia';
+  $('startStop').classList.remove('running');
+  closeSheet('finishSheet');
   render();
 });
 
@@ -309,6 +315,25 @@ setInterval(() => {
 }, 1000);
 
 // ---------- Render ----------
+const ZONES = [
+  { id: 'Z1', name: 'Recupero', max: 0.55 }, { id: 'Z2', name: 'Fondo', max: 0.75 }, { id: 'Z3', name: 'Tempo', max: 0.9 },
+  { id: 'Z4', name: 'Soglia', max: 1.05 }, { id: 'Z5', name: 'VO2max', max: 1.2 }, { id: 'Z6', name: 'Anaerobico', max: 1.5 },
+  { id: 'Z7', name: 'Sprint', max: Infinity },
+];
+const cassetteEls = GEARS.map((_, i) => {
+  const el = document.createElement('i');
+  el.style.height = `${10 + (GEARS.length - 1 - i) * 0.85}px`; // marce agili = pignoni grandi
+  $('cassette').append(el);
+  return el;
+});
+
+// ---------- Pannelli ----------
+function openSheet(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
+function closeSheet(id) { $(id).hidden = true; document.body.style.overflow = ''; }
+document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => closeSheet(b.dataset.close)));
+document.querySelectorAll('.sheet').forEach((sh) => sh.addEventListener('click', (e) => { if (e.target === sh) closeSheet(sh.id); }));
+$('openSettings').addEventListener('click', () => openSheet('settingsSheet'));
+$('openDebug').addEventListener('click', () => closeSheet('settingsSheet'));
 function render() {
   const d = state.data; const r = state.ride;
   $('power').textContent = Math.round(d.power || 0);
@@ -327,7 +352,15 @@ function render() {
 
   $('gearNum').textContent = state.gear + 1;
   $('gearRatio').textContent = GEARS[state.gear].toFixed(2);
-  $('gearBar').style.width = `${((state.gear + 1) / GEARS.length) * 100}%`;
+  // cassetta: il pignone acceso è la marcia attuale
+  cassetteEls.forEach((el, i) => { el.className = i === state.gear ? 'on' : i < state.gear ? 'past' : ''; });
+  // zone di potenza sulla FTP
+  const pct = (d.power || 0) / state.ftp;
+  const z = ZONES.findIndex((zz) => pct < zz.max);
+  const zone = ZONES[z < 0 ? ZONES.length - 1 : z];
+  $('zone').textContent = d.power ? `${zone.id} ${zone.name}` : '—';
+  document.documentElement.style.setProperty('--zone', d.power ? `var(--${zone.id.toLowerCase()})` : 'var(--z1)');
+  $('zoneFill').style.left = `${Math.min(100, (pct / 1.7) * 100)}%`;
   $('gradeVal').textContent = `${state.grade.toFixed(1)} %`;
   $('ergVal').textContent = `${state.erg} W`;
   $('resVal').textContent = `${state.resistance} %`;
@@ -450,8 +483,8 @@ function closeGame() {
 document.querySelectorAll('.game-card').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.game)));
 $('openGame').addEventListener('click', openGame);
 $('closeGame').addEventListener('click', closeGame);
-$('muteGame').textContent = gameAudio.muted ? '🔇' : '🔊';
-$('muteGame').addEventListener('click', () => { $('muteGame').textContent = gameAudio.toggleMute() ? '🔇' : '🔊'; });
+$('muteGame').textContent = gameAudio.muted ? 'Audio no' : 'Audio sì';
+$('muteGame').addEventListener('click', () => { $('muteGame').textContent = gameAudio.toggleMute() ? 'Audio no' : 'Audio sì'; });
 $('gameCanvas').addEventListener('pointerdown', (e) => {
   if (!activeGame?.active) return;
   const r = e.currentTarget.getBoundingClientRect();
@@ -460,7 +493,7 @@ $('gameCanvas').addEventListener('pointerdown', (e) => {
 // ---------- Strava ----------
 const strava = new Strava(STRAVA_PROXY);
 let stravaBusy = false;
-function stravaMsg(text, html = false) { $('stravaMsg')[html ? 'innerHTML' : 'textContent'] = text; }
+function stravaMsg(text, html = false) { for (const id of ['stravaMsg', 'stravaNote']) $(id)[html ? 'innerHTML' : 'textContent'] = text; }
 function renderStrava() {
   $('stravaSite').textContent = location.origin;
   $('stravaDomain').textContent = location.hostname;
@@ -471,7 +504,7 @@ function renderStrava() {
   $('stravaLinked').hidden = !strava.connected;
   $('stravaAuto').checked = !!strava.cfg.auto;
   $('uploadStrava').hidden = !strava.connected;
-  setStatus('stravaStatus', strava.connected ? `Collegato${strava.athlete ? ` · ${strava.athlete}` : ''}` : 'Non collegato', strava.connected);
+  setStatus('stravaStatus', strava.connected ? `collegato${strava.athlete ? ` · ${strava.athlete}` : ''}` : 'non collegato', strava.connected);
 }
 $('stravaConnect').addEventListener('click', () => {
   const id = $('stravaId').value.trim(); const secret = $('stravaSecret').value.trim();
@@ -500,7 +533,7 @@ async function uploadToStrava() {
       externalId: `ridefreedom-${r.log[0].t}`,
     }, (m) => stravaMsg(m));
     r.saved = true;
-    if (res.url) { r.stravaUrl = res.url; stravaMsg(`✅ ${res.message} <a href="${res.url}" target="_blank" rel="noopener">Apri su Strava</a>`, true); }
+    if (res.url) { r.stravaUrl = res.url; stravaMsg(`${res.message} <a href="${res.url}" target="_blank" rel="noopener">Apri l'attività</a>`, true); }
     else stravaMsg(res.message);
     persist();
     log(res.message);
@@ -511,14 +544,19 @@ async function uploadToStrava() {
 }
 $('uploadStrava').addEventListener('click', uploadToStrava);
 $('finishRide').addEventListener('click', () => {
-  if (state.ride.running) $('startStop').click(); // pausa
-  if (strava.connected && strava.cfg.auto) uploadToStrava();
-  else if (strava.connected) stravaMsg('Allenamento terminato. Premi "Carica su Strava" o "Salva .FIT".');
-  else stravaMsg('Allenamento terminato. Salvalo con "Salva .FIT", oppure collega Strava qui sotto per caricarlo in automatico.');
-  $('stravaBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const r = state.ride;
+  if (r.running) $('startStop').click(); // pausa
+  const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
+  $('finishSummary').innerHTML = [['Tempo', fmtTime(r.elapsed)], ['km', (r.distance / 1000).toFixed(2)], ['W medi', avgW], ['kJ', Math.round(r.energy)]]
+    .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  $('stravaMsg').innerHTML = r.stravaUrl
+    ? `Già su Strava. <a href="${r.stravaUrl}" target="_blank" rel="noopener">Apri l'attività</a>`
+    : strava.connected ? '' : 'Collega Strava dalle impostazioni per caricare in automatico.';
+  openSheet('finishSheet');
+  if (strava.connected && strava.cfg.auto && !r.stravaUrl) uploadToStrava();
 });
 strava.handleRedirect().then((res) => {
-  if (res) { stravaMsg(res.message); log(res.message); }
+  if (res) { stravaMsg(res.message); log(res.message); openSheet('settingsSheet'); }
   renderStrava();
 }).catch((err) => { stravaMsg(`Errore collegamento Strava: ${err.message}`); renderStrava(); });
 renderStrava();

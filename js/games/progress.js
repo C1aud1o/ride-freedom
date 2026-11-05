@@ -128,10 +128,10 @@ export class Progress {
     const pct = Math.round(((this.xp - a) / (b - a)) * 100);
     const daily = this.daily.items.map((it) => {
       const d = DAILY_POOL.find((x) => x.id === it.id);
-      return `<li class="${it.done ? 'done' : ''}"><span>${it.done ? '✅' : '◻️'} ${d.text}</span><small>${it.progress}/${d.target} · +${d.xp} XP</small></li>`;
+      return `<li class="${it.done ? 'done' : ''}"><span>${it.done ? '●' : '○'} ${d.text}</span><small>${it.progress}/${d.target} · +${d.xp} XP</small></li>`;
     }).join('');
     const got = ACHIEVEMENTS.filter((x) => this.achievements[x.id]).length;
-    const ach = ACHIEVEMENTS.map((x) => `<li class="${this.achievements[x.id] ? 'done' : ''}">${this.achievements[x.id] ? '🏆' : '🔒'} <b>${x.name}</b> — ${x.desc}</li>`).join('');
+    const ach = ACHIEVEMENTS.map((x) => `<li class="${this.achievements[x.id] ? 'done' : ''}">${this.achievements[x.id] ? '●' : '○'} <b>${x.name}</b> — ${x.desc}</li>`).join('');
     el.innerHTML = `
       <div class="prog-head"><span class="prog-lvl">${lvl}</span><div><b>${this.title}</b><small>${this.xp} XP · prossimo livello a ${b}</small>
       <div class="prog-bar"><i style="width:${pct}%"></i></div></div></div>
