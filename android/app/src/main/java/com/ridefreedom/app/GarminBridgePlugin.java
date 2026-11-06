@@ -17,6 +17,7 @@ import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -67,7 +68,8 @@ public class GarminBridgePlugin extends Plugin {
     private final ArrayDeque<BluetoothGattService> pendingServices = new ArrayDeque<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false, advertising = false;
-    private String deviceName = "Ride Freedom";
+    private String deviceName = "RideFreedom";
+    private static final String PREFS = "garmin_bridge"; private static final String KEY_ORIG = "original_bt_name";
 
     // valori correnti e contatori
     private volatile int power = 0;
@@ -79,7 +81,7 @@ public class GarminBridgePlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        deviceName = call.getString("name", "Ride Freedom");
+        deviceName = call.getString("name", "RideFreedom");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && getPermissionState("ble") != PermissionState.GRANTED) {
             requestPermissionForAlias("ble", call, "permsCallback");
             return;
@@ -132,19 +134,57 @@ public class GarminBridgePlugin extends Plugin {
         call.resolve(status());
     }
 
+    // Il nome nel pacchetto di advertising è il nome Bluetooth del telefono: lo cambiamo solo
+    // mentre il ponte è attivo e salviamo l'originale per ripristinarlo (anche dopo una chiusura brusca).
+    @SuppressLint("MissingPermission")
+    private void renameAdapter() {
+        try {
+            BluetoothAdapter a = manager.getAdapter();
+            SharedPreferences sp = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            String current = a.getName();
+            if (!sp.contains(KEY_ORIG) && current != null && !current.equals(deviceName)) sp.edit().putString(KEY_ORIG, current).apply();
+            a.setName(deviceName);
+        } catch (SecurityException ignored) { }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void restoreAdapterName() {
+        try {
+            SharedPreferences sp = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            String orig = sp.getString(KEY_ORIG, null);
+            if (orig == null) return;
+            BluetoothManager m = manager != null ? manager : (BluetoothManager) getContext().getSystemService(Context.BLUETOOTH_SERVICE);
+            if (m != null && m.getAdapter() != null && m.getAdapter().setName(orig)) sp.edit().remove(KEY_ORIG).apply();
+        } catch (SecurityException ignored) { }
+    }
+
+    @Override
+    public void load() {
+        // se l'app era stata chiusa con il ponte acceso, rimette il nome originale del telefono
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || getPermissionState("ble") == PermissionState.GRANTED) restoreAdapterName();
+    }
+
     @SuppressLint("MissingPermission")
     private void startAdvertising() {
         if (advertiser == null || advertising) return;
-        try { manager.getAdapter().setName(deviceName); } catch (SecurityException ignored) { }
+        renameAdapter();
+        // il cambio di nome richiede un attimo: si parte dopo mezzo secondo
+        handler.postDelayed(this::doAdvertise, 600);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void doAdvertise() {
+        if (!running || advertising) return;
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .setConnectable(true).build();
+        // nome nel pacchetto principale (il Garmin non legge la risposta alla scansione)
         AdvertiseData data = new AdvertiseData.Builder()
-            .setIncludeDeviceName(false)
-            .addServiceUuid(new ParcelUuid(CPS))
+            .setIncludeDeviceName(true)
+            .addServiceUuid(new ParcelUuid(CPS)).build();
+        AdvertiseData scan = new AdvertiseData.Builder()
             .addServiceUuid(new ParcelUuid(CSC)).build();
-        AdvertiseData scan = new AdvertiseData.Builder().setIncludeDeviceName(true).build();
         try { advertiser.startAdvertising(settings, data, scan, advCallback); } catch (SecurityException e) { emit("error", "Permesso advertising mancante"); }
     }
 
@@ -180,6 +220,7 @@ public class GarminBridgePlugin extends Plugin {
         advertising = false;
         try { if (server != null) server.close(); } catch (SecurityException ignored) { }
         server = null; connected.clear(); cpSubs.clear(); cscSubs.clear();
+        restoreAdapterName();
         emitStatus();
     }
 
@@ -267,11 +308,18 @@ public class GarminBridgePlugin extends Plugin {
             } else startAdvertising();
         }
 
+        @SuppressLint("MissingPermission")
         @Override public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
-            if (newState == BluetoothProfile.STATE_CONNECTED) connected.add(device);
-            else { connected.remove(device); cpSubs.remove(device.getAddress()); cscSubs.remove(device.getAddress()); }
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                connected.add(device);
+                // accorgimento noto: "accettare" la connessione evita che Android la chiuda subito
+                try { if (server != null) server.connect(device, false); } catch (SecurityException ignored) { }
+            } else { connected.remove(device); cpSubs.remove(device.getAddress()); cscSubs.remove(device.getAddress()); }
+            emit("log", (newState == BluetoothProfile.STATE_CONNECTED ? "connesso: " : "disconnesso: ") + label(device) + " (stato " + status + ")");
             emitStatus();
         }
+
+        @Override public void onMtuChanged(BluetoothDevice device, int mtu) { emit("log", "MTU " + mtu + " con " + label(device)); }
 
         @SuppressLint("MissingPermission")
         @Override public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic ch) {
@@ -281,6 +329,7 @@ public class GarminBridgePlugin extends Plugin {
             else if (id.equals(CSC_FEAT)) { v = new byte[2]; put16(v, 0, 0x03); }    // ruota + pedivella
             else if (id.equals(SENSOR_LOC)) v = new byte[] { 13 };                   // mozzo posteriore (rullo)
             else v = new byte[0];
+            emit("log", "lettura " + shortId(id) + " da " + label(device));
             try { server.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, v); } catch (SecurityException ignored) { }
         }
 
@@ -290,6 +339,7 @@ public class GarminBridgePlugin extends Plugin {
             UUID ch = d.getCharacteristic().getUuid();
             Set<String> subs = ch.equals(CP_MEAS) ? cpSubs : cscSubs;
             if (on) subs.add(device.getAddress()); else subs.remove(device.getAddress());
+            emit("log", (on ? "iscritto a " : "disiscritto da ") + shortId(ch) + ": " + label(device));
             if (needResp) try { server.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null); } catch (SecurityException ignored) { }
             emitStatus();
         }
@@ -334,6 +384,14 @@ public class GarminBridgePlugin extends Plugin {
         o.put("usersCount", nUsers);
         return o;
     }
+
+    @SuppressLint("MissingPermission")
+    private static String label(BluetoothDevice d) {
+        String n = null;
+        try { n = d.getName(); } catch (SecurityException ignored) { }
+        return (n != null ? n + " " : "") + d.getAddress();
+    }
+    private static String shortId(UUID u) { return "0x" + u.toString().substring(4, 8); }
 
     private void emitStatus() { handler.post(() -> notifyListeners("status", status())); }
     private void emit(String type, String msg) { JSObject o = new JSObject(); o.put("message", msg); handler.post(() -> notifyListeners(type, o)); }

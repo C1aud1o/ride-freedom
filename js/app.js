@@ -471,10 +471,10 @@ async function setGarmin(on) {
   clearInterval(garminTimer);
   if (on) {
     try {
-      await GarminBridge.start({ name: 'Ride Freedom' });
+      await GarminBridge.start({ name: 'RideFreedom' });
       setStatus('garminStatus', 'in attesa del Garmin…');
       garminTimer = setInterval(pushGarmin, 500);
-      log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "Ride Freedom"');
+      log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "RideFreedom"');
     } catch (err) {
       setStatus('garminStatus', 'errore'); $('garminOn').checked = false; log(`Garmin: ${err.message}`);
     }
@@ -492,6 +492,7 @@ if (GarminBridge) {
     setStatus('garminStatus', inUse ? `in uso: ${st.users}` : st.advertising ? 'in attesa del Garmin…' : st.running ? 'avvio…' : 'spento', inUse);
   });
   GarminBridge.addListener('error', (ev) => log(`Garmin: ${ev.message}`));
+  GarminBridge.addListener('log', (ev) => log(`Garmin · ${ev.message}`));
   $('garminOn').addEventListener('change', (e) => setGarmin(e.target.checked));
   if (localStorage.getItem('garminOn') === '1') { $('garminOn').checked = true; setGarmin(true); }
 }
