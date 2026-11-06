@@ -1,0 +1,16 @@
+{
+  "appId": "com.ridefreedom.app",
+  "appName": "Ride Freedom",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "BluetoothLe": {
+      "displayStrings": {
+        "scanning": "Ricerca dispositivi…",
+        "cancel": "Annulla",
+        "availableDevices": "Dispositivi trovati",
+        "noDeviceFound": "Nessun dispositivo trovato"
+      }
+    }
+  }
+}

@@ -23,8 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Prepara il sito (solo i file web, senza android/)
+        run: node scripts/copy-web.mjs && cp sw.js CNAME .nojekyll www/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: www
       - id: deployment
         uses: actions/deploy-pages@v4

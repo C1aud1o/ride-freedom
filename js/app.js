@@ -1,4 +1,6 @@
+import { isNative, GarminBridge } from './native.js'; // per primo: nell'app installa il Bluetooth nativo
 import { Trainer } from './ftms.js';
+import { PowerMeter } from './powermeter.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
@@ -14,6 +16,7 @@ import { Progress } from './games/progress.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
+const pm = new PowerMeter();
 const click = new ZwiftClick();
 const hrm = new HeartRate();
 
@@ -89,6 +92,7 @@ trainer.addEventListener('log', (e) => log(e.detail));
 trainer.addEventListener('data', (e) => {
   const d = { ...e.detail };
   if (state.hrFromSensor) delete d.hr; // la fascia/orologio ha la precedenza
+  if (pmActive()) { delete d.power; if (state.pmCadence) delete d.cadence; } // vince il misuratore di potenza
   Object.assign(state.data, d);
   render();
 });
@@ -204,8 +208,10 @@ function syncInputs() {
 // è fissa, quindi la velocità del volano è proporzionale alla pedalata: la stimiamo.
 // 7.37 rpm per km/h viene dai dati del D100 (campo extra ≈ cadenza×10 = velocità×7.37).
 const RPM_PER_KMH = 7.37;
+function pmActive() { return pm.connected && state.usePm; }
+function hasRealCadence() { return trainer.hasCadence || (pmActive() && state.pmCadence); }
 function currentCadence() {
-  if (trainer.hasCadence) return state.cadenceSmooth;
+  if (hasRealCadence()) return state.cadenceSmooth;
   return state.speedSmooth * 3.6 * RPM_PER_KMH;
 }
 
@@ -338,7 +344,7 @@ $('openDebug').addEventListener('click', () => closeSheet('settingsSheet'));
 function render() {
   const d = state.data; const r = state.ride;
   $('power').textContent = Math.round(d.power || 0);
-  $('cadence').textContent = trainer.hasCadence ? Math.round(d.cadence || 0) : trainer.connected ? `~${Math.round(currentCadence())}` : '0';
+  $('cadence').textContent = hasRealCadence() ? Math.round(d.cadence || 0) : trainer.connected ? `~${Math.round(currentCadence())}` : '0';
   const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
   $('speed').textContent = speed.toFixed(1);
   $('hr').textContent = d.hr ? d.hr : '--';
@@ -424,7 +430,68 @@ try {
   $('shareFit').hidden = !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
 } catch { /* non supportato */ }
 
-setupDebug({ trainer, click, hrm, appLog: () => $('log').textContent });
+setupDebug({ trainer, click, hrm, extra: [pm], appLog: () => $('log').textContent });
+
+// ---------- Misuratore di potenza esterno ----------
+state.usePm = localStorage.getItem('usePm') !== '0';
+$('usePm').checked = state.usePm;
+$('usePm').addEventListener('change', (e) => { state.usePm = e.target.checked; localStorage.setItem('usePm', state.usePm ? '1' : '0'); render(); });
+$('connectPm').addEventListener('click', async () => {
+  if (pm.connected) { pm.disconnect(); return; }
+  try {
+    setStatus('pmStatus', 'connessione…');
+    const name = await pm.connect();
+    setStatus('pmStatus', name, true);
+    $('connectPm').textContent = 'Scollega';
+    log(`Misuratore di potenza: ${name}`);
+  } catch (err) { setStatus('pmStatus', 'non collegato'); log(`Errore misuratore: ${err.message}`); pm.dbg.log(`Errore: ${err.message}`); }
+});
+pm.addEventListener('data', (e) => {
+  if (!state.usePm) return;
+  const d = e.detail;
+  state.data.power = d.power;
+  if (d.cadence != null) { state.data.cadence = d.cadence; state.pmCadence = true; }
+  render();
+});
+pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('pmStatus', 'non collegato'); $('connectPm').textContent = 'Collega misuratore'; });
+
+// ---------- Ponte verso Garmin (solo app Android) ----------
+$('garminNative').hidden = !isNative;
+$('garminWeb').hidden = isNative;
+let garminTimer = null;
+function pushGarmin() {
+  const d = state.data;
+  const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
+  const pedaling = (d.power || 0) > 0 || speed > 1;
+  GarminBridge.update({ power: Math.round(d.power || 0), cadence: pedaling ? Math.round(currentCadence()) : 0, speedKmh: +speed.toFixed(2) }).catch(() => {});
+}
+async function setGarmin(on) {
+  localStorage.setItem('garminOn', on ? '1' : '0');
+  if (!GarminBridge) return;
+  clearInterval(garminTimer);
+  if (on) {
+    try {
+      await GarminBridge.start({ name: 'Ride Freedom' });
+      setStatus('garminStatus', 'in attesa del Garmin…');
+      garminTimer = setInterval(pushGarmin, 500);
+      log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "Ride Freedom"');
+    } catch (err) {
+      setStatus('garminStatus', 'errore'); $('garminOn').checked = false; log(`Garmin: ${err.message}`);
+    }
+  } else {
+    await GarminBridge.stop().catch(() => {});
+    setStatus('garminStatus', 'spento');
+  }
+}
+if (GarminBridge) {
+  GarminBridge.addListener('status', (st) => {
+    if (!$('garminOn').checked) return;
+    setStatus('garminStatus', st.connected ? `collegato${st.devices ? `: ${st.devices}` : ''}` : st.advertising ? 'in attesa del Garmin…' : 'avvio…', st.connected > 0);
+  });
+  GarminBridge.addListener('error', (ev) => log(`Garmin: ${ev.message}`));
+  $('garminOn').addEventListener('change', (e) => setGarmin(e.target.checked));
+  if (localStorage.getItem('garminOn') === '1') { $('garminOn').checked = true; setGarmin(true); }
+}
 
 // ---------- Gioco ----------
 let gradeBeforeGame = 0;

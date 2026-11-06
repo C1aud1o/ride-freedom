@@ -26,10 +26,10 @@ export async function copyText(text, btn) {
   }
 }
 
-export function setupDebug({ trainer, click, hrm, appLog }) {
+export function setupDebug({ trainer, click, hrm, extra = [], appLog }) {
   const panel = document.getElementById('debugPanel');
   const cards = document.getElementById('debugCards');
-  const sensors = [trainer, click, hrm];
+  const sensors = [trainer, click, hrm, ...extra];
   const views = sensors.map((s) => buildCard(s, s === click ? click : null));
   cards.append(...views.map((v) => v.root));
 

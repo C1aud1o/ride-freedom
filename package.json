@@ -1,0 +1,19 @@
+{
+  "name": "ride-freedom",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ride Freedom: webapp e app Android per rulli FTMS (Van Rysel D100), cambio virtuale, giochi e ponte verso Garmin.",
+  "scripts": {
+    "build:web": "node scripts/copy-web.mjs",
+    "android:sync": "npm run build:web && npx cap sync android",
+    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor-community/bluetooth-le": "7.3.2",
+    "@capacitor/android": "7.6.10",
+    "@capacitor/core": "7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.10"
+  }
+}

@@ -128,6 +128,23 @@
       </div>
       <p class="fine">L'FTP serve a colorare le zone di potenza. Il peso conta nel cambio virtuale.</p>
 
+      <h3>Misuratore di potenza <span id="pmStatus" class="pill">non collegato</span></h3>
+      <button id="connectPm" class="ghost small">Collega misuratore</button>
+      <label class="switch"><input type="checkbox" id="usePm" checked><span>Usa i suoi watt (e la cadenza) al posto del rullo</span></label>
+      <p class="fine">Pedali Garmin Rally o Vector, Favero Assioma, guarniture con potenza: qualsiasi sensore di potenza Bluetooth. Il rullo continua a regolare la resistenza.</p>
+
+      <h3>Garmin <span id="garminStatus" class="pill">spento</span></h3>
+      <div id="garminNative" hidden>
+        <label class="switch"><input type="checkbox" id="garminOn"><span>Trasmetti potenza, cadenza e velocità al Garmin</span></label>
+        <ol class="fine steps">
+          <li>Attiva l'opzione qui sopra.</li>
+          <li>Sul Garmin: Sensori e accessori → Aggiungi nuovo → Potenza, poi anche Velocità/Cadenza. Scegli "Ride Freedom".</li>
+          <li>Avvia sul Garmin un'attività Bici indoor: registra e sincronizza tutto con Garmin Connect.</li>
+        </ol>
+      </div>
+      <p id="garminWeb" class="fine">Il telefono diventa un sensore per il tuo Garmin solo nell'app Android:
+        <a href="https://github.com/C1aud1o/ride-freedom/releases/latest" target="_blank" rel="noopener">scarica l'APK</a>.</p>
+
       <h3>Strava <span id="stravaStatus" class="pill">non collegato</span></h3>
       <section id="stravaBox" class="strava">
         <div id="stravaPublic" hidden>
@@ -199,6 +216,7 @@
     <div id="debugCards"></div>
   </div>
 
+  <script src="vendor/capacitor/capacitor.js"></script>
   <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
   <script type="module" src="js/app.js"></script>
 </body>

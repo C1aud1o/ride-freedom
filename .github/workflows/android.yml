@@ -1,0 +1,63 @@
+name: App Android (APK)
+
+on:
+  push:
+    branches: [main, ccr-28a29a79-yshigo]
+    paths:
+      - 'android/**'
+      - 'js/**'
+      - 'css/**'
+      - 'assets/**'
+      - 'vendor/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'scripts/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:web && npx cap sync android
+      - name: Compila l'APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew assembleDebug --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk ride-freedom.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ride-freedom-apk
+          path: ride-freedom.apk
+      - name: Pubblica l'APK nella release "app-android"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-android
+          name: Ride Freedom per Android
+          make_latest: true
+          files: ride-freedom.apk
+          body: |
+            App Android di Ride Freedom (build ${{ github.run_number }}).
+            Apri questa pagina dal telefono, scarica **ride-freedom.apk** e installalo
+            (Android chiederà di consentire l'installazione da questa fonte).
+            Novità dell'app: Bluetooth nativo e ponte verso Garmin (il telefono diventa un sensore di potenza, cadenza e velocità).
