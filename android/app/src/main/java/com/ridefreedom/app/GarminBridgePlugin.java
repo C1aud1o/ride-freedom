@@ -216,8 +216,8 @@ public class GarminBridgePlugin extends Plugin {
                     wheelTime1024 = (int) ((evt * 1024L / 1000L) & 0xFFFF);
                 }
             }
-            notifyAll(cpMeas, cpSubs, cpPacket());
-            notifyAll(cscMeas, cscSubs, cscPacket());
+            notifySubscribers(cpMeas, cpSubs, cpPacket());
+            notifySubscribers(cscMeas, cscSubs, cscPacket());
             handler.postDelayed(this, 1000);
         }
     };
@@ -246,7 +246,7 @@ public class GarminBridgePlugin extends Plugin {
 
     @SuppressLint("MissingPermission")
     @SuppressWarnings("deprecation")
-    private void notifyAll(BluetoothGattCharacteristic ch, Set<String> subs, byte[] value) {
+    private void notifySubscribers(BluetoothGattCharacteristic ch, Set<String> subs, byte[] value) {
         if (server == null || ch == null) return;
         synchronized (connected) {
             for (BluetoothDevice d : connected) {
