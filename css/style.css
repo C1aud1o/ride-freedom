@@ -166,6 +166,8 @@ body:not([data-mode=gears]):not([data-mode=sim]) .only-sim { display: none; }
 .fine { margin: 0; font-size: var(--fs-caption); color: var(--t3); }
 .fine a { color: var(--t2); }
 .center { text-align: center; }
+.hint-box { margin: 0; padding: 12px; border-radius: 12px; background: rgba(255, 212, 58, .08); border: 1px solid rgba(255, 212, 58, .25); color: var(--t2); font-size: var(--fs-caption); }
+.hint-box b { color: #ffd43a; }
 .steps { padding-left: 16px; display: grid; gap: 4px; }
 code { font: 12px ui-monospace, Menlo, monospace; background: var(--ink); padding: 2px 4px; border-radius: 4px; color: var(--t1); }
 .pill { font: 700 var(--fs-caption)/1 var(--font-ui); letter-spacing: 0; text-transform: none; padding: 4px 8px; border-radius: 999px; background: var(--t4); color: var(--t3); }

@@ -1,6 +1,7 @@
 import { isNative, GarminBridge } from './native.js'; // per primo: nell'app installa il Bluetooth nativo
 import { Trainer } from './ftms.js';
 import { PowerMeter } from './powermeter.js';
+import { SensorDebug } from './debug.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
@@ -17,6 +18,7 @@ import { Progress } from './games/progress.js';
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
 const pm = new PowerMeter();
+const garminDbg = { dbg: new SensorDebug('garmin', 'Ponte Garmin') };
 const click = new ZwiftClick();
 const hrm = new HeartRate();
 
@@ -482,7 +484,7 @@ function renderWelcome() {
 trainer.addEventListener('connected', () => renderWelcome());
 trainer.addEventListener('disconnected', () => renderWelcome());
 
-setupDebug({ trainer, click, hrm, extra: [pm], appLog: () => $('log').textContent });
+setupDebug({ trainer, click, hrm, extra: [pm, garminDbg], appLog: () => $('log').textContent });
 
 // ---------- Misuratore di potenza esterno ----------
 state.usePm = localStorage.getItem('usePm') !== '0';
@@ -510,7 +512,7 @@ pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('
 // ---------- Ponte verso Garmin (solo app Android) ----------
 $('garminNative').hidden = !isNative;
 $('garminWeb').hidden = isNative;
-let garminTimer = null;
+let garminTimer = null; let garminHintTimer = null;
 function pushGarmin() {
   const d = state.data;
   const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
@@ -526,6 +528,10 @@ async function setGarmin(on) {
       await GarminBridge.start({ name: 'RideFreedom' });
       setStatus('garminStatus', 'in attesa del Garmin…');
       garminTimer = setInterval(pushGarmin, 500);
+      garminDbg.dbg.setStatus('In attesa');
+      // se dopo un minuto nessuno usa il sensore, suggerisci la causa più probabile
+      clearTimeout(garminHintTimer);
+      garminHintTimer = setTimeout(() => { $('garminHint').hidden = false; }, 60000);
       log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "RideFreedom"');
     } catch (err) {
       setStatus('garminStatus', 'errore'); $('garminOn').checked = false; log(`Garmin: ${err.message}`);
@@ -541,10 +547,13 @@ if (GarminBridge) {
     // "connesso" non basta: il Garmin di solito è già connesso al telefono per Garmin Connect.
     // Il sensore è in uso solo quando un dispositivo si iscrive ai dati di potenza o velocità/cadenza.
     const inUse = (st.usersCount || 0) > 0;
+    garminDbg.dbg.status = inUse ? 'Connesso (in uso)' : st.advertising ? 'In attesa' : st.running ? 'Avvio' : 'Spento';
+    garminDbg.dbg.setValues({ visibile: !!st.advertising, connessi: st.connected || 0, dispositivi: st.devices || '-', inUso: st.users || '-' });
+    if (inUse) { clearTimeout(garminHintTimer); $('garminHint').hidden = true; }
     setStatus('garminStatus', inUse ? `in uso: ${st.users}` : st.advertising ? 'in attesa del Garmin…' : st.running ? 'avvio…' : 'spento', inUse);
   });
   GarminBridge.addListener('error', (ev) => log(`Garmin: ${ev.message}`));
-  GarminBridge.addListener('log', (ev) => log(`Garmin · ${ev.message}`));
+  GarminBridge.addListener('log', (ev) => { log(`Garmin · ${ev.message}`); garminDbg.dbg.log(ev.message); });
   $('garminOn').addEventListener('change', (e) => setGarmin(e.target.checked));
   if (localStorage.getItem('garminOn') === '1') { $('garminOn').checked = true; setGarmin(true); }
 }
