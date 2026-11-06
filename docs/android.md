@@ -12,8 +12,8 @@ che il browser non può fare:
    l'attività, che poi si sincronizza da sola con Garmin Connect.
 
 ## Installare
-- Dal telefono apri la release **app-android** del repository
-  (`https://github.com/C1aud1o/ride-freedom/releases/latest`) e scarica `ride-freedom.apk`.
+- Dal telefono apri **https://mta-world.com/app/ride-freedom.apk** (oppure la release **app-android**
+  del repository su GitHub) e scarica il file.
 - Android chiede di consentire l'installazione da quella fonte (browser o file manager): consenti.
 - Ogni nuova build si installa sopra la precedente (stessa chiave di firma).
 

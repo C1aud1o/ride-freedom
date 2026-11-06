@@ -4,9 +4,14 @@ on:
   push:
     branches: [main, ccr-28a29a79-yshigo]
   workflow_dispatch:
+  # quando è pronto un nuovo APK, ripubblica il sito con il file aggiornato
+  workflow_run:
+    workflows: ["App Android (APK)"]
+    types: [completed]
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -25,6 +30,13 @@ jobs:
       - uses: actions/configure-pages@v5
       - name: Prepara il sito (solo i file web, senza android/)
         run: node scripts/copy-web.mjs && cp sw.js CNAME .nojekyll www/
+      - name: Aggiungi l'ultimo APK (mta-world.com/app/ride-freedom.apk)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p www/app
+          gh release download app-android -p ride-freedom.apk -D www/app --repo "$GITHUB_REPOSITORY" || echo "APK non ancora disponibile"
+          ls -la www/app
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www
