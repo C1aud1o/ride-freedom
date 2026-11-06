@@ -280,7 +280,8 @@ $('startStop').addEventListener('click', () => {
 });
 $('reset').addEventListener('click', () => {
   if (!state.ride.saved && !confirm('Azzerare la sessione? I dati non salvati in .FIT andranno persi.')) return;
-  Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true, stravaUrl: null });
+  Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true, stravaUrl: null, historySaved: false });
+  renderWelcome();
   stravaMsg('');
   persist();
   $('startStop').textContent = 'Avvia';
@@ -316,6 +317,11 @@ setInterval(() => {
     });
     r.saved = false;
     if (r.log.length % 10 === 0) persist();
+    // piccoli picchi: traguardi durante la pedalata
+    const m = Math.floor(r.elapsed / 600);
+    if (m > (r.lastMilestone || 0)) { r.lastMilestone = m; toast(`${m * 10} minuti! Continua così`); }
+    const k5 = Math.floor(r.distance / 5000);
+    if (k5 > (r.lastKm || 0)) { r.lastKm = k5; toast(`${k5 * 5} km percorsi`); }
   }
   if (state.mode === 'gears') applyMode();
   render();
@@ -371,6 +377,7 @@ function render() {
   $('gradeVal').textContent = `${state.grade.toFixed(1)} %`;
   $('ergVal').textContent = `${state.erg} W`;
   $('resVal').textContent = `${state.resistance} %`;
+  document.querySelectorAll('[data-preset]').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === Number(state[b.dataset.preset])));
 
   const big = { gears: state.gear + 1, erg: `${state.erg}`, sim: state.grade.toFixed(1), resistance: state.resistance };
   const unit = { gears: `rapporto ${GEARS[state.gear].toFixed(2)}`, erg: 'W target', sim: '% pendenza', resistance: '% resistenza' };
@@ -384,7 +391,7 @@ function persist() {
   try {
     const r = state.ride;
     localStorage.setItem(STORE, JSON.stringify({ elapsed: r.elapsed, distance: r.distance, energy: r.energy,
-      powerSum: r.powerSum, samples: r.samples, log: r.log, saved: r.saved, stravaUrl: r.stravaUrl || null }));
+      powerSum: r.powerSum, samples: r.samples, log: r.log, saved: r.saved, stravaUrl: r.stravaUrl || null, historySaved: !!r.historySaved }));
   } catch { /* spazio esaurito o storage non disponibile */ }
 }
 function restore() {
@@ -429,6 +436,51 @@ $('shareFit').addEventListener('click', async () => {
 try {
   $('shareFit').hidden = !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
 } catch { /* non supportato */ }
+
+// ---------- preset (scelta al posto dei cursori) ----------
+document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
+  state[b.dataset.preset] = Number(b.dataset.v);
+  if (navigator.vibrate) navigator.vibrate(10);
+  syncInputs(); render(); applyMode(true);
+}));
+
+// ---------- traguardi ----------
+let toastTimer = null;
+function toast(text) {
+  const el = $('toast'); el.textContent = text; el.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ---------- storico, benvenuto, bentornato ----------
+function history() { try { return JSON.parse(localStorage.getItem('rideHistory') || '[]'); } catch { return []; } }
+function saveHistory(h) { try { localStorage.setItem('rideHistory', JSON.stringify(h)); } catch { /* pieno */ } }
+function renderWelcome() {
+  const el = $('welcome');
+  const hist = history();
+  const riding = trainer.connected || state.ride.log.length;
+  if (riding) { el.hidden = true; return; }
+  el.hidden = false;
+  if (!hist.length) {
+    el.innerHTML = `<h2>Pronto a pedalare?</h2>
+      <p>Tre passi e sei in sella.</p>
+      <ol><li>Collega il rullo dalla spia "Rullo" qui sopra</li><li>Scegli la modalità: con Cambio usi le marce virtuali</li><li>Premi Avvia e pedala: − e + cambiano marcia</li></ol>
+      <button class="cta" id="welcomeConnect">Collega il rullo</button>`;
+  } else {
+    const last = hist[hist.length - 1];
+    const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5);
+    const days = Math.floor((Date.now() - last.t) / 864e5);
+    const when = days === 0 ? 'oggi' : days === 1 ? 'ieri' : `${days} giorni fa`;
+    el.innerHTML = `<h2>Bentornato</h2>
+      <p>Ultimo allenamento ${when}.</p>
+      <dl class="stats"><div><dt>Minuti</dt><dd>${Math.round(last.dur / 60)}</dd></div><div><dt>W medi</dt><dd>${last.avgW}</dd></div><div><dt>km</dt><dd>${last.km}</dd></div></dl>
+      ${week.length ? `<span class="streak">● ${week.length} ${week.length === 1 ? 'allenamento' : 'allenamenti'} negli ultimi 7 giorni</span>` : ''}
+      <button class="cta" id="welcomeConnect">Collega il rullo</button>`;
+  }
+  $('welcomeConnect')?.addEventListener('click', () => $('connectTrainer').click());
+}
+trainer.addEventListener('connected', () => renderWelcome());
+trainer.addEventListener('disconnected', () => renderWelcome());
 
 setupDebug({ trainer, click, hrm, extra: [pm], appLog: () => $('log').textContent });
 
@@ -622,6 +674,19 @@ $('finishRide').addEventListener('click', () => {
   const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
   $('finishSummary').innerHTML = [['Tempo', fmtTime(r.elapsed)], ['km', (r.distance / 1000).toFixed(2)], ['W medi', avgW], ['kJ', Math.round(r.energy)]]
     .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  // il "picco" e la "fine": celebrare, confrontare, invitare a tornare
+  const hist = history();
+  const prev = hist[hist.length - 1];
+  if (!r.historySaved && r.elapsed >= 60) {
+    hist.push({ t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy) });
+    saveHistory(hist.slice(-60)); r.historySaved = true; persist();
+  }
+  const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5).length;
+  const mins = Math.round(r.elapsed / 60);
+  $('finishTitle').textContent = mins >= 60 ? 'Che giro!' : mins >= 30 ? 'Ottimo lavoro!' : r.elapsed >= 60 ? 'Fatto!' : 'Allenamento finito';
+  $('finishPraise').textContent = r.elapsed >= 60 ? `${mins} minuti in sella, ${Math.round(r.energy)} kJ di lavoro. ${week > 1 ? `È il tuo ${week}° allenamento questa settimana.` : 'Ottimo inizio di settimana.'}` : '';
+  $('finishCompare').textContent = prev && r.elapsed >= 60 && prev.avgW ? (avgW > prev.avgW ? `+${avgW - prev.avgW} W medi rispetto all'ultima volta` : avgW === prev.avgW ? 'Stessa potenza media dell\'ultima volta: costanza!' : '') : '';
+  $('finishNudge').textContent = 'Domani ti aspettano nuove sfide nei giochi. Ci vediamo in sella.';
   $('stravaMsg').innerHTML = r.stravaUrl
     ? `Già su Strava. <a href="${r.stravaUrl}" target="_blank" rel="noopener">Apri l'attività</a>`
     : strava.connected ? '' : 'Collega Strava dalle impostazioni per caricare in automatico.';
@@ -635,6 +700,7 @@ strava.handleRedirect().then((res) => {
 renderStrava();
 
 restore();
+renderWelcome();
 syncInputs();
 document.body.dataset.mode = state.mode;
 render();
