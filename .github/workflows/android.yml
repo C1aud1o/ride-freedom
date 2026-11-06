@@ -39,6 +39,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:web && npx cap sync android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
       - name: Compila l'APK
         working-directory: android
         env:

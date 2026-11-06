@@ -30,6 +30,8 @@ jobs:
       - uses: actions/configure-pages@v5
       - name: Prepara il sito (solo i file web, senza android/)
         run: node scripts/copy-web.mjs && cp sw.js CNAME .nojekyll www/
+        env:
+          VERSION_CODE: web-${{ github.run_number }}
       - name: Aggiungi l'ultimo APK (mta-world.com/app/ride-freedom.apk)
         env:
           GH_TOKEN: ${{ github.token }}

@@ -2,6 +2,7 @@ import { isNative, GarminBridge } from './native.js'; // per primo: nell'app ins
 import { Trainer } from './ftms.js';
 import { PowerMeter } from './powermeter.js';
 import { SensorDebug } from './debug.js';
+import { BUILD } from './build.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
@@ -485,6 +486,7 @@ trainer.addEventListener('connected', () => renderWelcome());
 trainer.addEventListener('disconnected', () => renderWelcome());
 
 setupDebug({ trainer, click, hrm, extra: [pm, garminDbg], appLog: () => $('log').textContent });
+$('appVersion').textContent = `${isNative ? 'App Android' : 'Web'} · versione ${BUILD}`;
 
 // ---------- Misuratore di potenza esterno ----------
 state.usePm = localStorage.getItem('usePm') !== '0';
