@@ -319,6 +319,19 @@ public class GarminBridgePlugin extends Plugin {
             }
         }
         o.put("devices", names.toString());
+        // chi usa davvero il sensore: si è iscritto ai dati di potenza o velocità/cadenza
+        StringBuilder users = new StringBuilder(); int nUsers = 0;
+        synchronized (connected) {
+            for (BluetoothDevice d : connected) {
+                if (!cpSubs.contains(d.getAddress()) && !cscSubs.contains(d.getAddress())) continue;
+                String n = null;
+                try { n = d.getName(); } catch (SecurityException ignored) { }
+                if (users.length() > 0) users.append(", ");
+                users.append(n != null ? n : d.getAddress()); nUsers++;
+            }
+        }
+        o.put("users", users.toString());
+        o.put("usersCount", nUsers);
         return o;
     }
 

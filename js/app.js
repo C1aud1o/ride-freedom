@@ -486,7 +486,10 @@ async function setGarmin(on) {
 if (GarminBridge) {
   GarminBridge.addListener('status', (st) => {
     if (!$('garminOn').checked) return;
-    setStatus('garminStatus', st.connected ? `collegato${st.devices ? `: ${st.devices}` : ''}` : st.advertising ? 'in attesa del Garmin…' : 'avvio…', st.connected > 0);
+    // "connesso" non basta: il Garmin di solito è già connesso al telefono per Garmin Connect.
+    // Il sensore è in uso solo quando un dispositivo si iscrive ai dati di potenza o velocità/cadenza.
+    const inUse = (st.usersCount || 0) > 0;
+    setStatus('garminStatus', inUse ? `in uso: ${st.users}` : st.advertising ? 'in attesa del Garmin…' : st.running ? 'avvio…' : 'spento', inUse);
   });
   GarminBridge.addListener('error', (ev) => log(`Garmin: ${ev.message}`));
   $('garminOn').addEventListener('change', (e) => setGarmin(e.target.checked));
