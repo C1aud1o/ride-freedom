@@ -387,7 +387,13 @@ function renderWorkoutList() {
 $('openWorkouts').addEventListener('click', () => { renderWorkoutList(); renderRoutePick(); openSheet('workoutSheet'); });
 
 // ---------- Percorsi GPX ----------
-let route = null; let routeDist = 0; let routeRealism = Number(localStorage.getItem('routeRealism')) || 0.5;
+let route = null; let routeDist = 0; let routeT = 0; let routeTrace = []; let routeGhost = null;
+const ghostKey = (rt) => `ghost:${rt.name}:${Math.round(rt.total)}`;
+function ghostTimeAt(dist) { // secondi impiegati dal record per arrivare a quella distanza
+  const g = routeGhost; if (!g) return null;
+  const i = g.findIndex((d) => d >= dist); if (i < 0) return null; if (i === 0) return 0;
+  return (i - 1 + (dist - g[i - 1]) / Math.max(0.1, g[i] - g[i - 1])) * 5;
+} let routeRealism = Number(localStorage.getItem('routeRealism')) || 0.5;
 function renderRoutePick() {
   $('routeSamples').innerHTML = ROUTES.map((r) => `<button class="wk-item" data-route="${r.id}"><span class="row"><b>${r.name}</b><small>prova</small></span><small>${r.desc}</small></button>`).join('');
   document.querySelectorAll('[data-route]').forEach((b) => b.addEventListener('click', () => startRoute(ROUTES.find((r) => r.id === b.dataset.route).make())));
@@ -403,7 +409,8 @@ $('gpxFile').addEventListener('change', async (e) => {
 });
 function startRoute(rt) {
   if (workout) finishWorkout(false);
-  route = rt; routeDist = 0;
+  route = rt; routeDist = 0; routeT = 0; routeTrace = [0];
+  try { routeGhost = JSON.parse(localStorage.getItem(ghostKey(rt)) || 'null'); } catch { routeGhost = null; }
   if (state.mode !== 'gears' && state.mode !== 'sim') setMode('gears');
   closeSheet('workoutSheet');
   document.body.classList.add('in-route');
@@ -414,15 +421,24 @@ function startRoute(rt) {
 }
 function tickRoute(dm, sample) {
   routeDist += dm;
+  if (dm || sample) { routeT += 1; if (routeT % 5 === 0) routeTrace.push(Math.round(routeDist)); }
   const c = routeAt(route, routeDist);
   if (sample) Object.assign(sample, { lat: +c.lat.toFixed(6), lon: +c.lon.toFixed(6), ele: +c.ele.toFixed(1) });
   const g = Math.round(c.grade * routeRealism * 2) / 2;
   if (g !== state.grade) { state.grade = g; syncInputs(); applyMode(true); }
   $('rtGrade').textContent = c.grade.toFixed(1);
   $('rtKm').textContent = `${(routeDist / 1000).toFixed(2)} / ${(route.total / 1000).toFixed(1)} km`;
-  $('rtInfo').textContent = `${route.gain} m di dislivello · quota ${Math.round(c.ele)} m${routeRealism < 1 ? ` · pendenza al ${routeRealism * 100}%` : ''}`;
+  const gt = ghostTimeAt(routeDist);
+  const vs = gt != null && routeT > 10 ? routeT - gt : null;
+  $('rtInfo').innerHTML = vs != null
+    ? `Contro il tuo record: <b class="${vs <= 0 ? 'ahead' : 'behind'}">${vs <= 0 ? '−' : '+'}${fmtClock(Math.abs(vs))}</b> · quota ${Math.round(c.ele)} m`
+    : `${route.gain} m di dislivello · quota ${Math.round(c.ele)} m${routeRealism < 1 ? ` · pendenza al ${routeRealism * 100}%` : ''}${routeGhost ? ' · record da battere' : ''}`;
   drawElevation($('rtProfile'), route, routeDist); drawMap($('rtMap'), route, routeDist);
-  if (routeDist >= route.total) { toast(`Arrivo! ${route.name} completato`); gameAudio.sfx('win'); progress.event('routes', 1, 60); stopRoute(); }
+  if (routeDist >= route.total) {
+    routeTrace.push(Math.round(route.total));
+    const prevT = routeGhost ? (routeGhost.length - 1) * 5 : Infinity;
+    if (routeT < prevT) { try { localStorage.setItem(ghostKey(route), JSON.stringify(routeTrace)); } catch { /* pieno */ } toast(routeGhost ? `Nuovo record: ${fmtClock(routeT)} (−${fmtClock(prevT - routeT)})` : `Tempo: ${fmtClock(routeT)}. La prossima volta sfidi questo record!`); }
+    else toast(`Arrivo in ${fmtClock(routeT)}: record ${fmtClock(prevT)}`); gameAudio.sfx('win'); progress.event('routes', 1, 60); stopRoute(); }
 }
 function stopRoute() { route = null; $('routeCard').hidden = true; document.body.classList.remove('in-route'); state.grade = 0; syncInputs(); applyMode(true); }
 $('rtStop').addEventListener('click', () => { if (confirm('Terminare il percorso?')) stopRoute(); });
