@@ -959,7 +959,7 @@ $('openHistory').addEventListener('click', openHistory);
 $('finishHistory').addEventListener('click', openHistory);
 
 // ---------- Pausa automatica, potenza 3 s, schermo intero ----------
-const powerBuf = []; let idleSec = 0; let autoPaused = false;
+const powerBuf = []; let idleSec = 0; let moveSec = 0; let autoPaused = false;
 for (const id of ['autoPause', 'smooth3']) {
   const saved = localStorage.getItem(id); if (saved != null) $(id).checked = saved === '1';
   $(id).addEventListener('change', () => { localStorage.setItem(id, $(id).checked ? '1' : '0'); render(); });
@@ -972,6 +972,8 @@ function autoPauseCheck() {
     if (++idleSec >= 5 && !activeGame?.active) { $('startStop').click(); autoPaused = true; toast('In pausa: riparte quando pedali'); }
   } else idleSec = 0;
   if (autoPaused && !r.running && moving) { autoPaused = false; $('startStop').click(); toast('Si riparte!'); }
+  // partenza automatica: sessione nuova e pedali da 3 secondi
+  if (!r.running && !autoPaused && r.elapsed === 0 && moving) { if (++moveSec >= 3) { $('startStop').click(); toast('Registrazione avviata'); } } else moveSec = 0;
   if (r.running) autoPaused = autoPaused && !r.running;
 }
 $('startStop').addEventListener('click', () => { if (state.ride.running) idleSec = 0; });
