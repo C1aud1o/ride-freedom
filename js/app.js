@@ -18,6 +18,7 @@ import { Gruppetto } from './games/gruppetto.js';
 import { Mattoni } from './games/mattoni.js';
 import { Planata } from './games/planata.js';
 import { VideoRide } from './videoride.js';
+import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock } from './workouts.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
@@ -121,7 +122,7 @@ $('connectClick').addEventListener('click', async () => {
 click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
 });
-click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : shift(e.detail)));
+click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : step(e.detail)));
 click.addEventListener('hold', (e) => {
   if (activeGame?.active) activeGame.hold?.(e.detail);
   // pressione lunga = comandi musica (solo app Android): annulla il cambio fatto dalla pressione breve
@@ -129,7 +130,7 @@ click.addEventListener('hold', (e) => {
   const d = e.detail;
   if (d && GarminBridge && $('musicOn').checked && !(activeGame?.active && activeGame.hold)) {
     mediaTimer = setTimeout(() => {
-      if (activeGame?.active) activeGame.input(-d); else shift(-d);
+      if (activeGame?.active) activeGame.input(-d); else step(-d);
       GarminBridge.mediaKey({ key: d > 0 ? 'next' : 'playpause' }).then(() => toast(d > 0 ? 'Brano successivo' : 'Play / pausa')).catch((err) => log(`Musica: ${err.message}`));
     }, 800);
   }
@@ -180,6 +181,10 @@ function shift(dir) {
 }
 
 function step(dir) {
+  if (workout && !workout.w.test) { // durante un allenamento + / − regolano l'intensità
+    workout.bias = Math.min(1.5, Math.max(0.5, +(workout.bias + dir * 0.05).toFixed(2)));
+    toast(`Intensità ${Math.round(workout.bias * 100)}%`); tickWorkout(0); return;
+  }
   if (state.mode === 'gears') return shift(dir);
   if (state.mode === 'erg') state.erg = Math.min(MAX_W, Math.max(0, state.erg + dir * 5));
   if (state.mode === 'sim') state.grade = Math.min(15, Math.max(-10, +(state.grade + dir * 0.5).toFixed(1)));
@@ -356,8 +361,75 @@ setInterval(() => {
     if (k5 > (r.lastKm || 0)) { r.lastKm = k5; toast(`${k5 * 5} km percorsi`); }
   }
   if (state.mode === 'gears') applyMode();
+  if (workout && r.running) tickWorkout(1);
   render();
 }, 1000);
+
+// ---------- Allenamenti strutturati ----------
+let workout = null; let wkLast = null; let wkPower = []; let wkLowCad = 0;
+function setMode(m) {
+  document.querySelector(`[name=mode][value=${m}]`).checked = true;
+  state.mode = m; document.body.dataset.mode = m; state.lastSent = null;
+}
+function renderWorkoutList() {
+  $('wkFtp').textContent = state.ftp;
+  $('workoutList').innerHTML = WORKOUTS.map((w) => `<button class="wk-item" data-wk="${w.id}">
+    <span class="row"><b>${w.name}</b><small>${w.tag}${tss(w) ? ` · carico ${tss(w)}` : ''}</small></span>
+    <canvas data-prof="${w.id}"></canvas><small>${w.desc}</small></button>`).join('');
+  requestAnimationFrame(() => document.querySelectorAll('[data-prof]').forEach((c) => drawProfile(c, WORKOUTS.find((w) => w.id === c.dataset.prof), state.ftp)));
+  document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(WORKOUTS.find((w) => w.id === b.dataset.wk))));
+}
+$('openWorkouts').addEventListener('click', () => { renderWorkoutList(); openSheet('workoutSheet'); });
+function startWorkout(w) {
+  if (workout && !confirm(`Interrompere "${workout.w.name}"?`)) return;
+  workout = new WorkoutRunner(w, state.ftp); wkLast = null; wkPower = []; wkLowCad = 0;
+  setMode('erg');
+  closeSheet('workoutSheet');
+  document.body.classList.add('in-workout');
+  $('workoutCard').hidden = false; $('wkName').textContent = w.name; $('wkTotal').textContent = fmtClock(duration(w));
+  if (!state.ride.running) $('startStop').click();
+  if (!trainer.connected) toast('Collega il rullo: l\'allenamento parte comunque');
+  tickWorkout(0);
+}
+function tickWorkout(dt) {
+  if (!workout) return;
+  const st = workout.tick(dt);
+  if (!st) return finishWorkout(true);
+  if (state.erg !== st.target) { state.erg = Math.min(MAX_W, st.target); syncInputs(); render(); applyMode(true); }
+  if (wkLast !== null && wkLast !== st.i) { toast(`${st.x.label}: ${st.target} W`); gameAudio.sfx('go'); if (navigator.vibrate) navigator.vibrate([60, 60, 60]); }
+  if (dt && st.next && st.left <= 3.5 && st.left > 0.5) gameAudio.sfx('beep');
+  wkLast = st.i;
+  $('wkStep').textContent = st.x.label; $('wkTarget').textContent = st.target; $('wkLeft').textContent = fmtClock(st.left);
+  $('wkNext').textContent = st.next ? `Poi: ${st.next.label} a ${st.nextW} W` : 'Ultimo tratto!';
+  $('wkTotal').textContent = `${fmtClock(workout.t)} / ${fmtClock(workout.total)}`;
+  $('wkBias').textContent = workout.w.test ? 'Test: vai fino al limite' : workout.bias !== 1 ? `intensità ${Math.round(workout.bias * 100)}%` : '+ / − regolano l\'intensità';
+  drawProfile($('wkProfile'), workout.w, state.ftp, workout.t);
+  // test a rampa: finisce quando non riesci più a tenere il ritmo
+  if (workout.w.test && dt) {
+    wkPower.push(state.data.power || 0);
+    wkLowCad = st.i > 0 && currentCadence() < 40 ? wkLowCad + dt : 0;
+    if (wkLowCad >= 8) finishWorkout(true);
+  }
+}
+function finishWorkout(completed) {
+  const w = workout?.w; if (!w) return;
+  workout = null; $('workoutCard').hidden = true; document.body.classList.remove('in-workout');
+  if (w.test) {
+    let best = 0;
+    for (let i = 60; i <= wkPower.length; i++) best = Math.max(best, wkPower.slice(i - 60, i).reduce((a, b) => a + b, 0) / 60);
+    if (best > 80) {
+      const ftp = Math.round(best * 0.75);
+      if (confirm(`Miglior minuto: ${Math.round(best)} W. La tua FTP stimata è ${ftp} W (prima ${state.ftp} W). Salvarla?`)) {
+        state.ftp = ftp; $('ftp').value = ftp; localStorage.setItem('ftp', ftp); toast(`FTP aggiornata: ${ftp} W`);
+      }
+    } else toast('Test troppo breve per stimare la FTP');
+    state.erg = Math.round(state.ftp * 0.5); syncInputs(); applyMode(true);
+    return;
+  }
+  if (completed) { toast(`${w.name} completato!`); gameAudio.sfx('win'); progress.event('workouts', 1, 50); }
+}
+$('wkSkip').addEventListener('click', () => { workout?.skip(); tickWorkout(0); });
+$('wkStop').addEventListener('click', () => { if (workout?.w.test) finishWorkout(true); else if (confirm('Terminare l\'allenamento?')) finishWorkout(false); });
 
 // ---------- Render ----------
 const ZONES = [

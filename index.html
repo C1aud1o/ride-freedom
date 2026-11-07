@@ -17,6 +17,9 @@
   <header class="top">
     <span class="wordmark">Ride<b>Freedom</b></span>
     <span class="top-actions">
+      <button id="openWorkouts" class="icon-btn" aria-label="Allenamenti">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h18M5 19v-5M9 19V9M13 19v-7M17 19V5" /></svg>
+      </button>
       <button id="openGame" class="icon-btn" aria-label="Giochi">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9v6M4 12h6M15.5 11h.01M18 13.5h.01" /><rect x="1.75" y="6.5" width="20.5" height="11" rx="5.5" /></svg>
       </button>
@@ -52,6 +55,16 @@
       </dl>
     </section>
 
+    <section id="workoutCard" class="card workout" hidden aria-live="polite">
+      <div class="wk-head"><span id="wkName" class="wk-name"></span><span id="wkTotal" class="wk-total"></span></div>
+      <div class="wk-main">
+        <div><span class="wk-label" id="wkStep"></span><span class="wk-target"><b id="wkTarget">0</b> W</span></div>
+        <div class="wk-left"><span class="wk-label">Mancano</span><b id="wkLeft">0:00</b></div>
+      </div>
+      <canvas id="wkProfile" class="wk-profile"></canvas>
+      <p class="fine" id="wkNext"></p>
+      <div class="wk-actions"><span class="fine" id="wkBias"></span><button id="wkSkip" class="ghost">Salta tratto</button><button id="wkStop" class="ghost">Termina</button></div>
+    </section>
     <div class="modes" role="radiogroup" aria-label="Modalità">
       <label><input type="radio" name="mode" value="gears" checked><span>Cambio</span></label>
       <label><input type="radio" name="mode" value="erg"><span>ERG</span></label>
@@ -139,6 +152,14 @@
   </div>
 
   <!-- Impostazioni -->
+  <div id="workoutSheet" class="sheet" hidden>
+    <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="workoutTitle">
+      <header class="sheet-head"><h2 id="workoutTitle">Allenamenti</h2><button class="close" data-close="workoutSheet" aria-label="Chiudi">×</button></header>
+      <p class="fine wk-intro">Il rullo imposta da solo i watt di ogni tratto in base alla tua FTP (<b id="wkFtp">200</b> W, la cambi in Impostazioni o con il test). Durante l'allenamento + e − alzano o abbassano l'intensità del 5%.</p>
+      <div id="workoutList" class="wk-list"></div>
+    </div>
+  </div>
+
   <div id="settingsSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <header class="sheet-head"><h2 id="settingsTitle">Impostazioni</h2><button class="close" data-close="settingsSheet" aria-label="Chiudi">×</button></header>
