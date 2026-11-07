@@ -116,20 +116,23 @@ trainer.addEventListener('data', (e) => {
 });
 
 $('connectClick').addEventListener('click', async () => {
-  if (click.device?.gatt?.connected) { click.disconnect(); return; }
+  if (click.connected) {
+    // Zwift Play = due controller: dal primo si può collegare anche il secondo
+    if (!(click.canAddSecond && confirm('Collegare anche il secondo controller Zwift Play? (Annulla = scollega)'))) { click.disconnect(); return; }
+  }
   try {
     setStatus('clickStatus', 'Connessione…');
     const name = await click.connect();
-    setStatus('clickStatus', name, true);
+    setStatus('clickStatus', `Collegato: ${name}`, true);
     log(`Connesso a ${name} (sperimentale)`);
   } catch (err) {
-    setStatus('clickStatus', 'Non connesso');
+    setStatus('clickStatus', click.connected ? `Collegato: ${click.label}` : 'Non connesso', click.connected);
     log(`Errore Click: ${err.message}`);
     click.dbg.log(`Errore: ${err.message}`);
   }
 });
 click.addEventListener('disconnected', () => {
-  setStatus('clickStatus', 'Non connesso');
+  if (click.connected) setStatus('clickStatus', `Collegato: ${click.label}`, true); else setStatus('clickStatus', 'Non connesso');
 });
 click.addEventListener('shift', (e) => { if (clickNav.active) return; if (activeGame?.active) activeGame.input(e.detail); else step(e.detail); });
 click.addEventListener('combo', () => { clearTimeout(mediaTimer); clickNav.toggle(); });
