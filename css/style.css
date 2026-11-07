@@ -394,3 +394,10 @@ body.in-route .chips:has([data-preset=grade]) { display: none; }
 .hr-zone { font-weight: 700; margin-left: 4px; }
 .backup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .backup-row .file-btn { display: grid; place-items: center; }
+.goal-chips { grid-template-columns: repeat(4, 1fr); }
+.goal-chips button { min-height: 44px; }
+.goal { display: grid; gap: 8px; }
+.goal-txt { font-size: var(--fs-caption); color: var(--t2); }
+.goal-txt b { font: italic 800 22px/1 var(--font-num); color: var(--t1); }
+.goal-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+.goal-bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .6s; }

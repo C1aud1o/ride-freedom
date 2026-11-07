@@ -656,6 +656,7 @@ function renderWelcome() {
     el.innerHTML = `<h2>Bentornato</h2>
       <p>Ultimo allenamento ${when}.</p>
       <dl class="stats"><div><dt>Minuti</dt><dd>${Math.round(last.dur / 60)}</dd></div><div><dt>W medi</dt><dd>${last.avgW}</dd></div><div><dt>km</dt><dd>${last.km}</dd></div></dl>
+      ${goalHtml(hist)}
       ${week.length ? `<span class="streak">● ${week.length} ${week.length === 1 ? 'allenamento' : 'allenamenti'} negli ultimi 7 giorni</span>` : ''}
       <button class="cta" id="welcomeConnect">Collega il rullo</button>
       <button class="ghost" id="welcomeHistory">Storico e record</button>`;
@@ -936,7 +937,8 @@ $('finishRide').addEventListener('click', () => {
   $('finishTitle').textContent = mins >= 60 ? 'Che giro!' : mins >= 30 ? 'Ottimo lavoro!' : r.elapsed >= 60 ? 'Fatto!' : 'Allenamento finito';
   $('finishPraise').textContent = r.elapsed >= 60 ? `${mins} minuti in sella, ${Math.round(r.energy)} kJ di lavoro. ${week > 1 ? `È il tuo ${week}° allenamento questa settimana.` : 'Ottimo inizio di settimana.'}` : '';
   $('finishCompare').textContent = prev && r.elapsed >= 60 && prev.avgW ? (avgW > prev.avgW ? `+${avgW - prev.avgW} W medi rispetto all'ultima volta` : avgW === prev.avgW ? 'Stessa potenza media dell\'ultima volta: costanza!' : '') : '';
-  $('finishNudge').textContent = 'Domani ti aspettano nuove sfide nei giochi. Ci vediamo in sella.';
+  const gl = goalState(hist);
+  $('finishNudge').textContent = gl ? (gl.done >= gl.goal ? `Obiettivo della settimana raggiunto: ${gl.done}/${gl.goal} minuti!` : `Settimana: ${gl.done}/${gl.goal} minuti. Ne mancano ${gl.goal - gl.done}.`) : 'Domani ti aspettano nuove sfide nei giochi. Ci vediamo in sella.';
   $('stravaMsg').innerHTML = r.stravaUrl
     ? `Già su Strava. <a href="${r.stravaUrl}" target="_blank" rel="noopener">Apri l'attività</a>`
     : strava.connected ? '' : 'Collega Strava dalle impostazioni per caricare in automatico.';
@@ -1031,3 +1033,19 @@ $('backupIn').addEventListener('change', async (e) => {
     toast('Dati importati: ricarico…'); setTimeout(() => location.reload(), 900);
   } catch (err) { toast(`Importazione non riuscita: ${err.message}`); }
 });
+
+// ---------- Obiettivo settimanale ----------
+function goalState(hist) {
+  const goal = Number(localStorage.getItem('weekGoal')) || 0; if (!goal) return null;
+  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const done = Math.round(hist.filter((h) => h.t >= d.getTime()).reduce((a, h) => a + h.dur, 0) / 60);
+  return { goal, done };
+}
+function goalHtml(hist) {
+  const g = goalState(hist); if (!g) return '';
+  const pct = Math.min(100, Math.round((g.done / g.goal) * 100));
+  return `<div class="goal"><span class="goal-txt"><b>${g.done}</b> / ${g.goal} min questa settimana${pct >= 100 ? ' · raggiunto!' : ''}</span><span class="goal-bar"><i style="width:${pct}%"></i></span></div>`;
+}
+function renderGoalChips() { const g = Number(localStorage.getItem('weekGoal')) || 0; document.querySelectorAll('#goalChips button').forEach((b) => b.classList.toggle('on', +b.dataset.g === g)); }
+document.querySelectorAll('#goalChips button').forEach((b) => b.addEventListener('click', () => { localStorage.setItem('weekGoal', b.dataset.g); renderGoalChips(); renderWelcome(); }));
+renderGoalChips();
