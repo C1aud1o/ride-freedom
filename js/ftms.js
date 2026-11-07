@@ -65,9 +65,10 @@ export class Trainer extends EventTarget {
     await this.setup();
   }
 
-  async setup() {
+  // server: opzionale, già connesso dalla scelta automatica del protocollo (js/trainers/index.js)
+  async setup(server) {
     this.dbg.setStatus('Connessione…');
-    const server = await this.device.gatt.connect();
+    server ||= await this.device.gatt.connect();
     await this.dbg.describe(this.device, server);
     this.cp = null;
     let ftms = null;
@@ -100,7 +101,7 @@ export class Trainer extends EventTarget {
     }
     this.dbg.setStatus(ftms ? `Connesso (FTMS${this.cp ? ', controllabile' : ', sola lettura'})` : 'Connesso (senza FTMS)');
     this.dbg.extra = { features: this.features, ranges: this.ranges };
-    this.emit('connected', { name: this.device.name, ftms: !!ftms, features: this.features });
+    this.emit('connected', { name: this.device.name, ftms: !!ftms, protocol: ftms ? 'FTMS' : 'CP/CSC', features: this.features });
   }
 
   async readFeatures(ftms) {
