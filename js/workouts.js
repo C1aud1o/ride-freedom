@@ -97,3 +97,34 @@ export function zoneColor(pct) {
 }
 
 export const fmtTime = (sec) => { sec = Math.max(0, Math.round(sec)); const m = Math.floor(sec / 60); return `${m}:${String(sec % 60).padStart(2, '0')}`; };
+
+// ---------- Import .zwo (formato aperto XML usato da molti siti di allenamenti) ----------
+export function parseZwo(text, fileName = 'Allenamento') {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.querySelector('parsererror')) throw new Error('File non valido');
+  const wk = doc.querySelector('workout'); if (!wk) throw new Error('Nessun allenamento nel file');
+  const num = (el, a, d = 0) => { const v = parseFloat(el.getAttribute(a) ?? el.getAttribute(a.toLowerCase())); return Number.isFinite(v) ? v : d; };
+  const steps = [];
+  for (const el of wk.children) {
+    const t = el.tagName.toLowerCase(); const d = Math.round(num(el, 'Duration'));
+    if (t === 'warmup' || t === 'cooldown' || t === 'ramp') {
+      steps.push({ d, p: num(el, 'PowerLow', 0.5), to: num(el, 'PowerHigh', 0.5), label: t === 'warmup' ? 'Riscaldamento' : t === 'cooldown' ? 'Defaticamento' : 'Rampa' });
+    } else if (t === 'steadystate') {
+      steps.push({ d, p: num(el, 'Power', num(el, 'PowerLow', 0.6)), label: 'Ritmo costante' });
+    } else if (t === 'intervalst') {
+      const n = Math.round(num(el, 'Repeat', 1));
+      for (let i = 0; i < n; i++) {
+        steps.push({ d: Math.round(num(el, 'OnDuration')), p: num(el, 'OnPower', 1), label: `Ripetuta ${i + 1}/${n}` });
+        steps.push({ d: Math.round(num(el, 'OffDuration')), p: num(el, 'OffPower', 0.5), label: 'Recupero' });
+      }
+    } else if (t === 'freeride' || t === 'maxeffort') {
+      steps.push({ d, p: t === 'maxeffort' ? 1.5 : 0.65, label: t === 'maxeffort' ? 'Massimo sforzo' : 'Libero' });
+    }
+  }
+  const valid = steps.filter((x) => x.d > 0);
+  if (!valid.length) throw new Error('Allenamento vuoto');
+  const name = doc.querySelector('workout_file > name')?.textContent?.trim() || fileName.replace(/\.zwo$/i, '');
+  const desc = doc.querySelector('workout_file > description')?.textContent?.trim().slice(0, 200) || 'Importato da file';
+  const mins = Math.round(duration({ steps: valid }) / 60);
+  return { id: `zwo-${Date.now()}`, name, tag: `Importato · ${mins} min`, desc, steps: valid, custom: true };
+}

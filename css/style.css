@@ -401,3 +401,4 @@ body.in-route .chips:has([data-preset=grade]) { display: none; }
 .goal-txt b { font: italic 800 22px/1 var(--font-num); color: var(--t1); }
 .goal-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
 .goal-bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .6s; }
+.wk-wrap { display: grid; gap: 4px; } .wk-del { justify-self: end; font-size: var(--fs-caption); } .wk-list > .file-btn { display: grid; place-items: center; }

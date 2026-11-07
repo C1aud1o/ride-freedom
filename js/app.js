@@ -21,7 +21,7 @@ import { VideoRide } from './videoride.js';
 import { rideStats, renderHistory } from './history.js';
 import { shareCard } from './sharecard.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
-import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock } from './workouts.js';
+import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
@@ -377,13 +377,29 @@ function setMode(m) {
   document.querySelector(`[name=mode][value=${m}]`).checked = true;
   state.mode = m; document.body.dataset.mode = m; state.lastSent = null;
 }
+function customWorkouts() { try { return JSON.parse(localStorage.getItem('customWorkouts') || '[]'); } catch { return []; } }
+function allWorkouts() { return [...customWorkouts(), ...WORKOUTS]; }
+const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function renderWorkoutList() {
   $('wkFtp').textContent = state.ftp;
-  $('workoutList').innerHTML = WORKOUTS.map((w) => `<button class="wk-item" data-wk="${w.id}">
-    <span class="row"><b>${w.name}</b><small>${w.tag}${tss(w) ? ` · carico ${tss(w)}` : ''}</small></span>
-    <canvas data-prof="${w.id}"></canvas><small>${w.desc}</small></button>`).join('');
-  requestAnimationFrame(() => document.querySelectorAll('[data-prof]').forEach((c) => drawProfile(c, WORKOUTS.find((w) => w.id === c.dataset.prof), state.ftp)));
-  document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(WORKOUTS.find((w) => w.id === b.dataset.wk))));
+  $('workoutList').innerHTML = `<label class="ghost file-btn">Importa allenamento (.zwo)<input id="zwoFile" type="file" accept=".zwo,application/xml,text/xml" hidden></label>` + allWorkouts().map((w) => `<div class="wk-wrap"><button class="wk-item" data-wk="${w.id}">
+    <span class="row"><b>${escHtml(w.name)}</b><small>${escHtml(w.tag)}${tss(w) ? ` · carico ${tss(w)}` : ''}</small></span>
+    <canvas data-prof="${w.id}"></canvas><small>${escHtml(w.desc)}</small></button>${w.custom ? `<button class="link wk-del" data-del="${w.id}">Elimina</button>` : ''}</div>`).join('');
+  const all = allWorkouts();
+  requestAnimationFrame(() => document.querySelectorAll('[data-prof]').forEach((c) => drawProfile(c, all.find((w) => w.id === c.dataset.prof), state.ftp)));
+  document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(all.find((w) => w.id === b.dataset.wk))));
+  document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
+    if (!confirm('Eliminare questo allenamento importato?')) return;
+    localStorage.setItem('customWorkouts', JSON.stringify(customWorkouts().filter((w) => w.id !== b.dataset.del))); renderWorkoutList();
+  }));
+  $('zwoFile').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const w = parseZwo(await f.text(), f.name);
+      localStorage.setItem('customWorkouts', JSON.stringify([w, ...customWorkouts()].slice(0, 30)));
+      toast(`Importato: ${w.name}`); renderWorkoutList();
+    } catch (err) { toast(`Import non riuscito: ${err.message}`); }
+  });
 }
 $('openWorkouts').addEventListener('click', () => { renderWorkoutList(); renderRoutePick(); openSheet('workoutSheet'); });
 
