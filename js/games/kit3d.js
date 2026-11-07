@@ -273,7 +273,10 @@ export class Pool {
 // Scia luminosa per i proiettili: nucleo bianco, bordo colorato sfumato, coda che svanisce.
 // Due quadrati incrociati (orizzontale + verticale) così si vede da qualsiasi inquadratura; lunghezza lungo +Z.
 let tracerTex = null;
-function tracerTexture() {
+function tracerTexture(core = false) {
+  return fxTexture(core ? 'trace_01' : 'trace_06');
+}
+function canvasTracer() {
   if (tracerTex) return tracerTex;
   const c = document.createElement('canvas'); c.width = 64; c.height = 256; const g = c.getContext('2d');
   const along = g.createLinearGradient(0, 0, 0, 256); // testa in alto (y=0) → coda in basso
@@ -299,13 +302,24 @@ export function tracer(color = '#fff3a0') {
   }
   // nucleo bianco quasi puro + alone colorato (due passaggi additivi)
   const group = new THREE.Group();
-  const glow = new THREE.Mesh(tracerGeo, new THREE.MeshBasicMaterial({ map: tracerTexture(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
-  const core = new THREE.Mesh(tracerGeo, new THREE.MeshBasicMaterial({ map: tracerTexture(), color: '#ffffff', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const glow = new THREE.Mesh(tracerGeo, new THREE.MeshBasicMaterial({ map: tracerTexture(false), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const core = new THREE.Mesh(tracerGeo, new THREE.MeshBasicMaterial({ map: tracerTexture(true), color: '#ffffff', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   glow.scale.set(0.42, 1, 1.7); core.scale.set(0.12, 1, 1.4); core.position.z = 0.1;
   group.add(glow, core); group.glow = glow; group.core = core;
   // forma: lunghezza e spessore a scelta
-  group.shape = (len = 1.7, width = 0.42) => { glow.scale.set(width, width, len); core.scale.set(width * 0.3, width * 0.3, len * 0.8); };
+  // le scie Kenney sono sottili: le allarghiamo perché si leggano bene anche sul telefono
+  group.shape = (len = 1.7, width = 0.42) => { glow.scale.set(width * 2.6, width * 2.6, len * 1.15); core.scale.set(width * 1.3, width * 1.3, len); };
+  group.shape();
   return group;
+}
+
+// Particelle Kenney "Particle Pack" (CC0): bianche con trasparenza, colorate dal materiale.
+const texLoader = new THREE.TextureLoader();
+const FX_BASE = new URL('../../assets/fx/', import.meta.url).href;
+const fxCache = {};
+export function fxTexture(name) {
+  if (!fxCache[name]) { const t = texLoader.load(`${FX_BASE}${name}.png`); t.colorSpace = THREE.SRGBColorSpace; fxCache[name] = t; }
+  return fxCache[name];
 }
 
 export function glowTexture(color = '#ffffff') {
@@ -317,29 +331,38 @@ export function glowTexture(color = '#ffffff') {
 }
 
 // effetti: lampi, esplosioni, scintille con sprite additivi
+// Effetti: lampi, esplosioni, scintille e fumo con le particelle Kenney (niente "palline" sfumate).
+const FX = {
+  fire: ['fire_01', '#ffb347'], flash: ['flare_01', '#fff6d8'], spark: ['star_06', '#fff3a0'],
+  blue: ['light_01', '#4de3ff'], red: ['light_01', '#ff4a4a'], green: ['magic_02', '#7dff6a'],
+  smoke: ['smoke_04', '#8f8899'], muzzle: ['muzzle_03', '#ffd27a'], glow: ['light_01', '#ffffff'],
+};
 export class Effects {
   constructor(scene, size = 120) {
     this.list = [];
-    this.tex = { fire: glowTexture('#ffb02e'), spark: glowTexture('#fff3a0'), blue: glowTexture('#4de3ff'), red: glowTexture('#ff4040'), green: glowTexture('#7dff6a'), smoke: glowTexture('#55505a') };
-    this.pool = new Pool(scene, () => new THREE.Sprite(new THREE.SpriteMaterial({ map: this.tex.fire, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })), size);
+    this.pool = new Pool(scene, () => new THREE.Sprite(new THREE.SpriteMaterial({ map: fxTexture('flare_01'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })), size);
   }
-  spawn(x, y, z, { tex = 'fire', size = 1, life = 0.4, vx = 0, vy = 0, vz = 0, grow = 2, additive = true } = {}) {
-    const s = this.pool.get();
-    s.material.map = this.tex[tex]; s.material.blending = additive ? THREE.AdditiveBlending : THREE.NormalBlending; s.material.needsUpdate = true;
+  spawn(x, y, z, { tex = 'fire', size = 1, life = 0.4, vx = 0, vy = 0, vz = 0, grow = 2, additive = true, color = null, spin = 0 } = {}) {
+    const s = this.pool.get(); const [img, col] = FX[tex] || FX.fire;
+    s.material.map = fxTexture(img); s.material.color.set(color || col);
+    s.material.blending = additive ? THREE.AdditiveBlending : THREE.NormalBlending; s.material.needsUpdate = true;
+    s.material.rotation = Math.random() * Math.PI * 2;
     s.position.set(x, y, z); s.scale.setScalar(size);
-    this.list.push({ s, t: 0, life, vx, vy, vz, size, grow });
+    this.list.push({ s, t: 0, life, vx, vy, vz, size, grow, spin, alpha: additive ? 1 : 0.75 });
   }
   explode(x, y, z, size = 1) {
-    this.spawn(x, y, z, { size: 2.2 * size, life: 0.35, grow: 2.5 });
-    for (let i = 0; i < 6; i++) this.spawn(x, y, z, { tex: 'spark', size: 0.5 * size, life: 0.5, vx: (Math.random() - 0.5) * 9 * size, vy: Math.random() * 7 * size, vz: (Math.random() - 0.5) * 9 * size, grow: 0.2 });
-    for (let i = 0; i < 3; i++) this.spawn(x + (Math.random() - 0.5), y + 0.3, z, { tex: 'smoke', size: 1.4 * size, life: 0.9, vy: 1.2, grow: 1.6, additive: false });
+    this.spawn(x, y, z, { tex: 'flash', size: 2.6 * size, life: 0.18, grow: 0.8, spin: 2 });
+    this.spawn(x, y, z, { tex: 'fire', size: 1.6 * size, life: 0.45, grow: 1.6, spin: 1.5 });
+    for (let i = 0; i < 6; i++) this.spawn(x, y, z, { tex: 'spark', size: 0.45 * size, life: 0.45 + Math.random() * 0.2, vx: (Math.random() - 0.5) * 10 * size, vy: 2 + Math.random() * 6 * size, vz: (Math.random() - 0.5) * 10 * size, grow: 0.1, spin: 6 });
+    for (let i = 0; i < 3; i++) this.spawn(x + (Math.random() - 0.5), y + 0.2, z + (Math.random() - 0.5), { tex: 'smoke', size: 1.3 * size, life: 1.1, vy: 1.1, grow: 1.4, additive: false, spin: (Math.random() - 0.5) * 1.5 });
   }
   update(dt) {
     for (const p of this.list) {
       p.t += dt; const k = p.t / p.life;
       p.s.position.x += p.vx * dt; p.s.position.y += p.vy * dt; p.s.position.z += p.vz * dt; p.vy -= 9 * dt * (p.grow < 1 ? 1 : 0);
       p.s.scale.setScalar(p.size * (1 + k * p.grow));
-      p.s.material.opacity = 1 - k;
+      p.s.material.rotation += p.spin * dt;
+      p.s.material.opacity = (1 - k * k) * p.alpha;
       if (k >= 1) p.s.visible = false;
     }
     this.list = this.list.filter((p) => p.t < p.life);

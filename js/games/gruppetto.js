@@ -68,7 +68,7 @@ export class Gruppetto extends Base3D {
     for (const s of this.strays || []) { scene.remove(s.r.root); scene.remove(s.beacon); }
     if (this.player) scene.remove(this.player.root);
     this.player = rider(scene, this.m['char-a'], '#d9ff3d');
-    this.x = 0; this.z = -HALF + 6; this.h = 0; this.hist = []; this.train = []; this.strays = [];
+    this.x = 0; this.z = -HALF + 6; this.h = 0; this.hT = 0; this.camH = 0; this.lean = 0; this.hist = []; this.train = []; this.strays = [];
     this.dist = 0; this.score = 0; this.sprintT = 0; this.pending = 0;
     for (let i = 0; i < 3; i++) this.addStray();
     this.hooks.setGrade?.(0); this.sentGrade = 0;
@@ -87,7 +87,8 @@ export class Gruppetto extends Base3D {
     this.strays.push({ r, x, z, beacon, t: 0 });
   }
 
-  press(dir) { this.h -= dir * TAP; this.audio.sfx('select'); }
+  // un tocco imposta la nuova direzione: la bici ci arriva con una curva morbida
+  press(dir) { this.hT -= dir * TAP; }
 
   hitsTrain(x, z, rad, skip) {
     for (let i = skip; i < this.train.length; i++) { const p = this.train[i].root.position; if (Math.hypot(p.x - x, p.z - z) < rad) return true; }
@@ -96,7 +97,10 @@ export class Gruppetto extends Base3D {
 
   step(dt) {
     const v = clamp((this.kmh / 3.6) * 0.42, 2.2, 7) * (this.sprinting ? 1.15 : 1);
-    this.h -= this.steer(dt, TURN);
+    this.hT -= this.steer(dt, TURN);
+    // curva fluida verso la direzione voluta (velocità di sterzo limitata) e piega in curva
+    const dh = this.hT - this.h; const turn = Math.sign(dh) * Math.min(Math.abs(dh), 3.2 * dt);
+    this.h += turn; this.lean += ((turn / Math.max(dt, 1e-3)) * 0.12 - this.lean) * Math.min(1, dt * 8);
     this.x += Math.sin(this.h) * v * dt; this.z += Math.cos(this.h) * v * dt;
     this.dist += v * dt;
     this.hist.unshift({ x: this.x, z: this.z, h: this.h, d: this.dist });
@@ -146,7 +150,7 @@ export class Gruppetto extends Base3D {
 
   view(dt) {
     const cad = this.cadence || 80;
-    this.player.root.position.set(this.x, 0, this.z); this.player.root.rotation.y = this.h;
+    this.player.root.position.set(this.x, 0, this.z); this.player.root.rotation.set(0, this.h, 0); this.player.root.rotateZ(clamp(this.lean, -0.35, 0.35));
     this.player.pose(dt, cad);
     for (const r of this.train) r.pose(dt, cad);
     for (const s of this.strays) s.r.pose(dt, 0);
@@ -156,10 +160,11 @@ export class Gruppetto extends Base3D {
     this.arrow.rotation.set(Math.PI / 2, this.h, 0);
     const cam = this.stage.camera;
     const back = 9 + Math.min(8, this.train.length * 0.25);
-    const target = new THREE.Vector3(this.x - Math.sin(this.h) * back, 9 + back * 0.4, this.z - Math.cos(this.h) * back);
+    this.camH += (this.h - this.camH) * Math.min(1, dt * 3.5);
+    const target = new THREE.Vector3(this.x - Math.sin(this.camH) * back, 9 + back * 0.4, this.z - Math.cos(this.camH) * back);
     if (!this.camInit) { cam.position.copy(target); this.camInit = true; }
     cam.position.lerp(target, Math.min(1, dt * 3));
-    cam.lookAt(this.x + Math.sin(this.h) * 6, 0, this.z + Math.cos(this.h) * 6);
+    cam.lookAt(this.x + Math.sin(this.camH) * 6, 0, this.z + Math.cos(this.camH) * 6);
     cam.fov = 60; cam.updateProjectionMatrix();
     this.sun.position.set(this.x + 15, 30, this.z - 10); this.sun.target.position.set(this.x, 0, this.z);
   }

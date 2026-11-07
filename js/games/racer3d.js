@@ -123,6 +123,7 @@ export class Racer3D {
     const jobs = [];
     for (const n of names) jobs.push(loadModel(`${ASSETS}/racing/${n}.gltf`).then((g) => { this.models[n] = g; }));
     for (const n of natureNames) jobs.push(loadModel(`${ASSETS}/nature/${n}.glb`).then((g) => { this.models[n] = g; }));
+    jobs.push(loadModel(`${ASSETS}/pickups/coin-gold.glb`).then((g) => { this.models.coin = g; }));
     this.chars = {};
     for (const c of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']) jobs.push(loadModel(`${ASSETS}/characters/character-${c}.glb`).then((g) => { this.chars[c] = g; }));
     let done = 0;
@@ -469,14 +470,14 @@ export class Racer3D {
 
   buildPickups() {
     this.coins = []; this.boxes = [];
-    const coinGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.07, 18);
-    const coinMat = new THREE.MeshLambertMaterial({ color: '#ffcc33', emissive: '#5a3c00' });
+    // moneta Kenney (Platformer Kit, CC0)
+    const cb = new THREE.Box3().setFromObject(this.models.coin.scene); const coinScale = 0.7 / ((cb.max.y - cb.min.y) || 1);
     for (let s = 140; s < this.length - 150; s += 170) {
       const lane = Math.floor(hash(s) * 3);
       for (let k = 0; k < 5; k++) {
         const ss = s + k * 4; const p = this.at(ss, LANES[lane]);
-        const m = new THREE.Mesh(coinGeo, coinMat); m.rotation.z = Math.PI / 2;
-        m.position.set(p.x, p.y + 1.0, p.z); m.castShadow = true;
+        const m = this.models.coin.scene.clone(true); m.scale.setScalar(coinScale);
+        m.position.set(p.x, p.y + 0.75, p.z); m.rotation.y = k * 0.6;
         this.scene.add(m); this.coins.push({ s: ss, lane, mesh: m, taken: false });
       }
     }

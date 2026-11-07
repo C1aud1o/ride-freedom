@@ -2,7 +2,7 @@
 // Parti con una pistola contro pochi zombi; ondate sempre più grandi, armi che evolvono,
 // portali che danno alleati e potenziamenti. + / − cambiano corsia, i watt decidono la cadenza,
 // lo sprint scatena l'OVERDRIVE.
-import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights, tracer, crowd } from './kit3d.js';
+import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights, tracer, crowd, fxTexture } from './kit3d.js';
 import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
 import { SONGS } from './audio.js';
 
@@ -73,6 +73,7 @@ export class Horde {
       for (const e of Object.values(ENEMIES)) files[e.model] = `${A}/graveyard/${e.model}.glb`;
       for (const w of WEAPONS) files[w.model] = `${A}/blasters/${w.model}.glb`;
       for (const c of 'abcdefghij') files[`char-${c}`] = `${A}/characters/character-${c}.glb`;
+      files.jewel = `${A}/pickups/jewel.glb`;
       for (const p of ['pine', 'pine-crooked', 'gravestone-cross', 'gravestone-round', 'gravestone-bevel', 'gravestone-broken', 'iron-fence', 'iron-fence-damaged', 'lightpost-double', 'pumpkin-carved', 'crypt-small', 'fire-basket', 'rocks', 'trunk', 'cross']) files[p] = `${A}/graveyard/${p}.glb`;
       this.m = await loadAll(files, (p) => { this.loadPct = p; });
       this.build();
@@ -101,7 +102,9 @@ export class Horde {
     // folla lontana: un disegno per tipo di nemico
     this.crowds = {};
     for (const [type, def] of Object.entries(ENEMIES)) if (!def.boss) this.crowds[type] = crowd(scene, this.m[def.model], def.height, MAX_ALIVE);
-    this.gemGeo = new THREE.OctahedronGeometry(0.32); this.gemMat = new THREE.MeshBasicMaterial({ color: '#7dff6a' });
+    // gemma: gioiello Kenney (Platformer Kit, CC0) con un alone che il bagliore fa brillare
+    const jb = new THREE.Box3().setFromObject(this.m.jewel.scene); this.gemScale = 0.75 / ((jb.max.y - jb.min.y) || 1);
+    this.gemGlow = new THREE.SpriteMaterial({ map: fxTexture('light_01'), color: '#5fd4ff', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 });
     // segnalino del giocatore: anello luminoso a terra + linea di mira verso dove stai andando
     // alone morbido sotto il giocatore (si vede sempre dove sei, senza cerchi duri)
     this.ring = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.2), new THREE.MeshBasicMaterial({ map: softGlow(), color: '#d9ff3d', transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -366,9 +369,9 @@ export class Horde {
         const mesh = this.bulletPool.get();
         mesh.glow.material.color.set(od ? '#4de3ff' : w.color);
         // forma per tipo d'arma: razzi corti e grossi, laser lunghi e sottili, raffiche medie
-        if (w.splash) mesh.shape(1.4, 0.75); else if (w.speed >= 70) mesh.shape(3.2, 0.3); else if (w.rate > 8) mesh.shape(1.9, 0.32); else mesh.shape(1.5, 0.4 * (od ? 1.4 : 1));
+        if (w.splash) mesh.shape(2.2, 0.6); else if (w.speed >= 70) mesh.shape(6, 0.28); else if (w.rate > 8) mesh.shape(3.6, 0.3); else mesh.shape(3.2, 0.34 * (od ? 1.4 : 1));
         mesh.rotation.set(0, a, 0);
-        mesh.position.set(s.x + Math.sin(a) * 0.9, 1.25, s.z + Math.cos(a) * 0.9);
+        mesh.position.set(s.x + Math.sin(a) * 1.6, 1.25, s.z + Math.cos(a) * 1.6);
         this.bullets.push({ mesh, vx: Math.sin(a) * w.speed, vz: Math.cos(a) * w.speed, life: 1.8, dmg: w.dmg * this.dmgMul * (od ? 2 : 1), splash: w.splash, pierce: w.pierce || od, hits: null });
       }
       this.fx.spawn(s.x + Math.sin(ang) * 0.95, 1.28, s.z + Math.cos(ang) * 0.95, { tex: w.splash ? 'fire' : 'spark', size: w.splash ? 1.3 : 0.9, life: 0.07, grow: 0.6 });
@@ -428,7 +431,9 @@ export class Horde {
 
   dropGem(x, z, n) {
     for (let i = 0; i < n; i++) {
-      const mesh = new THREE.Mesh(this.gemGeo, this.gemMat);
+      const mesh = new THREE.Group();
+      const jewel = this.m.jewel.scene.clone(true); jewel.scale.setScalar(this.gemScale); mesh.add(jewel);
+      const halo = new THREE.Sprite(this.gemGlow); halo.scale.setScalar(1.6); halo.position.y = 0.35; mesh.add(halo);
       mesh.position.set(x + (Math.random() - 0.5) * (n > 1 ? 4 : 0.5), 0.6, z + (Math.random() - 0.5) * (n > 1 ? 4 : 0.5));
       this.stage.scene.add(mesh); this.gems.push({ mesh, t: 0 });
     }
@@ -445,6 +450,7 @@ export class Horde {
         if (d < 1) {
           g.done = true; this.stage.scene.remove(g.mesh); this.xp += 2; this.score += 5 * this.wave;
           this.audio.sfx('coin'); this.pop('+2', '#7dff6a', 0.8); this.ringPulse = 0.25;
+          this.fx.spawn(this.x, 1.2, this.z, { tex: 'green', size: 1.4, life: 0.35, grow: 1.2, spin: 4 });
           if (this.xp >= WEAPONS[this.weapon].xp) this.evolve();
         }
       } else if (dz > 6) { g.done = true; this.stage.scene.remove(g.mesh); }
