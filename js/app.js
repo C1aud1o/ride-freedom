@@ -23,6 +23,7 @@ import { shareCard } from './sharecard.js';
 import { WorkoutEditor } from './editor.js';
 import './ui.js';
 import { coach, spokenTime } from './coach.js';
+import { glowSetting } from './games/kit3d.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
@@ -1139,3 +1140,6 @@ document.querySelectorAll('#cadChips button').forEach((b) => b.addEventListener(
 renderAutoShift();
 $('coachOn').checked = coach.on;
 $('coachOn').addEventListener('change', () => { coach.on = $('coachOn').checked; if (coach.on) coach.say('Ciao! Sono il tuo coach. Ti avviso a ogni cambio di ritmo.', { force: true }); });
+
+$('gameGlow').checked = glowSetting.on;
+$('gameGlow').addEventListener('change', () => { glowSetting.on = $('gameGlow').checked; });

@@ -324,7 +324,6 @@ export class Horde {
       // passa dal portale della propria metà strada (la corsia centrale passa in mezzo)
       if (Math.abs(this.x - g.x) < ROAD / 2 + 0.2) {
         g.def.apply(this);
-        this.pop(g.def.text, g.def.good ? '#4de3ff' : '#ff6b6b', 1.4);
         this.say(g.def.text, g.def.good ? '#4de3ff' : '#ff6b6b', 1.6, true);
         this.audio.sfx(g.def.good ? 'rescue' : 'hurt');
         this.fx.spawn(g.x, 1.5, g.z, { tex: g.def.good ? 'blue' : 'red', size: 6, life: 0.5 });
@@ -499,7 +498,7 @@ export class Horde {
     this.ringPulse = Math.max(0, (this.ringPulse || 0) - dt);
     this.ring.position.set(this.x, 0.05, this.z); this.ring.scale.setScalar(1 + this.ringPulse * 1.2);
     this.ring.material.color.set(this.hurtT > 0 ? '#ff4d6d' : this.overdrive > 0 ? '#4de3ff' : this.ringPulse > 0 ? '#7dff6a' : '#d9ff3d');
-    this.ring.material.opacity = 0.45 + this.ringPulse * 1.5;
+    this.ring.material.opacity = 0.32 + this.ringPulse * 1.5;
     this.player.pose(dt, cad, true);
     this.player.root.visible = !(this.hurtT > 0 && Math.floor(this.hurtT * 12) % 2);
     for (const a of this.allies) {

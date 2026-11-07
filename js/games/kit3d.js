@@ -1,6 +1,13 @@
 // Strumenti 3D comuni ai giochi (Three.js + modelli Kenney CC0).
 import * as THREE from 'three';
 import { GLTFLoader } from '../../vendor/three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from '../../vendor/three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from '../../vendor/three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from '../../vendor/three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from '../../vendor/three/addons/postprocessing/OutputPass.js';
+
+// bagliore (bloom): colpi, luci, gemme e lampi brillano. Si spegne da solo se il telefono fatica.
+export const glowSetting = { get on() { return localStorage.getItem('gameGlow') !== '0'; }, set on(v) { localStorage.setItem('gameGlow', v ? '1' : '0'); } };
 
 export { THREE };
 const loader = new GLTFLoader();
@@ -30,6 +37,15 @@ export class Stage {
     this.ctx = hudCanvas.getContext('2d');
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 800);
+    if (glowSetting.on) {
+      this.composer = new EffectComposer(this.renderer);
+      this.composer.addPass(new RenderPass(this.scene, this.camera));
+      // soglia alta: brillano solo le cose davvero luminose (scie, vampate, lune, gemme)
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.45, 0.82);
+      this.composer.addPass(this.bloom);
+      this.composer.addPass(new OutputPass());
+    }
+    this.frames = []; this.lastFrame = 0;
     this.onResize = () => this.resize();
     window.addEventListener('resize', this.onResize);
     this.resize();
@@ -41,6 +57,7 @@ export class Stage {
     this.hud.width = Math.round(r.width * dpr); this.hud.height = Math.round(r.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.renderer.setSize(r.width, r.height, false);
+    if (this.composer) { this.composer.setPixelRatio(this.renderer.getPixelRatio()); this.composer.setSize(r.width, r.height); }
     this.camera.aspect = r.width / r.height; this.camera.updateProjectionMatrix();
   }
   // da coordinate del mondo a pixel CSS dello schermo
@@ -48,10 +65,21 @@ export class Stage {
     const v = new THREE.Vector3(x, y, z).project(this.camera);
     return { x: (v.x + 1) / 2 * this.W, y: (1 - v.y) / 2 * this.H, visible: v.z < 1 };
   }
-  render() { this.renderer.render(this.scene, this.camera); }
+  render() {
+    if (this.composer) {
+      // se per 3 secondi si va sotto i ~28 fps, il bagliore si spegne per questa partita
+      const now = performance.now();
+      if (this.lastFrame) { this.frames.push(now - this.lastFrame); if (this.frames.length > 90) this.frames.shift(); }
+      this.lastFrame = now;
+      if (this.frames.length >= 90 && this.frames.reduce((a, b) => a + b, 0) / 90 > 36) { this.composer.dispose?.(); this.composer = null; }
+      else { this.composer.render(); return; }
+    }
+    this.renderer.render(this.scene, this.camera);
+  }
   dispose() {
     window.removeEventListener('resize', this.onResize);
     this.scene.traverse((o) => { if (o.isInstancedMesh) o.dispose(); });
+    this.composer?.dispose?.();
     this.renderer.dispose();
     this.gl.remove();
     this.ctx.setTransform(1, 0, 0, 1, 0, 0); this.ctx.clearRect(0, 0, this.hud.width, this.hud.height);
