@@ -24,6 +24,7 @@ import { WorkoutEditor } from './editor.js';
 import './ui.js';
 import { coach, spokenTime } from './coach.js';
 import { glowSetting } from './games/kit3d.js';
+import { party, badges } from './celebrate.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
@@ -970,6 +971,22 @@ $('finishRide').addEventListener('click', () => {
   // il "picco" e la "fine": celebrare, confrontare, invitare a tornare
   const hist = history();
   const prev = hist[hist.length - 1];
+  // medaglie: record di potenza, uscita più lunga, obiettivo della settimana, costanza
+  const medals = [];
+  const goalBefore = goalState(hist);
+  if (r.elapsed >= 60) {
+    const st = rideStats(r.log);
+    for (const [d, l] of [[5, '5 secondi'], [60, '1 minuto'], [300, '5 minuti'], [1200, '20 minuti']]) {
+      const old = Math.max(0, ...hist.map((h) => h.best?.[d] || 0));
+      if (st.best[d] && old && st.best[d] > old) medals.push({ ico: '⚡', title: `Record ${l}: ${st.best[d]} W`, sub: `+${st.best[d] - old} W sul precedente` });
+    }
+    const longest = Math.max(0, ...hist.map((h) => h.dur));
+    if (hist.length && r.elapsed > longest + 30) medals.push({ ico: '⏱', title: 'Uscita più lunga di sempre', sub: `${Math.round(r.elapsed / 60)} minuti` });
+    const days = new Set([...hist.map((h) => new Date(h.t).toDateString()), new Date().toDateString()]);
+    let streak = 0; for (let d = new Date(); days.has(d.toDateString()); d.setDate(d.getDate() - 1)) streak++;
+    if (streak >= 2) medals.push({ ico: '🔥', title: `${streak} giorni di fila`, sub: 'La costanza fa la differenza' });
+    if (!hist.length) medals.push({ ico: '★', title: 'Primo allenamento!', sub: 'Il primo passo è il più importante' });
+  }
   if (!r.historySaved && r.elapsed >= 60) {
     hist.push({ t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy), ...rideStats(r.log) });
     saveHistory(hist.slice(-200)); r.historySaved = true; persist();
@@ -984,7 +1001,10 @@ $('finishRide').addEventListener('click', () => {
   $('stravaMsg').innerHTML = r.stravaUrl
     ? `Già su Strava. <a href="${r.stravaUrl}" target="_blank" rel="noopener">Apri l'attività</a>`
     : strava.connected ? '' : 'Collega Strava dalle impostazioni per caricare in automatico.';
+  if (gl && goalBefore && goalBefore.done < gl.goal && gl.done >= gl.goal) medals.unshift({ ico: '🏁', title: 'Obiettivo settimanale raggiunto', sub: `${gl.done} minuti su ${gl.goal}` });
+  badges($('finishBadges'), medals.slice(0, 4));
   openSheet('finishSheet');
+  if (r.elapsed >= 60) { party($('finishSheet'), { records: medals.length }); if (medals.length) gameAudio.jingle('win', 0.6); }
   if (strava.connected && strava.cfg.auto && !r.stravaUrl) uploadToStrava();
 });
 strava.handleRedirect().then((res) => {
