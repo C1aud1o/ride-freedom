@@ -285,13 +285,16 @@
         <button id="openHistory" class="ghost">Storico e record</button>
         <div class="row2 backup-row"><button id="backupOut" class="ghost">Esporta i miei dati</button><label class="ghost file-btn">Importa dati<input id="backupIn" type="file" accept=".json,application/json" hidden></label></div>
         <p class="fine">Per passare dal telefono al PC (o viceversa): esporta qui, apri il file sull'altro dispositivo con "Importa dati". Storico, record, FTP e impostazioni; l'accesso a Strava non viene copiato.</p>
-        <button id="openDebug" class="ghost">Sensori e log</button>
-        <p class="fine">Audio: se non senti nulla, prova l'altro metodo e scegli quello che funziona.</p>
-        <div class="row2"><button id="audioTestA" class="ghost">Prova suono A</button><button id="audioTestB" class="ghost">Prova suono B</button></div>
-        <div class="chips audio-mode" id="audioMode"><button data-m="auto">Automatico</button><button data-m="web">A · Web Audio</button><button data-m="element">B · Lettore</button></div>
-        <p id="audioResult" class="fine"></p>
-        <details class="log"><summary>Registro eventi</summary><pre id="log"></pre></details>
-        <p id="appVersion" class="fine"></p>
+        <button id="reportIssue" class="ghost">Segnala un problema</button>
+        <p class="fine">Apre una segnalazione su GitHub già compilata con versione dell'app e tipo di dispositivo. Nessun dato personale.</p>
+        <button id="openDebug" class="ghost dev-only">Sensori e log</button>
+        <p class="fine dev-only">Audio: se non senti nulla, prova l'altro metodo e scegli quello che funziona.</p>
+        <div class="row2 dev-only"><button id="audioTestA" class="ghost">Prova suono A</button><button id="audioTestB" class="ghost">Prova suono B</button></div>
+        <div class="chips audio-mode dev-only" id="audioMode"><button data-m="auto">Automatico</button><button data-m="web">A · Web Audio</button><button data-m="element">B · Lettore</button></div>
+        <p id="audioResult" class="fine dev-only"></p>
+        <details class="log dev-only"><summary>Registro eventi</summary><pre id="log"></pre></details>
+        <label class="switch dev-only"><input type="checkbox" id="devModeOff" checked><span>Modalità sviluppatore</span></label>
+        <p id="appVersion" class="fine" role="button" tabindex="0"></p>
       </section>
     </div>
   </div>
@@ -340,7 +343,7 @@
     </div>
   </div>
 
-  <div id="debugPanel" class="debug-panel" hidden>
+  <div id="debugPanel" class="debug-panel dev-only" hidden>
     <div class="debug-head">
       <h2>Debug sensori</h2>
       <button id="copyAll" class="primary small">Copia tutto</button>

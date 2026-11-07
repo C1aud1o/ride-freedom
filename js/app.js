@@ -60,6 +60,7 @@ const state = {
 // ---------- UI helpers ----------
 function log(msg) {
   const el = $('log');
+  if (!el) return;
   el.textContent = `${new Date().toLocaleTimeString()}  ${msg}\n` + el.textContent.slice(0, 2000);
 }
 function setStatus(id, text, ok) {
@@ -758,6 +759,38 @@ trainer.addEventListener('disconnected', () => renderWelcome());
 
 setupDebug({ trainer, click, hrm, extra: [pm, garminDbg], appLog: () => $('log').textContent });
 $('appVersion').textContent = `${isNative ? 'App Android' : 'Web'} · versione ${BUILD}`;
+
+// ---------- Modalità sviluppatore (7 tocchi sul numero di versione) ----------
+const DEV_TAPS = 7;
+const devOn = () => localStorage.getItem('devMode') === '1';
+function applyDevMode() { document.body.classList.toggle('dev', devOn()); $('devModeOff').checked = devOn(); }
+let devTaps = 0; let devTapTimer = null;
+function tapVersion() {
+  if (devOn()) { toast('Modalità sviluppatore già attiva'); return; }
+  devTaps++; clearTimeout(devTapTimer); devTapTimer = setTimeout(() => { devTaps = 0; }, 3000);
+  if (devTaps >= DEV_TAPS) {
+    devTaps = 0; localStorage.setItem('devMode', '1'); applyDevMode(); toast('Modalità sviluppatore attiva');
+  } else if (devTaps >= 3) toast(DEV_TAPS - devTaps === 1 ? "Manca 1 tocco" : `Mancano ${DEV_TAPS - devTaps} tocchi`);
+}
+$('appVersion').addEventListener('click', tapVersion);
+$('appVersion').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapVersion(); } });
+$('devModeOff').addEventListener('change', (e) => {
+  if (e.target.checked) return;
+  localStorage.removeItem('devMode'); applyDevMode(); closeDebugPanel(); toast('Modalità sviluppatore disattivata');
+});
+function closeDebugPanel() { if (!$('debugPanel').hidden) $('closeDebug').click(); }
+applyDevMode();
+
+// ---------- Segnala un problema (issue GitHub precompilata, senza dati personali) ----------
+$('reportIssue').addEventListener('click', () => {
+  const dev = [trainer, click, hrm].filter((x) => x?.connected).map((x) => x.device?.name).filter(Boolean).join(', ') || 'nessuno';
+  const body = [
+    '**Cosa è successo?**', '', '', '**Cosa ti aspettavi?**', '', '', '---',
+    `Versione app: ${BUILD}`, `Piattaforma: ${isNative ? 'App Android' : 'Web'}`, `Browser: ${navigator.userAgent}`, `Dispositivo collegato: ${dev}`,
+  ].join('\n');
+  const url = `https://github.com/c1aud1o/ride-freedom/issues/new?title=${encodeURIComponent('Segnalazione da Spindro')}&body=${encodeURIComponent(body)}`;
+  window.open(url, '_blank', 'noopener');
+});
 
 // ---------- Misuratore di potenza esterno ----------
 state.usePm = localStorage.getItem('usePm') !== '0';

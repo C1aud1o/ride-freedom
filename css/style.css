@@ -499,3 +499,7 @@ input[type=number] { -moz-appearance: textfield; }
 .click-bar[hidden] { display: none; }
 .click-bar b { color: var(--accent); }
 .vr-search { display: grid; place-items: center; text-decoration: none; } .vr-how { color: var(--t2) !important; }
+
+/* Modalità sviluppatore: gli elementi di debug compaiono solo con body.dev */
+body:not(.dev) .dev-only { display: none !important; }
+#appVersion { cursor: default; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
