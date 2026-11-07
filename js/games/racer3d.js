@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../../vendor/three/addons/loaders/GLTFLoader.js';
 import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
 import { SONGS } from './audio.js';
+import { rider } from './kit3d.js';
 
 const STEP = 2;            // campionamento della strada (m)
 const ROAD_W = 8.4;
@@ -453,20 +454,8 @@ export class Racer3D {
   }
 
   makeRider(charId, color) {
-    const root = new THREE.Group();
-    const bike = this.makeBike(color);
-    root.add(bike.group);
-    const ch = this.makeCharacter(charId, 1.7);
-    this.scene.remove(ch.root);
-    ch.play('sit');
-    ch.mixer.update(0.01);
-    // allinea le anche alla sella
-    ch.root.updateMatrixWorld(true);
-    const hip = new THREE.Vector3(); (ch.nodes['leg-left'] || ch.inner).getWorldPosition(hip);
-    ch.root.position.set(0, 0.92 - hip.y, -0.3 - hip.z);
-    root.add(ch.root);
-    this.scene.add(root);
-    return { root, bike, ch, phase: Math.random() * 6 };
+    // ciclista condiviso con gli altri giochi: gambe che seguono i pedali, mani sul manubrio
+    return rider(this.scene, this.chars[charId], color);
   }
 
   buildRiders() {
@@ -718,16 +707,8 @@ export class Racer3D {
     r.root.rotation.set(0, p.h, 0);
     r.root.rotateZ(-lean * 0.12);
     r.root.rotateX(-Math.atan(p.grade / 100 * VIS_GRADE));
-    r.phase += phaseSpeed * dt;
-    r.bike.crank.rotation.x = -r.phase;
-    for (const w of r.bike.wheels) w.rotation.x -= (this.speed || 6) * dt / 0.34 * 0.3;
-    r.ch.mixer.update(dt);
-    // pedalata: le gambe seguono la pedivella, le braccia verso il manubrio
-    const L = r.ch.nodes['leg-left']; const R = r.ch.nodes['leg-right'];
-    if (L) L.rotation.x += Math.sin(r.phase) * 0.55;
-    if (R) R.rotation.x += Math.sin(r.phase + Math.PI) * 0.55;
-    const al = r.ch.nodes['arm-left']; const ar = r.ch.nodes['arm-right'];
-    if (al) al.rotation.x = -1.2; if (ar) ar.rotation.x = -1.2;
+    r.pose(dt, (phaseSpeed * 60) / (Math.PI * 2));
+    for (const w of r.bike.wheels) w.rotation.x -= (this.speed || 6) * dt / 0.34 * 0.22;
   }
 
   draw(dt) {

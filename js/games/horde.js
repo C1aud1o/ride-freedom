@@ -2,7 +2,7 @@
 // Parti con una pistola contro pochi zombi; ondate sempre più grandi, armi che evolvono,
 // portali che danno alleati e potenziamenti. + / − cambiano corsia, i watt decidono la cadenza,
 // lo sprint scatena l'OVERDRIVE.
-import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights } from './kit3d.js';
+import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights, tracer } from './kit3d.js';
 import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
 import { SONGS } from './audio.js';
 
@@ -95,16 +95,13 @@ export class Horde {
     this.roadTex = roadTexture();
     this.chunks = new Map();
     // proiettili
-    const bulletGeo = new THREE.SphereGeometry(0.13, 8, 6);
-    this.bullets = []; this.bulletPool = new Pool(scene, () => new THREE.Mesh(bulletGeo, new THREE.MeshBasicMaterial({ color: '#fff3a0' })), 260);
+    this.bullets = []; this.bulletPool = new Pool(scene, () => tracer(), 260);
     this.fx = new Effects(scene, 160);
     this.gemGeo = new THREE.OctahedronGeometry(0.32); this.gemMat = new THREE.MeshBasicMaterial({ color: '#7dff6a' });
     // segnalino del giocatore: anello luminoso a terra + linea di mira verso dove stai andando
-    const ringMat = new THREE.MeshBasicMaterial({ color: '#d9ff3d', transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
-    this.ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.35, 40), ringMat); this.ring.rotation.x = -Math.PI / 2; this.ring.renderOrder = 2; scene.add(this.ring);
-    this.aim = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 1.4), new THREE.MeshBasicMaterial({ color: '#d9ff3d', transparent: true, opacity: 0.5, depthWrite: false })); this.aim.rotation.x = -Math.PI / 2; scene.add(this.aim);
-    // raggio del magnete per le gemme
-    this.magnet = new THREE.Mesh(new THREE.RingGeometry(3.9, 4, 48), new THREE.MeshBasicMaterial({ color: '#7dff6a', transparent: true, opacity: 0.18, depthWrite: false })); this.magnet.rotation.x = -Math.PI / 2; scene.add(this.magnet);
+    // alone morbido sotto il giocatore (si vede sempre dove sei, senza cerchi duri)
+    this.ring = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.2), new THREE.MeshBasicMaterial({ map: softGlow(), color: '#d9ff3d', transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.ring.rotation.x = -Math.PI / 2; this.ring.renderOrder = 2; scene.add(this.ring);
     this.pops = [];
     this.reset();
   }
@@ -170,7 +167,7 @@ export class Horde {
     if (this.state === 'menu') { if (dir > 0 && this.stateT > 0.4) this.begin(); return; }
     if (this.state === 'over') { if (this.stateT > 1.4) { this.reset(); this.begin(); } return; }
     if (this.state !== 'play') return;
-    this.tx = clamp(this.tx + dir * NUDGE, -ROAD, ROAD);
+    this.tx = clamp(this.tx - dir * NUDGE, -ROAD, ROAD); // destra sullo schermo = −X (camera rivolta a +Z)
   }
 
   // tenuto premuto: sterzata continua
@@ -245,7 +242,7 @@ export class Horde {
     // avanzamento
     const v = Math.max(1.5, (kmh / 3.6) * 0.75);
     this.z += v * dt;
-    if (this.held) { this.heldT += dt; if (this.heldT > 0.12) this.tx = clamp(this.tx + this.held * STEER * dt, -ROAD, ROAD); }
+    if (this.held) { this.heldT += dt; if (this.heldT > 0.12) this.tx = clamp(this.tx - this.held * STEER * dt, -ROAD, ROAD); }
     this.x = lerp(this.x, this.tx, Math.min(1, dt * 8));
     this.ensureChunks();
     this.shake = Math.max(0, this.shake - dt); this.hurtT = Math.max(0, this.hurtT - dt);
@@ -355,12 +352,14 @@ export class Horde {
       for (let k = 0; k < w.shots; k++) {
         const a = ang + (w.shots > 1 ? (k / (w.shots - 1) - 0.5) * w.spread : (Math.random() - 0.5) * w.spread);
         const mesh = this.bulletPool.get();
-        mesh.material.color.set(od ? '#ffffff' : w.color);
-        mesh.scale.setScalar(w.splash ? 2.2 : od ? 1.4 : 1);
-        mesh.position.set(s.x + Math.sin(a) * 0.7, 1.25, s.z + Math.cos(a) * 0.7);
+        mesh.glow.material.color.set(od ? '#4de3ff' : w.color);
+        // forma per tipo d'arma: razzi corti e grossi, laser lunghi e sottili, raffiche medie
+        if (w.splash) mesh.shape(1.4, 0.75); else if (w.speed >= 70) mesh.shape(3.2, 0.3); else if (w.rate > 8) mesh.shape(1.9, 0.32); else mesh.shape(1.5, 0.4 * (od ? 1.4 : 1));
+        mesh.rotation.set(0, a, 0);
+        mesh.position.set(s.x + Math.sin(a) * 0.9, 1.25, s.z + Math.cos(a) * 0.9);
         this.bullets.push({ mesh, vx: Math.sin(a) * w.speed, vz: Math.cos(a) * w.speed, life: 1.8, dmg: w.dmg * this.dmgMul * (od ? 2 : 1), splash: w.splash, pierce: w.pierce || od, hits: null });
       }
-      this.fx.spawn(s.x + Math.sin(ang) * 0.8, 1.3, s.z + Math.cos(ang) * 0.8, { tex: 'spark', size: 0.7, life: 0.06, grow: 0 });
+      this.fx.spawn(s.x + Math.sin(ang) * 0.95, 1.28, s.z + Math.cos(ang) * 0.95, { tex: w.splash ? 'fire' : 'spark', size: w.splash ? 1.3 : 0.9, life: 0.07, grow: 0.6 });
       if (s.self) this.audio.sfx(w.splash ? 'rocket' : w.rate > 8 ? 'mg' : w.pierce ? 'laser' : 'shot');
     }
   }
@@ -387,7 +386,7 @@ export class Horde {
             this.fx.explode(bx, 1, bz, b.splash / 2.5);
             this.audio.sfx('boom'); this.shake = Math.max(this.shake, 0.12);
             for (const o of this.enemies) if (!o.dead && Math.hypot(o.x - bx, o.z - bz) < b.splash) this.damage(o, b.dmg);
-          } else { this.damage(e, b.dmg); this.fx.spawn(bx, 1.2, bz, { tex: 'spark', size: 0.6, life: 0.12, grow: 0 }); }
+          } else { this.damage(e, b.dmg); this.fx.spawn(bx, 1.2, bz, { tex: 'spark', size: 0.9, life: 0.08, grow: 1 }); for (let q = 0; q < 2; q++) this.fx.spawn(bx, 1.2, bz, { tex: 'spark', size: 0.22, life: 0.25, vx: (Math.random() - 0.5) * 6, vy: 2 + Math.random() * 3, vz: -b.vz * 0.08 + (Math.random() - 0.5) * 3, grow: 0 }); }
           if (b.pierce) (b.hits = b.hits || new Set()).add(e); else { b.life = 0; break; }
         }
       }
@@ -498,10 +497,9 @@ export class Horde {
     this.player.root.position.set(this.x, 0, this.z);
     this.player.root.rotation.set(0, clamp((this.tx - this.x) * 0.12, -0.5, 0.5), (this.tx - this.x) * -0.06);
     this.ringPulse = Math.max(0, (this.ringPulse || 0) - dt);
-    this.ring.position.set(this.x, 0.05, this.z); this.ring.scale.setScalar(1 + this.ringPulse * 1.6);
+    this.ring.position.set(this.x, 0.05, this.z); this.ring.scale.setScalar(1 + this.ringPulse * 1.2);
     this.ring.material.color.set(this.hurtT > 0 ? '#ff4d6d' : this.overdrive > 0 ? '#4de3ff' : this.ringPulse > 0 ? '#7dff6a' : '#d9ff3d');
-    this.aim.position.set(this.tx, 0.04, this.z + 2.2); this.aim.visible = Math.abs(this.tx - this.x) > 0.3;
-    this.magnet.position.set(this.x, 0.03, this.z);
+    this.ring.material.opacity = 0.45 + this.ringPulse * 1.5;
     this.player.pose(dt, cad, true);
     this.player.root.visible = !(this.hurtT > 0 && Math.floor(this.hurtT * 12) % 2);
     for (const a of this.allies) {
@@ -545,7 +543,7 @@ export class Horde {
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       hudText(ctx, "L'ORDA", W / 2, 120, { size: 56, align: 'center', color: '#d9ff3d' });
       hudText(ctx, 'Pedala. Spara. Sopravvivi.', W / 2, 150, { size: 15, align: 'center' });
-      const lines = ['Parti con una pistola: le ondate crescono sempre', 'Ogni uccisione fa evolvere l\'arma (10 armi)', 'Portali blu: alleati e potenziamenti. Rossi: evitali', 'Tieni premuto + / − per sterzare · più watt = più colpi', 'Passa sulle gemme verdi: l\'anello le attira', 'Sprint sopra soglia = OVERDRIVE', 'Ogni 5 ondate arriva il Custode'];
+      const lines = ['Parti con una pistola: le ondate crescono sempre', 'Ogni uccisione fa evolvere l\'arma (10 armi)', 'Portali blu: alleati e potenziamenti. Rossi: evitali', 'Tieni premuto + / − per sterzare · più watt = più colpi', 'Passa vicino alle gemme verdi per raccoglierle', 'Sprint sopra soglia = OVERDRIVE', 'Ogni 5 ondate arriva il Custode'];
       lines.forEach((l, i) => hudText(ctx, '· ' + l, W / 2, H * 0.62 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
       hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.62 + lines.length * 20 + 14, { size: 12, align: 'center', color: '#bbb' });
       hudText(ctx, '+  INIZIA', W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
@@ -618,6 +616,14 @@ export class Horde {
     this.drawHud(dt);
     requestAnimationFrame(this.loop);
   }
+}
+
+function softGlow() {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(0.35, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
 function roadTexture() {

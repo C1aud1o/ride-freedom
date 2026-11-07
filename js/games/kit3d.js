@@ -117,22 +117,39 @@ export function bike(color = '#d9ff3d') {
   tube(head, front, 0.022, metal); tube(head, [0, 0.98, 0.38], 0.02, metal); tube([-0.2, 0.98, 0.4], [0.2, 0.98, 0.4], 0.016, dark);
   const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.26), dark); saddle.position.set(0, 0.9, -0.26); g.add(saddle);
   const crank = new THREE.Group(); crank.position.set(0, 0.32, -0.02);
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.03), metal); arm.rotation.z = Math.PI / 2; crank.add(arm);
+  // pedivelle opposte con i pedali (girano con la cadenza)
+  for (const [side, up] of [[1, 1], [-1, -1]]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.19, 0.03), metal); arm.position.set(side * 0.09, up * 0.085, 0); crank.add(arm);
+    const pedal = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.025, 0.06), dark); pedal.position.set(side * 0.13, up * 0.17, 0); crank.add(pedal);
+  }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.012, 6, 20), metal); ring.rotation.y = Math.PI / 2; ring.position.x = 0.07; crank.add(ring);
   g.add(crank);
   g.traverse((c) => { if (c.isMesh) c.castShadow = true; });
   return { group: g, wheels, crank, frameMat };
 }
 
-// Ciclista: bici + personaggio seduto che pedala; arma opzionale nella mano destra
+// Ciclista: bici + personaggio che pedala davvero. I personaggi Kenney hanno gambe rigide (senza ginocchio):
+// ogni gamba ruota dall'anca verso il proprio pedale e si allunga/accorcia un poco, così il piede resta sul pedale.
+const CRANK = { y: 0.32, z: -0.02, r: 0.17 };
+const BAR = { y: 0.98, z: 0.38 };
 export function rider(scene, gltf, color) {
   const root = new THREE.Group();
   const b = bike(color); root.add(b.group);
   const ch = character(null, gltf, 1.7);
-  ch.play('sit'); ch.mixer.update(0.01);
-  ch.root.updateMatrixWorld(true);
-  const hip = new THREE.Vector3(); (ch.nodes['leg-left'] || ch.inner).getWorldPosition(hip);
-  ch.root.position.set(0, 0.92 - hip.y, -0.3 - hip.z);
-  root.add(ch.root);
+  ch.mixer.stopAllAction();
+  const legs = ['leg-left', 'leg-right'].map((n) => ch.nodes[n]).filter(Boolean);
+  const arms = ['arm-left', 'arm-right'].map((n) => ch.nodes[n]).filter(Boolean);
+  // posizione in sella: anca sopra la sella, un po' arretrata
+  root.add(ch.root); root.updateMatrixWorld(true);
+  const hip0 = new THREE.Vector3(); (legs[0] || ch.inner).getWorldPosition(hip0);
+  ch.root.position.set(0, 0.95 - hip0.y, -0.28 - hip0.z);
+  ch.root.rotation.x = 0.12; // busto leggermente in avanti
+  root.updateMatrixWorld(true);
+  // misure a riposo (nello spazio della bici)
+  const toLocal = (o) => root.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
+  const len = (node, pivot) => { const box = new THREE.Box3().setFromObject(node); return Math.max(0.1, pivot.y - root.worldToLocal(box.min.clone()).y); };
+  const legInfo = legs.map((n) => { const p = toLocal(n); return { n, p, len: len(n, p) }; });
+  const armInfo = arms.map((n) => { const p = toLocal(n); return { n, p, len: len(n, p) }; });
   scene.add(root);
   const r = { root, bike: b, ch, phase: Math.random() * 6, gun: null };
   r.setGun = (gunGltf, scale = 1.7) => {
@@ -140,22 +157,31 @@ export function rider(scene, gltf, color) {
     if (!gunGltf) { r.gun = null; return; }
     const gun = gunGltf.scene.clone(true); // la canna dei blaster Kenney punta verso +Z (avanti)
     gun.scale.setScalar(scale);
-    gun.position.set(0.4, 1.28, 0.45);
+    gun.position.set(0.32, 1.2, 0.5);
     gun.traverse((c) => { if (c.isMesh) c.castShadow = true; });
     root.add(gun); r.gun = gun;
+  };
+  // orienta un arto rigido dal suo perno verso un bersaglio (y, z) e ne adatta la lunghezza
+  const reach = (info, ty, tz, minS = 0.7, maxS = 1.2) => {
+    const pivot = info.p; const dy = ty - pivot.y; const dz = tz - pivot.z;
+    // l'arto a riposo punta in basso: ruotarlo di a attorno a X lo porta verso (−cos a, sin a) in (y, z)
+    info.n.rotation.set(Math.atan2(-dz, -dy) - ch.root.rotation.x, 0, 0);
+    info.n.scale.y = Math.min(maxS, Math.max(minS, Math.hypot(dy, dz) / info.len));
   };
   r.pose = (dt, cadence = 85, aimArm = false) => {
     r.phase += (cadence / 60) * Math.PI * 2 * dt;
     b.crank.rotation.x = -r.phase;
     for (const w of b.wheels) w.rotation.x -= dt * 8;
-    ch.mixer.update(dt);
-    const L = ch.nodes['leg-left']; const R = ch.nodes['leg-right'];
-    if (L) L.rotation.x += Math.sin(r.phase) * 0.55;
-    if (R) R.rotation.x += Math.sin(r.phase + Math.PI) * 0.55;
-    const al = ch.nodes['arm-left']; const ar = ch.nodes['arm-right'];
-    if (al) al.rotation.x = -1.2;
-    if (ar) ar.rotation.x = aimArm ? -1.55 : -1.2;
+    legInfo.forEach((info, i) => {
+      const f = r.phase + (i ? Math.PI : 0);
+      reach(info, CRANK.y + CRANK.r * Math.cos(f), CRANK.z - CRANK.r * Math.sin(f));
+    });
+    armInfo.forEach((info, i) => {
+      if (aimArm && i === 1) { info.n.rotation.set(-Math.PI / 2 - ch.root.rotation.x + 0.05, 0, 0); info.n.scale.y = 1; return; }
+      reach(info, BAR.y, BAR.z, 0.8, 1.15);
+    });
   };
+  r.pose(0, 0);
   return r;
 }
 
@@ -181,6 +207,44 @@ export function mat4(x, y, z, rotY = 0, s = 1) {
 export class Pool {
   constructor(scene, make, size) { this.items = []; for (let i = 0; i < size; i++) { const o = make(); o.visible = false; scene.add(o); this.items.push(o); } this.i = 0; }
   get() { for (let k = 0; k < this.items.length; k++) { const o = this.items[(this.i + k) % this.items.length]; if (!o.visible) { this.i = (this.i + k + 1) % this.items.length; o.visible = true; return o; } } const o = this.items[this.i]; this.i = (this.i + 1) % this.items.length; return o; }
+}
+
+// Scia luminosa per i proiettili: nucleo bianco, bordo colorato sfumato, coda che svanisce.
+// Due quadrati incrociati (orizzontale + verticale) così si vede da qualsiasi inquadratura; lunghezza lungo +Z.
+let tracerTex = null;
+function tracerTexture() {
+  if (tracerTex) return tracerTex;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 256; const g = c.getContext('2d');
+  const along = g.createLinearGradient(0, 0, 0, 256); // testa in alto (y=0) → coda in basso
+  along.addColorStop(0, 'rgba(255,255,255,0)'); along.addColorStop(0.06, 'rgba(255,255,255,1)'); along.addColorStop(0.35, 'rgba(255,255,255,.55)'); along.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = along; g.fillRect(0, 0, 64, 256);
+  g.globalCompositeOperation = 'destination-in';
+  const across = g.createLinearGradient(0, 0, 64, 0);
+  across.addColorStop(0, 'rgba(0,0,0,0)'); across.addColorStop(0.3, 'rgba(0,0,0,.5)'); across.addColorStop(0.5, 'rgba(0,0,0,1)'); across.addColorStop(0.7, 'rgba(0,0,0,.5)'); across.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = across; g.fillRect(0, 0, 64, 256);
+  tracerTex = new THREE.CanvasTexture(c); tracerTex.colorSpace = THREE.SRGBColorSpace;
+  return tracerTex;
+}
+let tracerGeo = null;
+export function tracer(color = '#fff3a0') {
+  if (!tracerGeo) {
+    const a = new THREE.PlaneGeometry(1, 1); a.rotateX(-Math.PI / 2); // orizzontale, lunghezza lungo Z
+    const b = new THREE.PlaneGeometry(1, 1); b.rotateX(-Math.PI / 2); b.rotateZ(Math.PI / 2); // verticale
+    const pos = [...a.attributes.position.array, ...b.attributes.position.array];
+    const uv = [...a.attributes.uv.array, ...b.attributes.uv.array];
+    const idx = [...a.index.array, ...b.index.array.map((i) => i + 4)];
+    tracerGeo = new THREE.BufferGeometry();
+    tracerGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); tracerGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); tracerGeo.setIndex(idx);
+  }
+  // nucleo bianco quasi puro + alone colorato (due passaggi additivi)
+  const group = new THREE.Group();
+  const glow = new THREE.Mesh(tracerGeo, new THREE.MeshBasicMaterial({ map: tracerTexture(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const core = new THREE.Mesh(tracerGeo, new THREE.MeshBasicMaterial({ map: tracerTexture(), color: '#ffffff', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  glow.scale.set(0.42, 1, 1.7); core.scale.set(0.12, 1, 1.4); core.position.z = 0.1;
+  group.add(glow, core); group.glow = glow; group.core = core;
+  // forma: lunghezza e spessore a scelta
+  group.shape = (len = 1.7, width = 0.42) => { glow.scale.set(width, width, len); core.scale.set(width * 0.3, width * 0.3, len * 0.8); };
+  return group;
 }
 
 export function glowTexture(color = '#ffffff') {

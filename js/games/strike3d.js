@@ -1,7 +1,7 @@
 // PEDAL STRIKE 3D — stessa logica di Pedal Strike (strike.js), resa in 3D a scorrimento laterale
 // con modelli Kenney (CC0): eroi in bici, scagnozzi del Barone armati, scenari 3D, esplosioni.
 import { Strike } from './strike.js';
-import { THREE, Stage, loadAll, character, rider, bike, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights } from './kit3d.js';
+import { THREE, Stage, loadAll, character, rider, bike, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights , tracer } from './kit3d.js';
 import { hudText, clamp, hash, pick } from './engine.js';
 import { SONGS } from './audio.js';
 
@@ -52,8 +52,7 @@ export class Strike3D extends Strike {
     const { scene } = this.stage;
     this.sun = lights(scene, { sky: '#fff6e8', ground: '#4a4030', hemi: 1.5, sunI: 2.1 });
     this.fx3 = new Effects(scene, 180);
-    const bg = new THREE.SphereGeometry(0.09, 8, 6);
-    this.pPool = new Pool(scene, () => new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: '#fff59d' })), 160);
+    this.pPool = new Pool(scene, () => tracer(), 160); // scie luminose orientate sulla traiettoria
     this.ePool = new Pool(scene, () => new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#ff4040' })), 80);
     this.bulletMesh = new Map(); this.ebulletMesh = new Map();
     this.showcase();
@@ -353,8 +352,13 @@ export class Strike3D extends Strike {
     for (const b of list) {
       if (b.life <= 0) continue;
       let m = map.get(b);
-      if (!m) { m = pool.get(); m.material.color.set(colorFn(b)); m.scale.setScalar(sizeFn(b)); map.set(b, m); }
+      if (!m) {
+        m = pool.get(); map.set(b, m);
+        if (m.glow) { m.glow.material.color.set(colorFn(b)); const k = sizeFn(b); m.shape(k > 1.5 ? 0.9 : 1.1, k > 1.5 ? 0.6 : 0.26); }
+        else { m.material.color.set(colorFn(b)); m.scale.setScalar(sizeFn(b)); }
+      }
       m.position.set(b.x, b.y, 0.2);
+      if (m.glow) m.lookAt(b.x + (b.vx || 1), b.y + (b.vy || 0), 0.2); // la scia segue la direzione del colpo
     }
   }
 
