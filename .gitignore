@@ -10,3 +10,5 @@ android/capacitor-cordova-android-plugins/build/
 # chiavi di firma Android e loro copie base64: mai nel repository (docs/android-release.md)
 *.jks
 *.b64
+test-results/
+playwright-report/
