@@ -291,6 +291,30 @@ public class GarminBridgePlugin extends Plugin {
         } catch (Exception e) { call.reject("salvataggio non riuscito: " + e.getMessage()); }
     }
 
+    // passa un file a un'altra app: mode "view" = Apri con…, "send" = Condividi
+    @PluginMethod
+    public void shareFile(PluginCall call) {
+        String name = call.getString("name", "ride.fit");
+        String mime = call.getString("mime", "application/octet-stream");
+        String mode = call.getString("mode", "send");
+        try {
+            byte[] data = Base64.decode(call.getString("data", ""), Base64.DEFAULT);
+            File dir = new File(getContext().getCacheDir(), "share");
+            if (!dir.exists() && !dir.mkdirs()) { call.reject("cartella non disponibile"); return; }
+            File f = new File(dir, name);
+            try (FileOutputStream os = new FileOutputStream(f)) { os.write(data); }
+            Uri uri = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
+            Intent i;
+            if ("view".equals(mode)) { i = new Intent(Intent.ACTION_VIEW); i.setDataAndType(uri, mime); }
+            else { i = new Intent(Intent.ACTION_SEND); i.setType(mime); i.putExtra(Intent.EXTRA_STREAM, uri); }
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent chooser = Intent.createChooser(i, "view".equals(mode) ? "Apri con" : "Condividi");
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(chooser);
+            call.resolve();
+        } catch (Exception e) { call.reject("nessuna app disponibile: " + e.getMessage()); }
+    }
+
     // apre un link nel browser (o nell'app che lo gestisce), fuori dalla WebView
     @PluginMethod
     public void openUrl(PluginCall call) {

@@ -579,6 +579,7 @@ function render() {
   $('saveFit').disabled = !r.log.length;
   $('shareFit').disabled = !r.log.length;
   $('garminUp').disabled = !r.log.length;
+  $('openFit').disabled = !r.log.length;
   $('finishRide').disabled = !r.log.length;
   $('uploadStrava').disabled = !r.log.length || stravaBusy;
 
@@ -635,9 +636,7 @@ function fitFile() {
 // salva un file: nell'app va in Download/RideFreedom, nel browser si scarica
 async function saveFile(file) {
   if (GarminBridge) try {
-    const buf = new Uint8Array(await file.arrayBuffer()); let bin = '';
-    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-    const res = await GarminBridge.saveDownload({ name: file.name, mime: file.type || 'application/octet-stream', data: btoa(bin) });
+    const res = await GarminBridge.saveDownload({ name: file.name, mime: file.type || 'application/octet-stream', data: await fileB64(file) });
     return res.path;
   } catch (err) { log(`Salvataggio nativo non riuscito (${err.message}), provo il download`); }
   const a = document.createElement('a');
@@ -672,16 +671,31 @@ $('garminUp').addEventListener('click', async () => {
   } catch (err) { log(`Errore Garmin: ${err.message || err}`); }
 });
 
+async function fileB64(file) {
+  const buf = new Uint8Array(await file.arrayBuffer()); let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+// nell'app: Condividi e Apri con… del sistema (per provare se Garmin Connect o altre app accettano il file)
+async function nativeShare(file, mode) {
+  await GarminBridge.shareFile({ name: file.name, mime: mode === 'view' ? 'application/vnd.ant.fit' : 'application/octet-stream', data: await fileB64(file), mode });
+  state.ride.saved = true; persist();
+}
 $('shareFit').addEventListener('click', async () => {
   try {
     const file = fitFile();
+    if (GarminBridge) { await nativeShare(file, 'send'); return; }
     await navigator.share({ files: [file], title: 'Allenamento Ride Freedom' });
     state.ride.saved = true; persist();
   } catch (err) { if (err.name !== 'AbortError') log(`Errore condivisione: ${err.message}`); }
 });
+$('openFit').addEventListener('click', async () => {
+  try { await nativeShare(fitFile(), 'view'); } catch (err) { log(`Apri con: ${err.message}`); toast('Nessuna app apre i file .FIT: usa Condividi'); }
+});
 try {
-  $('shareFit').hidden = !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
+  $('shareFit').hidden = !GarminBridge && !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
 } catch { /* non supportato */ }
+$('openFit').hidden = !GarminBridge;
 
 // ---------- preset (scelta al posto dei cursori) ----------
 document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
