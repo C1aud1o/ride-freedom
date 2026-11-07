@@ -1,0 +1,32 @@
+# Configurazione gitleaks per Spindro (repo che diventerà pubblico).
+# Uso:  gitleaks detect --source . --log-opts="--all" --config .gitleaks.toml --redact
+# Esito dell'audit e decisioni: vedi docs/audit-segreti.md
+title = "Spindro - regole di scansione segreti"
+
+[extend]
+# Mantiene tutte le regole di default di gitleaks (Strava, GitHub, Google, chiavi private, ecc.)
+useDefault = true
+
+# Regola aggiunta: gitleaks di default NON riconosce la sintassi Gradle
+# "storePassword 'xxx'" / "keyPassword 'xxx'" (senza '=' né ':'), quindi non la segnalerebbe.
+[[rules]]
+id = "gradle-signing-password"
+description = "Password di firma Android in build.gradle (storePassword / keyPassword)"
+regex = '''(?i)(storePassword|keyPassword)\s*['"][^'"\s]{4,}['"]'''
+tags = ["key", "android", "gradle"]
+
+[allowlist]
+description = "Eccezioni globali motivate (vedi docs/audit-segreti.md)"
+paths = [
+  # Librerie di terze parti vendorizzate (three.js, Capacitor): JS minificato con stringhe
+  # ad alta entropia che generano falsi positivi. Non sono codice nostro.
+  '''(^|/)vendor/''',
+  # Dipendenze installate: non devono mai essere tracciate, ma se capitano non vanno analizzate.
+  '''(^|/)node_modules/''',
+  # Lockfile: hash di integrità (sha512) che sembrano chiavi, non sono segreti.
+  '''(^|/)package-lock\.json$''',
+  # Keystore binari: gitleaks non li analizza come testo. Sono trattati a parte nell'audit
+  # (il keystore di debug è noto e documentato; vedi la decisione in docs/audit-segreti.md).
+  '''\.keystore$''',
+  '''\.jks$''',
+]
