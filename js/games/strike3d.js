@@ -142,7 +142,7 @@ export class Strike3D extends Strike {
         if (hash(x * 1.7 + this.themeIndex) < 0.12) continue;
         let r = hash(x * 3.1) * total; let name = weights[0][0];
         for (const [n, w] of weights) if ((r -= w) < 0) { name = n; break; }
-        const z = -2.8 - hash(x * 5.3) * 10;
+        const z = -4.5 - hash(x * 5.3) * 10;
         const small = /flower|rock_small|pumpkin/.test(name); const s = (name.startsWith('tree') || name.startsWith('pine') || name === 'cactus_tall' ? 4.5 : small ? 2.6 : 3.2) * (0.8 + hash(x) * 0.5);
         (sets[name] = sets[name] || []).push(mat4(x, this.ground(x) - 0.05, z, hash(x * 7) * 6, ['billboard', 'tent'].includes(name) ? 2.6 : s));
       }
@@ -152,7 +152,7 @@ export class Strike3D extends Strike {
     }
   }
 
-  get viewW() { const a = this.stage ? this.stage.W / this.stage.H : 0.5; return a < 1 ? 11 : 18; }
+  get viewW() { const a = this.stage ? this.stage.W / this.stage.H : 0.5; return a < 1 ? 13 : 18; }
   get camX() { return (this.p?.x || 0) - this.viewW * 0.28; }
 
   // ---------- oggetti 3D per le entità della logica ----------
@@ -337,8 +337,10 @@ export class Strike3D extends Strike {
     const cx = this.camX + visW / 2;
     const sh = this.shake > 0 ? (Math.random() - 0.5) * this.shake * 0.8 : 0;
     // un po' dall'alto: si vedono la strada, lo scenario dietro e meno terra di taglio
-    cam.position.set(cx + sh, this.camY + dist * 0.42 + 2 + sh, dist);
-    cam.lookAt(cx, this.camY + 1.6, -1.5);
+    // in verticale si alza il punto di mira: meno terra in basso, più scenario e azione al centro
+    const portrait = a < 1;
+    cam.position.set(cx + sh, this.camY + dist * (portrait ? 0.3 : 0.42) + 2 + sh, dist);
+    cam.lookAt(cx, this.camY + (portrait ? 6.5 : 1.6), -1.5);
     cam.updateProjectionMatrix();
     this.sun.position.set(cx + 10, this.camY + 25, 18); this.sun.target.position.set(cx, this.camY, 0);
     this.stage.render();
