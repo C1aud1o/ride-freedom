@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Ride Freedom</string>
-    <string name="title_activity_main">Ride Freedom</string>
-    <string name="package_name">com.ridefreedom.app</string>
-    <string name="custom_url_scheme">com.ridefreedom.app</string>
+    <string name="app_name">Spindro</string>
+    <string name="title_activity_main">Spindro</string>
+    <string name="package_name">com.spindro.app</string>
+    <string name="custom_url_scheme">com.spindro.app</string>
 </resources>

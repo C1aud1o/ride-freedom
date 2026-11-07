@@ -26,7 +26,7 @@ export class VideoRide {
       <div class="row2"><button id="vrGo" class="cta-sm">Guarda</button><button id="vrPaste" class="ghost">Incolla link</button></div>
       <a class="ghost vr-search" href="https://www.youtube.com/results?search_query=virtual+cycling+4k" target="_blank" rel="noopener">Cerca su YouTube</a>
       <p class="fine vr-how">${window.Capacitor?.isNativePlatform?.()
-    ? '<b>Dall\'app YouTube:</b> apri il video, premi <b>Condividi</b> e scegli <b>Ride Freedom</b>: torni qui e il video parte da solo.'
+    ? '<b>Dall\'app YouTube:</b> apri il video, premi <b>Condividi</b> e scegli <b>Spindro</b>: torni qui e il video parte da solo.'
     : '<b>Da YouTube:</b> apri il video, premi <b>Condividi → Copia link</b>, torna qui e premi <b>Incolla link</b>.'}</p>
       <label class="ghost file-btn">Video dal dispositivo<input id="vrFile" type="file" accept="video/*" hidden></label>
       <p class="fine">Velocità a cui è stato girato il video:</p>

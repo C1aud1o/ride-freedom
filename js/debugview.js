@@ -45,7 +45,7 @@ export function setupDebug({ trainer, click, hrm, extra = [], appLog }) {
   document.getElementById('closeDebug').addEventListener('click', () => { panel.hidden = true; document.body.classList.remove('debug-open'); });
   document.getElementById('copyAll').addEventListener('click', (e) => {
     const env = [
-      `Ride Freedom – report debug ${new Date().toISOString()}`,
+      `Spindro – report debug ${new Date().toISOString()}`,
       `Browser: ${navigator.userAgent}`,
       `Web Bluetooth: ${'bluetooth' in navigator ? 'sì' : 'no'}`,
     ];

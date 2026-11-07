@@ -1,4 +1,4 @@
-# Ride Freedom
+# Spindro: Smart Trainer Cycling
 
 Webapp (PWA) per controllare dal telefono il rullo **Van Rysel D100** via Bluetooth,
 leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in stile Zwift Cog.
@@ -65,7 +65,7 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 
 ## Requisiti
 
-- **Android**: Chrome (Web Bluetooth supportato) o l'app (https://mta-world.com/app/ride-freedom.apk).
+- **Android**: Chrome (Web Bluetooth supportato) o l'app (https://mta-world.com/app/spindro.apk).
 - **PC / Mac / Linux / ChromeOS**: Chrome o Edge (serve il Bluetooth nel computer o una chiavetta Bluetooth 4.0+).
 - **iPhone/iPad**: Safari non supporta Web Bluetooth → usa il browser gratuito **Bluefy**.
 - La pagina deve essere servita in **HTTPS** (o da `localhost`).

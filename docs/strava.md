@@ -1,13 +1,13 @@
 # Strava per tutti gli utenti
 
-Obiettivo: chiunque usi Ride Freedom tocca **Connetti con Strava → login → Consenti** e, con
+Obiettivo: chiunque usi Spindro tocca **Connetti con Strava → login → Consenti** e, con
 🏁 *Termina*, l'allenamento arriva su Strava. Serve una sola app Strava (la tua) e un piccolo
 "ponte" che custodisce il Client Secret: `server/strava-worker/worker.js` (Cloudflare Worker,
 piano gratuito, nessun database: i token restano nel telefono di ciascun utente).
 
 ## 1. Crea l'app Strava (una volta)
 1. Vai su <https://www.strava.com/settings/api> e crea l'applicazione:
-   - **Application Name**: Ride Freedom
+   - **Application Name**: Spindro
    - **Category**: Training
    - **Website**: `https://mta-world.com`
    - **Authorization Callback Domain**: `mta-world.com`
@@ -17,13 +17,13 @@ piano gratuito, nessun database: i token restano nel telefono di ciascun utente)
 ## 2. Metti online il ponte su Cloudflare (una volta)
 Da browser, senza installare nulla:
 1. Crea un account gratuito su <https://dash.cloudflare.com>.
-2. *Workers & Pages* → *Create* → *Create Worker* → nome `ride-freedom-strava` → *Deploy*.
+2. *Workers & Pages* → *Create* → *Create Worker* → nome `spindro-strava` → *Deploy*.
 3. *Edit code*: sostituisci tutto con il contenuto di `server/strava-worker/worker.js` → *Deploy*.
 4. *Settings* → *Variables and Secrets*:
    - `ALLOWED_ORIGINS` (testo) = `https://mta-world.com,https://www.mta-world.com`
    - `STRAVA_CLIENT_ID` (secret) = il Client ID
    - `STRAVA_CLIENT_SECRET` (secret) = il Client Secret
-5. Copia l'indirizzo del worker, tipo `https://ride-freedom-strava.<tuo-account>.workers.dev`.
+5. Copia l'indirizzo del worker, tipo `https://spindro-strava.<tuo-account>.workers.dev`.
 
 In alternativa da terminale: `cd server/strava-worker && npx wrangler deploy` e
 `npx wrangler secret put STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET`.

@@ -32,12 +32,13 @@ jobs:
         run: node scripts/copy-web.mjs && cp sw.js CNAME .nojekyll www/
         env:
           VERSION_CODE: web-${{ github.run_number }}
-      - name: Aggiungi l'ultimo APK (mta-world.com/app/ride-freedom.apk)
+      - name: Aggiungi l'ultimo APK (mta-world.com/app/spindro.apk)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p www/app
-          gh release download app-android -p ride-freedom.apk -D www/app --repo "$GITHUB_REPOSITORY" || echo "APK non ancora disponibile"
+          gh release download app-android -p spindro.apk -D www/app --repo "$GITHUB_REPOSITORY" || echo "APK non ancora disponibile"
+          [ -f www/app/spindro.apk ] && cp www/app/spindro.apk www/app/ride-freedom.apk  # vecchi link
           ls -la www/app
       - uses: actions/upload-pages-artifact@v3
         with:

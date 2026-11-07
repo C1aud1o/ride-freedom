@@ -1,4 +1,4 @@
-// Cloudflare Worker: ponte tra Ride Freedom e Strava per TUTTI gli utenti.
+// Cloudflare Worker: ponte tra Spindro e Strava per TUTTI gli utenti.
 // Custodisce il Client Secret dell'app Strava (mai esposto nel browser) e inoltra le chiamate.
 // Non salva nulla: i token restano nel browser di ciascun utente.
 //

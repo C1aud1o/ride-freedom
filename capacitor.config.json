@@ -1,6 +1,6 @@
 {
-  "appId": "com.ridefreedom.app",
-  "appName": "Ride Freedom",
+  "appId": "com.spindro.app",
+  "appName": "Spindro",
   "webDir": "www",
   "android": { "allowMixedContent": false },
   "plugins": {

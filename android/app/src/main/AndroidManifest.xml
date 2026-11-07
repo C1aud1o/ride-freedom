@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- "Condividi" da YouTube o dal browser: il link arriva a Ride Freedom -->
+            <!-- "Condividi" da YouTube o dal browser: il link arriva a Spindro -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

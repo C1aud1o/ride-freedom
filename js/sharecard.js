@@ -39,7 +39,7 @@ export async function shareCard({ title, date, stats, series, ftp, route }) {
   }
   g.font = ui(26); g.fillStyle = 'rgba(242,240,230,.4)'; g.fillText('mta-world.com', 72, H - 50);
   const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
-  const file = new File([blob], `ride-freedom-${Date.now()}.png`, { type: 'image/png' });
+  const file = new File([blob], `spindro-${Date.now()}.png`, { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: 'Il mio allenamento' }); return 'shared'; } catch (err) { if (err.name === 'AbortError') return 'aborted'; }
   }

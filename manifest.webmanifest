@@ -1,6 +1,6 @@
 {
-  "name": "Ride Freedom",
-  "short_name": "RideFreedom",
+  "name": "Spindro: Smart Trainer Cycling",
+  "short_name": "Spindro",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

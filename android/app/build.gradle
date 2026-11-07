@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.ridefreedom.app"
+    namespace "com.spindro.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.ridefreedom.app"
+        applicationId "com.spindro.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // su GitHub Actions il numero cresce a ogni build, così l'aggiornamento si installa sopra
@@ -19,7 +19,7 @@ android {
     }
     // chiave fissa (non segreta, solo per installazioni dirette) così ogni nuovo APK aggiorna il precedente
     signingConfigs {
-        ridefreedom {
+        spindro {
             storeFile file('ridefreedom-debug.keystore')
             storePassword 'android'
             keyAlias 'ridefreedom'
@@ -28,7 +28,7 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.ridefreedom
+            signingConfig signingConfigs.spindro
         }
         release {
             minifyEnabled false

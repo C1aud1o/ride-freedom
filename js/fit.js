@@ -161,5 +161,5 @@ export function encodeZwo(name, steps, ftp, desc = '') {
   const body = steps.map((x) => (x.to != null
     ? `    <Ramp Duration="${x.d}" PowerLow="${f(x, 'p')}" PowerHigh="${x.to.toFixed(3)}"/>`
     : `    <SteadyState Duration="${x.d}" Power="${f(x, 'p')}"/>`)).join('\n');
-  return `<workout_file>\n  <author>Ride Freedom</author>\n  <name>${esc(name)}</name>\n  <description>${esc(desc)}</description>\n  <sportType>bike</sportType>\n  <workout>\n${body}\n  </workout>\n</workout_file>\n`;
+  return `<workout_file>\n  <author>Spindro</author>\n  <name>${esc(name)}</name>\n  <description>${esc(desc)}</description>\n  <sportType>bike</sportType>\n  <workout>\n${body}\n  </workout>\n</workout_file>\n`;
 }

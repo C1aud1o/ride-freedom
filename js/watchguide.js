@@ -34,7 +34,7 @@ export function watchGuide(name = 'il tuo Garmin') {
     <ol class="wg-steps">
       <li>Su ${name} <b>tieni premuto il tasto LUCE</b> (in alto a sinistra) per aprire i controlli.</li>
       <li>Tocca l'icona <b>Telefono</b>.</li>
-      <li>Il telefono risulta <b>scollegato</b>: ora ${name} si aggancia a "RideFreedom". A fine allenamento rifai lo stesso gesto per ricollegarlo e sincronizzare.</li>
+      <li>Il telefono risulta <b>scollegato</b>: ora ${name} si aggancia a "Spindro". A fine allenamento rifai lo stesso gesto per ricollegarlo e sincronizzare.</li>
     </ol>
     <p class="fine">Non vedi l'icona Telefono? Aggiungila in Impostazioni → Controlli sull'orologio.</p>
   </div>`;

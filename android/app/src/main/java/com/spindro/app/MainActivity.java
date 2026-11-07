@@ -1,4 +1,4 @@
-package com.ridefreedom.app;
+package com.spindro.app;
 
 import android.os.Bundle;
 import android.content.Intent;
@@ -33,7 +33,7 @@ public class MainActivity extends BridgeActivity {
         handleShare(getIntent());
     }
 
-    // link condivisi da YouTube (Condividi → Ride Freedom): si aprono in "Pedala su un video"
+    // link condivisi da YouTube (Condividi → Spindro): si aprono in "Pedala su un video"
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);

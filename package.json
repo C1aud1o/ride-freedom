@@ -1,8 +1,8 @@
 {
-  "name": "ride-freedom",
+  "name": "spindro",
   "private": true,
   "version": "1.0.0",
-  "description": "Ride Freedom: webapp e app Android per rulli FTMS (Van Rysel D100), cambio virtuale, giochi e ponte verso Garmin.",
+  "description": "Spindro: webapp e app Android per rulli FTMS (Van Rysel D100), cambio virtuale, giochi e ponte verso Garmin.",
   "scripts": {
     "build:web": "node scripts/copy-web.mjs",
     "android:sync": "npm run build:web && npx cap sync android",

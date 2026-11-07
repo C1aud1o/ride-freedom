@@ -12,7 +12,7 @@ che il browser non può fare:
    l'attività, che poi si sincronizza da sola con Garmin Connect.
 
 ## Installare
-- Dal telefono apri **https://mta-world.com/app/ride-freedom.apk** (oppure la release **app-android**
+- Dal telefono apri **https://mta-world.com/app/spindro.apk** (oppure la release **app-android**
   del repository su GitHub) e scarica il file.
 - Android chiede di consentire l'installazione da quella fonte (browser o file manager): consenti.
 - Ogni nuova build si installa sopra la precedente (stessa chiave di firma).
@@ -21,7 +21,7 @@ che il browser non può fare:
 1. Nell'app: Impostazioni → **Garmin** → attiva *Trasmetti potenza, cadenza e velocità al Garmin*.
    Al primo avvio Android chiede il permesso Bluetooth.
 2. Sul Garmin: *Sensori e accessori* → *Aggiungi nuovo* → **Potenza** (poi anche
-   **Velocità/Cadenza** se vuoi distanza e velocità). Scegli **Ride Freedom**.
+   **Velocità/Cadenza** se vuoi distanza e velocità). Scegli **Spindro**.
 3. Avvia sul Garmin un'attività **Bici indoor**. Tieni l'app aperta durante l'allenamento.
 
 Cosa viene trasmesso: i watt mostrati dall'app (rullo o misuratore esterno), la cadenza (reale o
@@ -46,5 +46,5 @@ cd android && ./gradlew assembleDebug   # serve Android SDK (ANDROID_HOME) e JDK
 ```
 Su GitHub lo fa il workflow `.github/workflows/android.yml` a ogni push e pubblica l'APK nella release.
 
-Note: la chiave `android/app/ridefreedom-debug.keystore` serve solo a firmare le installazioni dirette;
+Note: la chiave `android/app/spindro-debug.keystore` serve solo a firmare le installazioni dirette;
 per il Play Store servirà una chiave di rilascio privata.

@@ -1,4 +1,4 @@
-# Ride Freedom: piano per il lancio al grande pubblico
+# Spindro (ex Ride Freedom): piano per il lancio al grande pubblico
 
 > Documento di lavoro. Ogni attività in fondo (sezione 11) è scritta per essere passata così com'è a una sottosessione (Opus, Sonnet 5.5 o Haiku 5.5) o fatta sul PC con Antigravity. Le sezioni 1–10 spiegano il perché.
 

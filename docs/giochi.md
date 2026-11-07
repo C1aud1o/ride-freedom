@@ -1,4 +1,4 @@
-# Giochi di Ride Freedom — note di design
+# Giochi di Spindro — note di design
 
 Due giochi originali pensati per il rullo: si controllano con i tasti +/− dello Zwift Click
 (o tocco / tastiera) e con le gambe. Nessun personaggio, grafica o nome di giochi esistenti.

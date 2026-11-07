@@ -1,4 +1,4 @@
-name = "ride-freedom-strava"
+name = "spindro-strava"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 

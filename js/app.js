@@ -629,11 +629,11 @@ function fitFile() {
   const bytes = encodeFit(state.ride.log);
   const d = new Date(state.ride.log[0].t);
   const pad = (n) => String(n).padStart(2, '0');
-  const name = `ride-freedom-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.fit`;
+  const name = `spindro-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.fit`;
   return new File([bytes], name, { type: 'application/vnd.ant.fit' });
 }
 
-// salva un file: nell'app va in Download/RideFreedom, nel browser si scarica
+// salva un file: nell'app va in Download/Spindro, nel browser si scarica
 async function saveFile(file) {
   if (GarminBridge) try {
     const res = await GarminBridge.saveDownload({ name: file.name, mime: file.type || 'application/octet-stream', data: await fileB64(file) });
@@ -685,7 +685,7 @@ $('shareFit').addEventListener('click', async () => {
   try {
     const file = fitFile();
     if (GarminBridge) { await nativeShare(file, 'send'); return; }
-    await navigator.share({ files: [file], title: 'Allenamento Ride Freedom' });
+    await navigator.share({ files: [file], title: 'Allenamento Spindro' });
     state.ride.saved = true; persist();
   } catch (err) { if (err.name !== 'AbortError') log(`Errore condivisione: ${err.message}`); }
 });
@@ -800,7 +800,7 @@ async function checkGarminConflict() {
     const name = linked[0];
     const html = watchGuide(name);
     $('garminConflict').innerHTML = `<b>${name} è collegato al telefono con Garmin Connect.</b> Per usarlo come sensore scollegalo per un momento:${html}`;
-    $('garminBanner').innerHTML = `<h2>Scollega ${name} dal telefono</h2><p>È collegato tramite Garmin Connect, quindi non riesce ad agganciare il sensore "RideFreedom".</p>${html}`;
+    $('garminBanner').innerHTML = `<h2>Scollega ${name} dal telefono</h2><p>È collegato tramite Garmin Connect, quindi non riesce ad agganciare il sensore "Spindro".</p>${html}`;
   }
   $('garminConflict').hidden = !show;
   $('garminBanner').hidden = !show;
@@ -817,7 +817,7 @@ async function setGarmin(on) {
   clearInterval(garminTimer);
   if (on) {
     try {
-      await GarminBridge.start({ name: 'RideFreedom' });
+      await GarminBridge.start({ name: 'Spindro' });
       setStatus('garminStatus', 'in attesa del Garmin…');
       garminTimer = setInterval(pushGarmin, 500);
       garminDbg.dbg.setStatus('In attesa');
@@ -825,7 +825,7 @@ async function setGarmin(on) {
       // se dopo un minuto nessuno usa il sensore, suggerisci la causa più probabile
       clearTimeout(garminHintTimer);
       garminHintTimer = setTimeout(() => { $('garminHint').hidden = false; }, 60000);
-      log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "RideFreedom"');
+      log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "Spindro"');
     } catch (err) {
       setStatus('garminStatus', 'errore'); $('garminOn').checked = false; log(`Garmin: ${err.message}`);
     }
@@ -1006,8 +1006,8 @@ async function uploadToStrava() {
     const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
     const res = await strava.upload(fitFile(), {
       name: `Rullo · ${fmtTime(r.elapsed)} · ${avgW} W`,
-      description: `Allenamento sul rullo con Ride Freedom. Potenza media ${avgW} W, ${Math.round(r.energy)} kJ, ${(r.distance / 1000).toFixed(1)} km.`,
-      externalId: `ridefreedom-${r.log[0].t}`,
+      description: `Allenamento sul rullo con Spindro. Potenza media ${avgW} W, ${Math.round(r.energy)} kJ, ${(r.distance / 1000).toFixed(1)} km.`,
+      externalId: `spindro-${r.log[0].t}`,
     }, (m) => stravaMsg(m));
     r.saved = true;
     if (res.url) { r.stravaUrl = res.url; stravaMsg(`${res.message} <a href="${res.url}" target="_blank" rel="noopener">Apri l'attività</a>`, true); }
@@ -1134,8 +1134,8 @@ const NO_BACKUP = /^(stravaConfig|ride-freedom-session)$/;
 $('backupOut').addEventListener('click', () => {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!NO_BACKUP.test(k)) data[k] = localStorage.getItem(k); }
-  const blob = new Blob([JSON.stringify({ app: 'ride-freedom', version: 1, date: new Date().toISOString(), data })], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ride-freedom-dati-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  const blob = new Blob([JSON.stringify({ app: 'spindro', version: 1, date: new Date().toISOString(), data })], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `spindro-dati-${new Date().toISOString().slice(0, 10)}.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   toast('Dati esportati');
 });
@@ -1143,7 +1143,7 @@ $('backupIn').addEventListener('change', async (e) => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
     const j = JSON.parse(await f.text());
-    if (j.app !== 'ride-freedom' || typeof j.data !== 'object') throw new Error('Non è un file di Ride Freedom');
+    if (j.app !== 'spindro' && j.app !== 'ride-freedom' || typeof j.data !== 'object') throw new Error('Non è un file di Spindro');
     // lo storico si unisce (niente doppioni), il resto si sovrascrive
     const mine = history(); const theirs = JSON.parse(j.data.rideHistory || '[]');
     const merged = [...new Map([...mine, ...theirs].map((h) => [h.t, h])).values()].sort((a, b) => a.t - b.t);
@@ -1275,7 +1275,7 @@ if (!isNative) {
   window.addEventListener('popstate', () => { if (window.rfBack() === 'ok') window.history.pushState({ rf: 1 }, ''); else window.history.back(); });
 }
 
-// link condiviso da YouTube (Condividi → Ride Freedom): apre "Pedala su un video" con quel video
+// link condiviso da YouTube (Condividi → Spindro): apre "Pedala su un video" con quel video
 window.rfShared = (text) => {
   const m = String(text).match(/https?:\/\/\S+/); const url = m ? m[0] : String(text).trim();
   if (!/youtu\.?be/.test(url)) { toast('Il link condiviso non è un video YouTube'); return; }

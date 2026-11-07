@@ -1,4 +1,4 @@
-package com.ridefreedom.app;
+package com.spindro.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -80,7 +80,7 @@ public class GarminBridgePlugin extends Plugin {
     private final ArrayDeque<BluetoothGattService> pendingServices = new ArrayDeque<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false, advertising = false;
-    private String deviceName = "RideFreedom";
+    private String deviceName = "Spindro";
     private static final String PREFS = "garmin_bridge"; private static final String KEY_ORIG = "original_bt_name";
 
     // valori correnti e contatori
@@ -93,7 +93,7 @@ public class GarminBridgePlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        deviceName = call.getString("name", "RideFreedom");
+        deviceName = call.getString("name", "Spindro");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && getPermissionState("ble") != PermissionState.GRANTED) {
             requestPermissionForAlias("ble", call, "permsCallback");
             return;
@@ -272,16 +272,16 @@ public class GarminBridgePlugin extends Plugin {
                 ContentValues v = new ContentValues();
                 v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
                 v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-                v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/RideFreedom");
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/Spindro");
                 Uri uri = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
                 if (uri == null) { call.reject("impossibile creare il file"); return; }
                 try (OutputStream os = getContext().getContentResolver().openOutputStream(uri)) {
                     if (os == null) { call.reject("impossibile scrivere"); return; }
                     os.write(data);
                 }
-                where = "Download/RideFreedom/" + name;
+                where = "Download/Spindro/" + name;
             } else {
-                File dir = new File(getContext().getExternalFilesDir(null), "RideFreedom");
+                File dir = new File(getContext().getExternalFilesDir(null), "Spindro");
                 if (!dir.exists() && !dir.mkdirs()) { call.reject("cartella non disponibile"); return; }
                 File f = new File(dir, name);
                 try (FileOutputStream os = new FileOutputStream(f)) { os.write(data); }
