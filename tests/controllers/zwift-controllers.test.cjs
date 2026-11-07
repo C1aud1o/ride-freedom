@@ -80,7 +80,7 @@ const ok = (cond, msg) => { console.log(`${cond ? '  ✓' : '  ✗'} ${msg}`); i
 (async () => {
   const srv = await serve();
   const base = `http://127.0.0.1:${srv.address().port}/index.html`;
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
   const ctx = await browser.newContext({ serviceWorkers: 'block' });
   const page = await ctx.newPage();
   const errors = [];

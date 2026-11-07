@@ -793,7 +793,7 @@ $('reportIssue').addEventListener('click', () => {
     `Versione app: ${BUILD}`, `Piattaforma: ${isNative ? 'App Android' : 'Web'}`, `Browser: ${navigator.userAgent}`, `Dispositivo collegato: ${dev}`,
   ].join('\n');
   const url = `https://github.com/c1aud1o/ride-freedom/issues/new?title=${encodeURIComponent('Segnalazione da Spindro')}&body=${encodeURIComponent(body)}`;
-  window.open(url, '_blank', 'noopener');
+  openExternal(url);
 });
 
 // ---------- Misuratore di potenza esterno ----------

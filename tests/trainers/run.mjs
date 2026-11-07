@@ -37,7 +37,7 @@ const FEC_TX = '6e40fec3-b5a3-f393-e0a9-e50e24dcca9e';
 const WAHOO = 'a026e005-0a7d-4ab3-97fa-f1500f9feb8b';
 const FTMS_CP = '00002ad9-0000-1000-8000-00805f9b34fb';
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
 
 async function open(profile, { protocol } = {}) {
   const ctx = await browser.newContext({ serviceWorkers: 'block' });
