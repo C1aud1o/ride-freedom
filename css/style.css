@@ -168,6 +168,31 @@ body:not([data-mode=gears]):not([data-mode=sim]) .only-sim { display: none; }
 .center { text-align: center; }
 .hint-box { margin: 0; padding: 12px; border-radius: 12px; background: rgba(255, 212, 58, .08); border: 1px solid rgba(255, 212, 58, .25); color: var(--t2); font-size: var(--fs-caption); }
 .hint-box b { color: #ffd43a; }
+.banner { padding: 24px; display: grid; gap: 16px; border-color: rgba(255, 212, 58, .25); }
+.banner h2 { margin: 0; font: 700 var(--fs-title)/1.1 var(--font-num); text-transform: uppercase; color: #ffd43a; }
+.banner p { margin: 0; color: var(--t2); }
+.watch-guide { display: grid; gap: 12px; justify-items: center; }
+.watch-svg { width: 200px; height: 200px; }
+.wg-btn { fill: #55595d; }
+.wg-light { fill: #ffd43a; animation: wgPress 6s infinite; }
+.wg-ring { fill: none; stroke: #d9ff3d; stroke-width: 3; opacity: 0; animation: wgRing 6s infinite; }
+.wg-label { fill: #ffd43a; font: 700 12px var(--font-ui); }
+.wg-time { fill: #f1ece2; font: 700 30px var(--font-num); }
+.wg-small { fill: rgba(241, 236, 226, .7); font: 600 11px var(--font-ui); }
+.wg-off { fill: #ff6b5b; }
+.wg-ico { fill: #2a2f33; }
+.wg-phone-bg { fill: #d9ff3d; animation: wgTap 6s infinite; }
+.wg-phone { fill: none; stroke: #141a00; stroke-width: 2.5; }
+.wg-phone-off { fill: none; stroke: rgba(241, 236, 226, .8); stroke-width: 3; }
+.wg-cross { stroke: #ff6b5b; stroke-width: 4; stroke-linecap: round; }
+.wg-f1 { animation: wgF1 6s infinite; } .wg-f2 { opacity: 0; animation: wgF2 6s infinite; } .wg-f3 { opacity: 0; animation: wgF3 6s infinite; }
+@keyframes wgF1 { 0%, 30% { opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes wgF2 { 0%, 33% { opacity: 0; } 37%, 63% { opacity: 1; } 67%, 100% { opacity: 0; } }
+@keyframes wgF3 { 0%, 66% { opacity: 0; } 70%, 100% { opacity: 1; } }
+@keyframes wgRing { 0%, 5% { opacity: 0; } 10%, 30% { opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes wgPress { 10%, 30% { transform: translateX(3px); } 0%, 34%, 100% { transform: none; } }
+@keyframes wgTap { 45%, 55% { fill: #f1ece2; } }
+.wg-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--t2); font-size: var(--fs-caption); justify-self: stretch; }
 .steps { padding-left: 16px; display: grid; gap: 4px; }
 code { font: 12px ui-monospace, Menlo, monospace; background: var(--ink); padding: 2px 4px; border-radius: 4px; color: var(--t1); }
 .pill { font: 700 var(--fs-caption)/1 var(--font-ui); letter-spacing: 0; text-transform: none; padding: 4px 8px; border-radius: 999px; background: var(--t4); color: var(--t3); }

@@ -3,6 +3,7 @@ import { Trainer } from './ftms.js';
 import { PowerMeter } from './powermeter.js';
 import { SensorDebug } from './debug.js';
 import { BUILD } from './build.js';
+import { watchGuide, GARMIN_RE } from './watchguide.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
@@ -514,7 +515,26 @@ pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('
 // ---------- Ponte verso Garmin (solo app Android) ----------
 $('garminNative').hidden = !isNative;
 $('garminWeb').hidden = isNative;
-let garminTimer = null; let garminHintTimer = null;
+let garminTimer = null; let garminHintTimer = null; let lastGarminStatus = null; let conflictTimer = null;
+// Un Garmin collegato al telefono (Garmin Connect) ma che non usa il sensore: quasi sempre è il
+// motivo per cui resta su "Connecting". Lo segnaliamo con la guida illustrata.
+async function checkGarminConflict() {
+  if (!GarminBridge || !$('garminOn').checked) { $('garminBanner').hidden = true; $('garminConflict').hidden = true; return; }
+  let names = [];
+  try { names = (await GarminBridge.connectedDevices()).devices || []; } catch { /* plugin vecchio */ }
+  if (lastGarminStatus?.devices) names.push(...lastGarminStatus.devices.split(', '));
+  const users = (lastGarminStatus?.users || '').toLowerCase();
+  const linked = [...new Set(names)].filter((n) => GARMIN_RE.test(n) && !users.includes(n.toLowerCase()));
+  const show = linked.length > 0 && !(lastGarminStatus?.usersCount > 0);
+  if (show) {
+    const name = linked[0];
+    const html = watchGuide(name);
+    $('garminConflict').innerHTML = `<b>${name} è collegato al telefono con Garmin Connect.</b> Per usarlo come sensore scollegalo per un momento:${html}`;
+    $('garminBanner').innerHTML = `<h2>Scollega ${name} dal telefono</h2><p>È collegato tramite Garmin Connect, quindi non riesce ad agganciare il sensore "RideFreedom".</p>${html}`;
+  }
+  $('garminConflict').hidden = !show;
+  $('garminBanner').hidden = !show;
+}
 function pushGarmin() {
   const d = state.data;
   const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
@@ -531,6 +551,7 @@ async function setGarmin(on) {
       setStatus('garminStatus', 'in attesa del Garmin…');
       garminTimer = setInterval(pushGarmin, 500);
       garminDbg.dbg.setStatus('In attesa');
+      clearInterval(conflictTimer); conflictTimer = setInterval(checkGarminConflict, 5000); setTimeout(checkGarminConflict, 1500);
       // se dopo un minuto nessuno usa il sensore, suggerisci la causa più probabile
       clearTimeout(garminHintTimer);
       garminHintTimer = setTimeout(() => { $('garminHint').hidden = false; }, 60000);
@@ -541,6 +562,7 @@ async function setGarmin(on) {
   } else {
     await GarminBridge.stop().catch(() => {});
     setStatus('garminStatus', 'spento');
+    clearInterval(conflictTimer); checkGarminConflict();
   }
 }
 if (GarminBridge) {
@@ -552,6 +574,7 @@ if (GarminBridge) {
     garminDbg.dbg.status = inUse ? 'Connesso (in uso)' : st.advertising ? 'In attesa' : st.running ? 'Avvio' : 'Spento';
     garminDbg.dbg.setValues({ visibile: !!st.advertising, connessi: st.connected || 0, dispositivi: st.devices || '-', inUso: st.users || '-' });
     if (inUse) { clearTimeout(garminHintTimer); $('garminHint').hidden = true; }
+    lastGarminStatus = st; checkGarminConflict();
     setStatus('garminStatus', inUse ? `in uso: ${st.users}` : st.advertising ? 'in attesa del Garmin…' : st.running ? 'avvio…' : 'spento', inUse);
   });
   GarminBridge.addListener('error', (ev) => log(`Garmin: ${ev.message}`));
@@ -574,6 +597,35 @@ const gameHooks = {
   },
 };
 const gameAudio = new GameAudio();
+// sblocco dell'audio al primo tocco (WebView e browser lo tengono sospeso finché l'utente non interagisce)
+const unlockAudio = () => {
+  const c = gameAudio.ensure();
+  if (c) { const b = c.createBuffer(1, 1, 22050); const src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); }
+};
+// resta in ascolto finché il contesto non è davvero attivo (Android lo sospende anche quando l'app va in background)
+for (const ev of ['pointerdown', 'keydown', 'touchend']) document.addEventListener(ev, () => { if (gameAudio.ctx?.state !== 'running') unlockAudio(); }, { capture: true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && gameAudio.ctx?.state !== 'running') gameAudio.ctx?.resume().catch(() => {}); });
+$('audioTest').addEventListener('click', async () => {
+  const out = [];
+  try {
+    const c = gameAudio.ensure();
+    if (!c) { $('audioResult').textContent = 'Web Audio non disponibile in questo browser.'; return; }
+    out.push(`stato iniziale: ${c.state}`);
+    if (c.state !== 'running') await c.resume().catch((e) => out.push(`resume: ${e.message}`));
+    out.push(`stato: ${c.state} · ${c.sampleRate} Hz`);
+    if (gameAudio.muted) out.push('ATTENZIONE: audio dei giochi disattivato (pulsante Audio nei giochi)');
+    gameAudio.sfx('pickup');
+    const t0 = c.currentTime;
+    await new Promise((r) => setTimeout(r, 600));
+    out.push(c.currentTime > t0 ? 'orologio audio in movimento: OK' : 'orologio audio fermo: il sistema blocca l\'audio');
+    const nJ = Object.keys(gameAudio.jingles || {}).length;
+    out.push(`jingle caricati: ${nJ}/9`);
+    if (nJ) setTimeout(() => gameAudio.jingle('win'), 200);
+    out.push('Senti una scala di note e poi un jingle? Se no, alza il volume multimediale del telefono.');
+  } catch (err) { out.push(`errore: ${err.message}`); }
+  $('audioResult').textContent = out.join(' · ');
+  log(`Test audio: ${out.join(' | ')}`);
+});
 const games = {
   horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: '+ / − corsia · watt = colpi · sprint = overdrive' },
   racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },

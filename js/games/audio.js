@@ -31,7 +31,7 @@ export class GameAudio {
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       this.loadJingles();
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
     return this.ctx;
   }
 

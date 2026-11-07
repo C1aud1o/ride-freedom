@@ -212,6 +212,24 @@ public class GarminBridgePlugin extends Plugin {
     @PluginMethod
     public void getStatus(PluginCall call) { call.resolve(status()); }
 
+    // dispositivi Bluetooth LE collegati al telefono (anche da altre app, es. Garmin Connect)
+    @SuppressLint("MissingPermission")
+    @PluginMethod
+    public void connectedDevices(PluginCall call) {
+        JSObject o = new JSObject();
+        com.getcapacitor.JSArray arr = new com.getcapacitor.JSArray();
+        try {
+            BluetoothManager m = (BluetoothManager) getContext().getSystemService(Context.BLUETOOTH_SERVICE);
+            if (m != null) for (BluetoothDevice d : m.getConnectedDevices(BluetoothProfile.GATT)) {
+                String n = null;
+                try { n = d.getName(); } catch (SecurityException ignored) { }
+                arr.put(n != null ? n : d.getAddress());
+            }
+        } catch (SecurityException ignored) { }
+        o.put("devices", arr);
+        call.resolve(o);
+    }
+
     @SuppressLint("MissingPermission")
     private void stopAll() {
         running = false;

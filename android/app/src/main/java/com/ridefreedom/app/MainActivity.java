@@ -11,5 +11,9 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         // durante l'allenamento lo schermo resta acceso
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // l'audio dei giochi non deve aspettare un gesto dell'utente dentro l'app
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+        }
     }
 }

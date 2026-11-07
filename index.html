@@ -36,6 +36,7 @@
 
     <!-- stato vuoto: benvenuto (utente nuovo) o ultimo allenamento (utente che torna) -->
     <section id="welcome" class="card welcome" hidden></section>
+    <section id="garminBanner" class="card banner" hidden></section>
 
     <section class="card readout" aria-label="Dati in tempo reale">
       <div class="power">
@@ -167,6 +168,7 @@
             <li>Sul Garmin: Sensori e accessori → Aggiungi nuovo → Potenza, poi Velocità/Cadenza. Scegli "RideFreedom".</li>
             <li>Avvia sul Garmin un'attività Bici indoor.</li>
           </ol>
+          <div id="garminConflict" class="hint-box" hidden></div>
           <p id="garminHint" class="hint-box" hidden><b>Il Garmin resta su "Connecting"?</b> Se l'orologio è già collegato a questo telefono con Garmin Connect, spesso non apre una seconda connessione. Sul Garmin disattiva per un momento il collegamento al telefono (Impostazioni → Connettività → Telefono), aggiungi il sensore e poi riattivalo: l'attività si sincronizzerà a fine allenamento.</p>
         </div>
         <p id="garminWeb" class="fine">Il telefono diventa un sensore per il tuo Garmin solo nell'app Android: <a href="app/ride-freedom.apk" download>scarica l'APK</a>.</p>
@@ -203,6 +205,8 @@
       <section class="group">
         <h3>Diagnostica</h3>
         <button id="openDebug" class="ghost">Sensori e log</button>
+        <button id="audioTest" class="ghost">Test audio</button>
+        <p id="audioResult" class="fine"></p>
         <details class="log"><summary>Registro eventi</summary><pre id="log"></pre></details>
         <p id="appVersion" class="fine"></p>
       </section>
