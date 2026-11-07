@@ -7,7 +7,7 @@ import { watchGuide, GARMIN_RE } from './watchguide.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
-import { encodeFit } from './fit.js';
+import { encodeFit, encodeWorkoutFit, encodeZwo } from './fit.js';
 import { Strava } from './strava.js';
 import { STRAVA_PROXY } from './config.js';
 import { setupDebug } from './debugview.js';
@@ -20,6 +20,8 @@ import { Planata } from './games/planata.js';
 import { VideoRide } from './videoride.js';
 import { rideStats, renderHistory } from './history.js';
 import { shareCard } from './sharecard.js';
+import { WorkoutEditor } from './editor.js';
+import './ui.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
@@ -382,15 +384,27 @@ function allWorkouts() { return [...customWorkouts(), ...WORKOUTS]; }
 const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function renderWorkoutList() {
   $('wkFtp').textContent = state.ftp;
-  $('workoutList').innerHTML = `<label class="ghost file-btn">Importa allenamento (.zwo)<input id="zwoFile" type="file" accept=".zwo,application/xml,text/xml" hidden></label>` + allWorkouts().map((w) => `<div class="wk-wrap"><button class="wk-item" data-wk="${w.id}">
+  $('workoutList').innerHTML = `<div class="row2 wk-top"><button class="cta-sm" id="wkNew">Crea allenamento</button><label class="ghost file-btn">Importa .zwo<input id="zwoFile" type="file" accept=".zwo,application/xml,text/xml" hidden></label></div>` + allWorkouts().map((w) => `<div class="wk-wrap"><button class="wk-item" data-wk="${w.id}">
     <span class="row"><b>${escHtml(w.name)}</b><small>${escHtml(w.tag)}${tss(w) ? ` · carico ${tss(w)}` : ''}</small></span>
-    <canvas data-prof="${w.id}"></canvas><small>${escHtml(w.desc)}</small></button>${w.custom ? `<button class="link wk-del" data-del="${w.id}">Elimina</button>` : ''}</div>`).join('');
+    <canvas data-prof="${w.id}"></canvas><small>${escHtml(w.desc)}</small></button>
+    <span class="wk-tools">${w.test ? '' : `<button class="link" data-edit="${w.id}">${w.custom ? 'Modifica' : 'Copia e modifica'}</button><button class="link" data-fit="${w.id}">Garmin (.FIT)</button><button class="link" data-zwo="${w.id}">.zwo</button>`}${w.custom ? `<button class="link" data-del="${w.id}">Elimina</button>` : ''}</span></div>`).join('');
   const all = allWorkouts();
   requestAnimationFrame(() => document.querySelectorAll('[data-prof]').forEach((c) => drawProfile(c, all.find((w) => w.id === c.dataset.prof), state.ftp)));
   document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(all.find((w) => w.id === b.dataset.wk))));
   document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
     if (!confirm('Eliminare questo allenamento importato?')) return;
     localStorage.setItem('customWorkouts', JSON.stringify(customWorkouts().filter((w) => w.id !== b.dataset.del))); renderWorkoutList();
+  }));
+  $('wkNew').addEventListener('click', () => openEditor(null));
+  document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openEditor(all.find((w) => w.id === b.dataset.edit))));
+  const safeName = (w) => w.name.replace(/[^\w\-àèéìòù ]+/gi, '').trim().replace(/\s+/g, '-') || 'allenamento';
+  document.querySelectorAll('[data-fit]').forEach((b) => b.addEventListener('click', () => {
+    const w = all.find((x) => x.id === b.dataset.fit);
+    offerFile(new File([encodeWorkoutFit(w.name, w.steps, state.ftp)], `${safeName(w)}.fit`, { type: 'application/vnd.ant.fit' }), 'Copialo sull\'orologio in GARMIN/NewFiles (USB) oppure importalo su intervals.icu');
+  }));
+  document.querySelectorAll('[data-zwo]').forEach((b) => b.addEventListener('click', () => {
+    const w = all.find((x) => x.id === b.dataset.zwo);
+    offerFile(new File([encodeZwo(w.name, w.steps, state.ftp, w.desc)], `${safeName(w)}.zwo`, { type: 'application/xml' }), 'Importalo su intervals.icu, TrainingPeaks o Zwift');
   }));
   $('zwoFile').addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -1065,3 +1079,28 @@ function goalHtml(hist) {
 function renderGoalChips() { const g = Number(localStorage.getItem('weekGoal')) || 0; document.querySelectorAll('#goalChips button').forEach((b) => b.classList.toggle('on', +b.dataset.g === g)); }
 document.querySelectorAll('#goalChips button').forEach((b) => b.addEventListener('click', () => { localStorage.setItem('weekGoal', b.dataset.g); renderGoalChips(); renderWelcome(); }));
 renderGoalChips();
+
+// ---------- Editor allenamenti ed esportazione ----------
+const editor = new WorkoutEditor($('editorBody'), {
+  ftp: state.ftp,
+  onSave: (w) => {
+    const list = customWorkouts().filter((x) => x.id !== w.id);
+    localStorage.setItem('customWorkouts', JSON.stringify([w, ...list].slice(0, 30)));
+    closeSheet('editorSheet'); toast(`Salvato: ${w.name}`);
+    renderWorkoutList(); openSheet('workoutSheet');
+  },
+});
+function openEditor(w) {
+  editor.ftp = state.ftp; editor.open(w);
+  $('editorTitle').textContent = w?.custom ? 'Modifica allenamento' : 'Crea allenamento';
+  closeSheet('workoutSheet'); openSheet('editorSheet');
+}
+// file da salvare: sul telefono si apre la condivisione (Drive, email, Garmin…), sul PC si scarica
+async function offerFile(file, hint) {
+  try {
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: file.name }); toast(hint); return; }
+  } catch (err) { if (err.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast(`Scaricato ${file.name}. ${hint}`);
+}

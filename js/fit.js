@@ -2,7 +2,7 @@
 // Il file si importa in Garmin Connect, Strava, intervals.icu, TrainingPeaks...
 
 const FIT_EPOCH = 631065600; // 1989-12-31T00:00:00Z in secondi Unix
-const T = { enum: 0x00, uint8: 0x02, uint16: 0x84, sint32: 0x85, uint32: 0x86, uint32z: 0x8c };
+const T = { string: 0x07, enum: 0x00, uint8: 0x02, uint16: 0x84, sint32: 0x85, uint32: 0x86, uint32z: 0x8c };
 const SIZE = { 0x00: 1, 0x02: 1, 0x84: 2, 0x85: 4, 0x86: 4, 0x8c: 4 };
 const INVALID = { 0x00: 0xff, 0x02: 0xff, 0x84: 0xffff, 0x85: 0x7fffffff, 0x86: 0xffffffff, 0x8c: 0 };
 
@@ -33,6 +33,8 @@ const MSG = {
   session: [18, [[253, T.uint32], [2, T.uint32], [7, T.uint32], [8, T.uint32], [9, T.uint32], [5, T.enum], [6, T.enum],
     [0, T.enum], [1, T.enum], [20, T.uint16], [21, T.uint16], [16, T.uint8], [17, T.uint8], [18, T.uint8], [11, T.uint16],
     [26, T.uint16], [25, T.uint16]]],
+  workout: [26, [[4, T.enum], [6, T.uint16], [8, T.string, 32]]],
+  workoutStep: [27, [[254, T.uint16], [0, T.string, 24], [1, T.enum], [2, T.uint32], [3, T.enum], [4, T.uint32], [5, T.uint32], [6, T.uint32], [7, T.enum]]],
   activity: [34, [[253, T.uint32], [0, T.uint32], [1, T.uint16], [2, T.enum], [3, T.enum], [4, T.enum], [5, T.uint32]]],
 };
 
@@ -47,14 +49,19 @@ class Writer {
     const [global, fields] = MSG[name];
     this.locals.set(name, local);
     this.u8(0x40 | local); this.u8(0); this.u8(0); this.u16(global); this.u8(fields.length);
-    for (const [num, type] of fields) { this.u8(num); this.u8(SIZE[type]); this.u8(type); }
+    for (const [num, type, size] of fields) { this.u8(num); this.u8(size || SIZE[type]); this.u8(type); }
   }
 
   write(name, values) {
     if (!this.locals.has(name)) this.define(name);
     this.u8(this.locals.get(name));
-    for (const [i, [, type]] of MSG[name][1].entries()) {
+    for (const [i, [, type, size]] of MSG[name][1].entries()) {
       let v = values[i];
+      if (type === T.string) { // testo UTF-8 a lunghezza fissa, terminato da zero
+        const b = new TextEncoder().encode(String(v ?? '')).slice(0, size - 1);
+        for (let k = 0; k < size; k++) this.u8(k < b.length ? b[k] : 0);
+        continue;
+      }
       v = v == null || Number.isNaN(v) ? INVALID[type] : type === T.sint32 ? Math.round(v) : Math.max(0, Math.round(v));
       if (SIZE[type] === 1) this.u8(Math.min(v, 0xff));
       else if (SIZE[type] === 2) this.u16(Math.min(v, 0xffff));
@@ -116,4 +123,43 @@ export function encodeFit(samples) {
   const crc = crc16(out.subarray(0, 14 + data.length));
   out[out.length - 2] = crc & 0xff; out[out.length - 1] = crc >> 8;
   return out;
+}
+
+/**
+ * Allenamento strutturato in formato .FIT (tipo "workout"): si copia sull'orologio/ciclocomputer Garmin
+ * (cartella GARMIN/NewFiles via USB) oppure si importa in app che lo accettano.
+ * steps: [{ d: secondi, p: frazione FTP | w: watt, to?: frazione finale, label }]
+ */
+export function encodeWorkoutFit(name, steps, ftp) {
+  const w = new Writer();
+  const now = fitTime(Date.now());
+  w.write('fileId', [5, 255, 1, 1, now]); // tipo 5 = workout
+  w.write('workout', [2, steps.length, name]); // sport 2 = ciclismo
+  steps.forEach((x, i) => {
+    // potenza: valori > 1000 = watt + 1000 (così vale con qualsiasi FTP impostata sull'orologio)
+    const watts = (f) => Math.round((x.w != null ? x.w : f * ftp)) + 1000;
+    const lo = x.to != null ? Math.min(x.p, x.to) : x.p; const hi = x.to != null ? Math.max(x.p, x.to) : x.p;
+    const low = x.w != null ? x.w + 1000 - 5 : watts(lo) - 5; const high = x.w != null ? x.w + 1000 + 5 : watts(hi) + 5;
+    const label = (x.label || '').toLowerCase();
+    const intensity = label.startsWith('riscald') ? 2 : label.startsWith('defatic') ? 3 : label.startsWith('recuper') ? 1 : 0;
+    w.write('workoutStep', [i, x.label || `Passo ${i + 1}`, 0, x.d * 1000, 4, 0, low, high, intensity]);
+  });
+  const data = w.bytes;
+  const header = new DataView(new ArrayBuffer(14));
+  header.setUint8(0, 14); header.setUint8(1, 0x20); header.setUint16(2, 2195, true); header.setUint32(4, data.length, true);
+  [46, 70, 73, 84].forEach((c, i) => header.setUint8(8 + i, c));
+  const hb = new Uint8Array(header.buffer); header.setUint16(12, crc16(hb.subarray(0, 12)), true);
+  const out = new Uint8Array(14 + data.length + 2); out.set(new Uint8Array(header.buffer), 0); out.set(data, 14);
+  const crc = crc16(out.subarray(0, 14 + data.length)); out[out.length - 2] = crc & 0xff; out[out.length - 1] = crc >> 8;
+  return out;
+}
+
+// stesso allenamento in .zwo (Zwift, TrainerRoad, intervals.icu → sincronizza su Garmin, Wahoo…)
+export function encodeZwo(name, steps, ftp, desc = '') {
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const f = (x, k) => (x.w != null ? x.w / ftp : x[k]).toFixed(3);
+  const body = steps.map((x) => (x.to != null
+    ? `    <Ramp Duration="${x.d}" PowerLow="${f(x, 'p')}" PowerHigh="${x.to.toFixed(3)}"/>`
+    : `    <SteadyState Duration="${x.d}" Power="${f(x, 'p')}"/>`)).join('\n');
+  return `<workout_file>\n  <author>Ride Freedom</author>\n  <name>${esc(name)}</name>\n  <description>${esc(desc)}</description>\n  <sportType>bike</sportType>\n  <workout>\n${body}\n  </workout>\n</workout_file>\n`;
 }
