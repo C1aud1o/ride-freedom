@@ -23,6 +23,8 @@ Tutte le scelte qui sotto discendono da questo: prima la **compatibilità** (se 
 | Protocollo | Stato | Copre |
 |---|---|---|
 | FTMS (0x1826) con controllo ERG/pendenza | ✅ | Quasi tutti i rulli dal 2020: Van Rysel D100/D500, Wahoo Kickr (firmware recente), Elite (Suito, Direto, Justo), Zwift Hub, JetBlack, Magene, Thinkrider, Saris H3/H4… |
+| Tacx FE-C over BLE (`6e40fec1-…`) con ERG/pendenza/resistenza | 🧪 scritto e provato con rullo simulato, da provare su un Tacx vero | Tacx Flux, Vortex, Bushido, Genius, Neo, Flow smart (anche senza FTMS) |
+| Wahoo legacy (`a026e005` in Cycling Power) con ERG/pendenza/resistenza | 🧪 scritto e provato con rullo simulato, da provare su un Wahoo vero | Kickr / Snap / Core con firmware pre-FTMS |
 | Cycling Power (0x1818) / CSC (0x1816) | ✅ solo lettura | Rulli "dumb" con sensore, misuratori di potenza |
 | Heart Rate (0x180d) | ✅ | Fasce cardio, orologi in modalità "trasmetti battito" |
 | Zwift Click | ✅ | |

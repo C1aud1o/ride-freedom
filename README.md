@@ -5,7 +5,10 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 
 ## Funzioni
 
-- Connessione al rullo via **Bluetooth FTMS** (fallback su Cycling Power / Speed & Cadence).
+- Connessione al rullo via Bluetooth, con scelta automatica del protocollo (`js/trainers/index.js`):
+  **FTMS** → **Tacx FE-C over BLE** (Flux, Vortex, Neo… anche con firmware senza FTMS) →
+  **Wahoo legacy** (Kickr / Snap / Core con firmware vecchio) → sola lettura Cycling Power / Speed & Cadence.
+  FE-C e Wahoo legacy sono provati solo con un rullo simulato (`node tests/trainers/run.mjs`).
 - Lettura in tempo reale: potenza, cadenza, velocità, frequenza cardiaca (se trasmessa).
 - Quattro modalità:
   - **Cambio** – cambio virtuale a 24 rapporti: la potenza richiesta al rullo (ERG) viene calcolata

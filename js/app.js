@@ -1,5 +1,5 @@
 import { isNative, GarminBridge } from './native.js'; // per primo: nell'app installa il Bluetooth nativo
-import { Trainer } from './ftms.js';
+import { Trainer } from './trainers/index.js';
 import { PowerMeter } from './powermeter.js';
 import { SensorDebug } from './debug.js';
 import { BUILD } from './build.js';
@@ -95,8 +95,9 @@ $('connectTrainer').addEventListener('click', async () => {
 });
 
 trainer.addEventListener('connected', (e) => {
-  const { name, ftms, features } = e.detail;
-  setStatus('trainerStatus', `${name || 'Rullo'}${ftms ? ' · FTMS' : ''}`, true);
+  const { name, ftms, protocol, features } = e.detail;
+  const proto = protocol && protocol !== 'CP/CSC' ? protocol : ftms ? 'FTMS' : '';
+  setStatus('trainerStatus', `${name || 'Rullo'}${proto ? ` · ${proto}` : ''}`, true);
   log(`Funzioni: ERG ${features.power ? '✓' : '✗'} · Pendenza ${features.simulation ? '✓' : '✗'} · Resistenza ${features.resistance ? '✓' : '✗'}`);
   if (!trainer.controllable) log('Il rullo è in sola lettura (nessun controllo resistenza).');
   state.lastSent = null;
@@ -292,7 +293,7 @@ async function applyMode(force = false) {
     case 'erg':
       key = { mode: 'erg', value: state.erg }; fn = () => trainer.setTargetPower(state.erg); break;
     case 'sim':
-      key = { mode: 'sim', value: state.grade }; fn = () => trainer.setSimulation({ grade: state.grade }); break;
+      key = { mode: 'sim', value: state.grade }; fn = () => trainer.setSimulation({ grade: state.grade, mass: state.mass }); break;
     case 'resistance':
       key = { mode: 'resistance', value: state.resistance }; fn = () => trainer.setResistancePercent(state.resistance); break;
     default: return;
