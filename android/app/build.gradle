@@ -48,11 +48,14 @@ android {
 
     signingConfigs {
         // chiave fissa (non segreta, solo per installazioni dirette) così ogni nuovo APK debug aggiorna il precedente
-        spindro {
-            storeFile file('ridefreedom-debug.keystore')
-            storePassword 'android'
-            keyAlias 'ridefreedom'
-            keyPassword 'android'
+        // (nel repo pubblico questo file non c'è: si usa la chiave debug standard di Android)
+        if (file('ridefreedom-debug.keystore').exists()) {
+            spindro {
+                storeFile file('ridefreedom-debug.keystore')
+                storePassword 'android'
+                keyAlias 'ridefreedom'
+                keyPassword 'android'
+            }
         }
         // chiave di release: arriva SOLO da variabili d'ambiente (in CI dai Secret GitHub),
         // mai dal repository. Vedi docs/android-release.md
@@ -67,7 +70,7 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.spindro
+            if (file('ridefreedom-debug.keystore').exists()) signingConfig signingConfigs.spindro
         }
         release {
             if (releaseKeystoreAvailable) {
