@@ -578,6 +578,7 @@ function render() {
   $('kj').textContent = Math.round(r.energy);
   $('saveFit').disabled = !r.log.length;
   $('shareFit').disabled = !r.log.length;
+  $('garminUp').disabled = !r.log.length;
   $('finishRide').disabled = !r.log.length;
   $('uploadStrava').disabled = !r.log.length || stravaBusy;
 
@@ -631,17 +632,44 @@ function fitFile() {
   return new File([bytes], name, { type: 'application/vnd.ant.fit' });
 }
 
-$('saveFit').addEventListener('click', () => {
+// salva un file: nell'app va in Download/RideFreedom, nel browser si scarica
+async function saveFile(file) {
+  if (GarminBridge) try {
+    const buf = new Uint8Array(await file.arrayBuffer()); let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    const res = await GarminBridge.saveDownload({ name: file.name, mime: file.type || 'application/octet-stream', data: btoa(bin) });
+    return res.path;
+  } catch (err) { log(`Salvataggio nativo non riuscito (${err.message}), provo il download`); }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = file.name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  return `Download/${file.name}`;
+}
+function openExternal(url) {
+  if (GarminBridge) GarminBridge.openUrl({ url }).catch(() => window.open(url, '_blank'));
+  else window.open(url, '_blank', 'noopener');
+}
+
+$('saveFit').addEventListener('click', async () => {
   try {
     const file = fitFile();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(file);
-    a.download = file.name;
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    const where = await saveFile(file);
     state.ride.saved = true; persist();
-    log(`Salvato ${file.name}`);
-  } catch (err) { log(`Errore salvataggio: ${err.message}`); }
+    log(`Salvato ${where}`); toast(`Salvato in ${where}`);
+  } catch (err) { log(`Errore salvataggio: ${err.message || err}`); }
+});
+
+// Garmin non permette ad altre app di caricare su Connect: salviamo il file e apriamo la pagina "Importa"
+const GARMIN_IMPORT = 'https://connect.garmin.com/modern/import-data';
+$('garminUp').addEventListener('click', async () => {
+  try {
+    const file = fitFile();
+    const where = await saveFile(file);
+    state.ride.saved = true; persist();
+    $('stravaMsg').innerHTML = `File salvato in <b>${where}</b>. Su Garmin Connect premi <b>Sfoglia</b> e scegli <b>${file.name}</b>, poi <b>Importa dati</b>.`;
+    setTimeout(() => openExternal(GARMIN_IMPORT), 700);
+  } catch (err) { log(`Errore Garmin: ${err.message || err}`); }
 });
 
 $('shareFit').addEventListener('click', async () => {

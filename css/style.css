@@ -204,6 +204,8 @@ button.small { min-height: 44px; padding: 0 12px; font-size: var(--fs-caption); 
 .switch input { width: 24px; height: 24px; flex: none; accent-color: var(--accent); }
 .strava, #stravaSetup, #stravaLinked, #stravaPublic { display: grid; gap: 12px; }
 #stravaSetup[hidden], #stravaLinked[hidden], #stravaPublic[hidden] { display: none; }
+.garmin-btn { min-height: 48px; border: 0; border-radius: var(--r-btn); background: #11a9ed; color: #fff; font-weight: 700; box-shadow: 0 8px 24px rgba(17, 169, 237, .25); }
+.garmin-btn:disabled, .strava-btn:disabled { opacity: .5; }
 .strava-btn { min-height: 48px; border: 0; border-radius: var(--r-btn); background: var(--strava); color: #fff; font-weight: 700; box-shadow: 0 8px 24px rgba(252, 82, 0, .25); }
 .powered { margin: 0; font: 700 var(--fs-caption)/1 var(--font-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--strava); text-align: right; }
 .msg { margin: 0; color: var(--t2); }

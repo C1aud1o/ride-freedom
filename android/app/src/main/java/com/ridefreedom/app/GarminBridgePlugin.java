@@ -17,6 +17,14 @@ import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
+import android.content.ContentValues;
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.util.Base64;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import android.media.AudioManager;
 import android.view.KeyEvent;
 import android.speech.tts.TextToSpeech;
@@ -248,6 +256,50 @@ public class GarminBridgePlugin extends Plugin {
         am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, code));
         am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, code));
         call.resolve();
+    }
+
+    // salva un file nella cartella Download del telefono (visibile da File, Garmin Connect nel browser, ecc.)
+    @PluginMethod
+    public void saveDownload(PluginCall call) {
+        String name = call.getString("name", "ride.fit");
+        String mime = call.getString("mime", "application/octet-stream");
+        byte[] data;
+        try { data = Base64.decode(call.getString("data", ""), Base64.DEFAULT); }
+        catch (IllegalArgumentException e) { call.reject("dati non validi"); return; }
+        try {
+            String where;
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/RideFreedom");
+                Uri uri = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) { call.reject("impossibile creare il file"); return; }
+                try (OutputStream os = getContext().getContentResolver().openOutputStream(uri)) {
+                    if (os == null) { call.reject("impossibile scrivere"); return; }
+                    os.write(data);
+                }
+                where = "Download/RideFreedom/" + name;
+            } else {
+                File dir = new File(getContext().getExternalFilesDir(null), "RideFreedom");
+                if (!dir.exists() && !dir.mkdirs()) { call.reject("cartella non disponibile"); return; }
+                File f = new File(dir, name);
+                try (FileOutputStream os = new FileOutputStream(f)) { os.write(data); }
+                where = f.getAbsolutePath();
+            }
+            JSObject o = new JSObject(); o.put("path", where); call.resolve(o);
+        } catch (Exception e) { call.reject("salvataggio non riuscito: " + e.getMessage()); }
+    }
+
+    // apre un link nel browser (o nell'app che lo gestisce), fuori dalla WebView
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(call.getString("url", "")));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) { call.reject("impossibile aprire il link"); }
     }
 
     @SuppressLint("MissingPermission")
