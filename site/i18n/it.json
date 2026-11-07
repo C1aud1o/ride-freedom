@@ -1,0 +1,119 @@
+{
+  "htmlLang": "it",
+  "langName": "Italiano",
+  "ogLocale": "it_IT",
+  "nav": { "features": "Funzioni", "watch": "Orologio", "games": "Giochi", "compat": "Compatibilità", "faq": "Domande", "skip": "Vai al contenuto", "lang": "Lingua" },
+  "cta": { "app": "Apri la web app", "android": "Scarica per Android", "github": "GitHub", "apk": "APK diretto da GitHub Releases", "soon": "Google Play: in arrivo" },
+  "home": {
+    "title": "Spindro: Smart Trainer Cycling | Alternativa gratis e open source a Zwift",
+    "description": "App gratuita e open source per rulli smart. Nessun abbonamento. Cambio virtuale, giochi 3D, allenamenti, percorsi GPX e l'orologio come computer da bici. Per Van Rysel D100, Elite, Wahoo, Tacx e altri.",
+    "kicker": "Gratis · Open source · Senza abbonamento",
+    "h1": "Spindro: Smart Trainer Cycling",
+    "sub": "App gratuita e open source per rulli smart. Nessun abbonamento.",
+    "lead": "Un'alternativa gratuita a Zwift per i rulli smart economici: cambio virtuale, giochi 3D, allenamenti e percorsi, e l'orologio come computer da bici.",
+    "heroNote": "Funziona con Chrome o Edge su Android, PC e Mac. Su iPhone usa il browser gratuito Bluefy.",
+    "heroFig": "Valori di esempio, non un'uscita vera",
+    "shotPh": "Segnaposto: screenshot in arrivo",
+    "stepsTitle": "Come funziona",
+    "steps": [
+      { "t": "Apri l'app", "d": "Apri la web app con Chrome, oppure installa l'app Android. Nessuna registrazione." },
+      { "t": "Collega il rullo", "d": "Tocca Connetti e scegli il rullo dalla lista Bluetooth. Spindro sceglie da solo il protocollo giusto." },
+      { "t": "Pedala e cambia", "d": "Cambia marcia con i pulsanti a schermo, la tastiera o uno Zwift Click, e senti la resistenza cambiare." }
+    ],
+    "featuresTitle": "Cosa trovi",
+    "featuresLead": "Tutto gira nell'app, sul telefono o sul computer. Non serve il cloud.",
+    "features": [
+      { "i": "gears", "t": "Cambio virtuale", "d": "24 marce come su una bici vera, con una modalità automatica che mantiene la cadenza. La resistenza segue marcia, cadenza e pendenza." },
+      { "i": "modes", "t": "ERG, pendenza e resistenza", "d": "ERG a potenza fissa fino a 600 W, simulazione di pendenza o semplice livello di resistenza. Potenza, cadenza, velocità e battito in tempo reale." },
+      { "i": "workouts", "t": "Allenamenti ed editor", "d": "Sedute pronte calcolate sulla tua FTP, test FTP a rampa, editor a blocchi, esportazione per Garmin (.FIT) e Zwift (.ZWO), import di file .ZWO." },
+      { "i": "route", "t": "Percorsi GPX", "d": "La pendenza segue il tracciato, con profilo e mini mappa. Sfida il tuo record sullo stesso percorso." },
+      { "i": "video", "t": "Pedala su un video YouTube", "d": "Scegli un video o un tuo file e scorre alla tua velocità." },
+      { "i": "game", "t": "Giochi 3D", "d": "Corri, spara e vola con le gambe. Le salite arrivano sul rullo come pendenza vera, gli sprint potenziano il gioco." },
+      { "i": "history", "t": "Storico e record", "d": "Minuti settimanali, record 5 s / 1 / 5 / 20 min, FTP stimata, un grafico per ogni uscita." },
+      { "i": "strava", "t": "Strava e file FIT", "d": "Ogni uscita è registrata in un file .FIT, con la traccia GPS sui percorsi. Caricala su Strava dall'app o importala in Garmin Connect." },
+      { "i": "coach", "t": "Coach vocale", "d": "Annuncia tratti, watt da tenere, gli ultimi 10 secondi, le salite in arrivo e il traguardo. Per ora in italiano, altre lingue in arrivo." }
+    ],
+    "watchTitle": "L'orologio è il computer da bici",
+    "watchLead": "Con l'app Android il telefono trasmette potenza, cadenza e velocità via Bluetooth, come un sensore. Il tuo Garmin o un altro orologio sportivo registra l'uscita come una normale attività di ciclismo indoor.",
+    "watchPoints": [
+      "Abbina all'orologio “Spindro” come sensore di potenza, cadenza e velocità.",
+      "Indossa l'orologio, premi start sull'orologio e pedala. L'attività si sincronizza con Garmin Connect e poi con Strava come sempre.",
+      "Niente ponte verso l'orologio? A fine uscita salva il file .FIT e importalo in Garmin Connect.",
+      "Battito: usa una fascia, oppure un orologio con “trasmetti frequenza cardiaca” attivo."
+    ],
+    "watchNote": "Il ponte verso l'orologio richiede l'app Android. La web app su PC, Mac o iPhone non può fare da sensore.",
+    "clickTitle": "Zwift Click, senza Zwift",
+    "clickLead": "Hai già uno Zwift Click, Play o Ride? Usalo come comando Bluetooth del cambio in Spindro. Niente account Zwift, niente app Zwift.",
+    "clickPoints": [
+      "Cambia marcia con i tasti del Click mentre pedali.",
+      "Muoviti nei menu e nei giochi con gli stessi tasti.",
+      "Non hai un Click? Usa i pulsanti a schermo, le frecce della tastiera o un telecomando Bluetooth."
+    ],
+    "clickNote": "Il supporto al Click è sperimentale: è ricostruito da progetti open source e non ancora confermato su ogni firmware. Play e Ride possono richiedere altro lavoro.",
+    "gamesTitle": "Giochi che ti fanno pedalare",
+    "gamesLead": "Sei giochi 3D e la pedalata su video. I tuoi watt e la tua cadenza sono il controller.",
+    "games": [
+      { "t": "Turbo Pedali 3D", "d": "Una tappa in linea con 8 corridori con nome, tre tappe (mare, montagna, colline), scia, monete, oggetti attivati con lo sprint, maglie e podio." },
+      { "t": "Pedal Strike 3D", "d": "Sparatutto a scorrimento con tre eroi, tre missioni, cinque armi e tre boss. I watt decidono la cadenza di tiro, lo sprint scatena l'OVERDRIVE." },
+      { "t": "L'Orda", "d": "Ondate infinite di zombi. L'arma evolve in dieci passi fino al laser e i portali portano alleati. Più watt, più colpi." },
+      { "t": "Planata", "d": "Un aereo a pedali in cui i watt sono la quota: un allenamento a intervalli travestito." },
+      { "t": "Gruppetto", "d": "Raccogli i ciclisti che si accodano alla tua scia mentre la pendenza sale con il gruppo." },
+      { "t": "Mattoni", "d": "Un gioco a rimbalzi in cui la cadenza è la velocità della palla." },
+      { "t": "Pedala su un video", "d": "Un video YouTube o un tuo file che scorre alla tua velocità." }
+    ],
+    "compatTitle": "Quali rulli e quali orologi?",
+    "compatLead": "Spindro parla i protocolli Bluetooth usati dalla maggior parte dei rulli: FTMS, Tacx FE-C, Wahoo legacy, più sensori di potenza e di velocità/cadenza. Per ora solo il Van Rysel D100 è verificato; gli altri dovrebbero funzionare e servono le vostre segnalazioni.",
+    "compatBtn": "Vedi l'elenco di compatibilità",
+    "shotsTitle": "Uno sguardo dentro",
+    "shots": [
+      { "k": "home", "c": "La schermata principale: potenza, cadenza, velocità e marcia virtuale." },
+      { "k": "game", "c": "Uno dei giochi 3D, guidato dalle tue gambe." },
+      { "k": "finish", "c": "La scheda di fine uscita con il riepilogo e il download del .FIT." }
+    ],
+    "faqTitle": "Domande frequenti",
+    "faq": [
+      { "q": "È davvero gratis?", "a": "Sì. Nessun abbonamento, nessuna pubblicità, nessun acquisto nell'app. Il codice è aperto su GitHub. Il progetto è portato avanti da una persona sola; puoi aiutare con segnalazioni di bug, segnalazioni di rulli e codice." },
+      { "q": "Serve un account?", "a": "No. Apri l'app e pedali. Uscite, record e impostazioni restano sul tuo dispositivo. Puoi esportare un backup per spostarli su un altro dispositivo." },
+      { "q": "Funziona su iPhone e iPad?", "a": "Non in Safari: Apple non permette il Web Bluetooth. Installa dall'App Store il browser gratuito Bluefy e apri Spindro lì. Un'app iOS nativa potrebbe arrivare più avanti." },
+      { "q": "Quale browser e quale dispositivo servono?", "a": "Android: Chrome, oppure l'app Android. PC, Mac, Linux e ChromeOS: Chrome o Edge con il Bluetooth. La pagina deve essere servita in HTTPS." },
+      { "q": "Quali rulli funzionano?", "a": "La maggior parte dei rulli smart degli ultimi anni parla FTMS. Nella pagina di compatibilità trovi cosa è verificato, cosa dovrebbe funzionare e come segnalare il tuo." },
+      { "q": "Sostituisce Zwift?", "a": "Sostituisce Zwift per controllare il rullo, allenarsi con programmi strutturati e divertirsi in sella. Non è un mondo virtuale online: non c'è il multigiocatore. Il rullo accetta una sola connessione Bluetooth per volta, quindi chiudi prima Zwift." },
+      { "q": "Che fine fanno i miei dati? E la privacy?", "a": "Questo sito non ha tracker né cookie e i suoi font sono serviti dal sito stesso. Nell'app i dati delle uscite restano sul tuo dispositivo. Ne escono solo se usi Strava (l'uscita viene inviata a Strava), guardi un video YouTube (si carica il lettore di Google) o esporti un file. Per i dettagli leggi l'informativa sulla privacy." }
+    ],
+    "finalTitle": "Pronto a pedalare?",
+    "finalText": "Apri la web app e collega il rullo in meno di un minuto."
+  },
+  "compat": {
+    "title": "Rulli e orologi compatibili | Spindro",
+    "description": "Rulli smart, controller Zwift Click e orologi che funzionano con Spindro: FTMS, Tacx FE-C, Wahoo, Cycling Power. Stato onesto: verificato, dovrebbe funzionare, segnalato dagli utenti.",
+    "h1": "Rulli e orologi compatibili",
+    "lead": "Spindro sceglie il protocollo da solo: FTMS, poi Tacx FE-C su Bluetooth, poi Wahoo legacy, poi Cycling Power o Velocità e Cadenza in sola lettura. Qui sotto trovi cosa supportiamo e quanto siamo sicuri.",
+    "legendTitle": "Cosa significano le etichette",
+    "status": { "verified": "Verificato", "expected": "Dovrebbe funzionare", "reported": "Segnalato dagli utenti" },
+    "statusDesc": {
+      "verified": "Provato sul dispositivo vero dall'autore.",
+      "expected": "Il protocollo è supportato dal codice, ma questo modello non è mai stato provato.",
+      "reported": "Gli utenti ci hanno detto che funziona. Non è ancora stata raccolta nessuna segnalazione."
+    },
+    "trainers": "Rulli smart e sensori",
+    "controllers": "Controller e cardio",
+    "watches": "Orologi e ciclocomputer",
+    "cols": { "device": "Dispositivo", "protocol": "Protocollo", "status": "Stato", "note": "Note" },
+    "reportTitle": "Raccontaci il tuo",
+    "reportText": "Hai provato un rullo o un orologio? Nell'app usa “Segnala un problema”, oppure apri una issue su GitHub con il modello, cosa ha funzionato e cosa no. Le segnalazioni trasformano “dovrebbe funzionare” in “segnalato dagli utenti”.",
+    "reportBtn": "Apri una segnalazione su GitHub",
+    "note": "Il supporto a Tacx FE-C e Wahoo legacy è stato provato solo con un rullo simulato. Un rullo che accetta una sola connessione Bluetooth non può essere usato da Spindro e da un'altra app nello stesso momento."
+  },
+  "legal": { "title": "{title} | Spindro", "draft": "Bozza: questo testo è ancora in revisione e contiene segnaposto tra parentesi quadre.", "back": "Torna alla home" },
+  "legalNames": { "privacy": "Privacy", "terms": "Termini", "account-deletion": "Cancella l'account", "licenses": "Licenze", "trademarks": "Marchi" },
+  "footer": {
+    "legal": "Note legali",
+    "project": "Progetto",
+    "trademark": "Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel, Decathlon e YouTube sono marchi dei rispettivi proprietari. Spindro non è affiliato a queste aziende.",
+    "madeBy": "Gratis e open source. Fatto da un ciclista con un rullo economico.",
+    "source": "Codice sorgente",
+    "issues": "Segnala un problema"
+  },
+  "og": { "alt": "Spindro: app gratuita e open source per rulli smart" },
+  "notFound": { "title": "Pagina non trovata", "text": "Questa pagina non esiste.", "home": "Vai alla home" }
+}
