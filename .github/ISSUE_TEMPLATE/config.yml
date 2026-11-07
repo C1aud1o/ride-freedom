@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Try the web app
+    url: https://mta-world.com
+    about: Use Spindro in your browser, no installation needed.
+  - name: Questions and ideas (Discussions)
+    url: https://github.com/c1aud1o/ride-freedom/discussions
+    about: Ask a question, share your setup, or discuss an idea before opening an issue.
+  - name: Security vulnerability
+    url: https://github.com/c1aud1o/ride-freedom/security/advisories/new
+    about: Report security problems privately. Please do not open a public issue for them.

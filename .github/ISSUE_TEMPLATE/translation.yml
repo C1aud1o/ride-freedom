@@ -1,0 +1,44 @@
+name: Translation
+description: Propose a new language or fix a translation.
+title: "[Translation] "
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Translations are planned as JSON files in `locales/`. Until that is in place, use this form to
+        offer a language or to report a wrong or unclear text. Keep the wording consistent with the
+        rest of the app.
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: "e.g. German (de), Spanish (es)"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type of request
+      options:
+        - New language
+        - Fix an existing translation
+        - Unclear or wrong source text
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the app?
+      description: Screen, button or text, and a screenshot if possible.
+  - type: textarea
+    id: text
+    attributes:
+      label: Proposed text
+      description: Paste your suggested translation, or the source text you think is unclear.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Availability
+      options:
+        - label: I can help review other translations in this language

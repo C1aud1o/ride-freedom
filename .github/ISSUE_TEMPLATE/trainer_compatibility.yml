@@ -1,0 +1,71 @@
+name: Trainer compatibility
+description: Report how your smart trainer works (or does not work) with Spindro.
+title: "[Trainer] "
+labels: ["trainer-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reports like this are how we learn which trainers work. Even a "nothing works" report helps.
+        Please fill in as much as you know.
+  - type: input
+    id: brand
+    attributes:
+      label: Brand
+      placeholder: "e.g. Van Rysel, Tacx, Wahoo, Elite, Garmin"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      placeholder: "e.g. D100, Flux 2, KICKR Core"
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version (if known)
+      description: Found in the manufacturer's app, or on the label or sticker.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: How did you test?
+      options:
+        - Android app
+        - Web app (Chrome or another Chromium browser on Android)
+        - Web app (Chrome on desktop)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone or computer, and browser or Android version
+      placeholder: "e.g. Samsung Galaxy S23, Android 15, Chrome 130"
+    validations:
+      required: true
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works? (tick what you tested)
+      options:
+        - label: Connection (the trainer is found and connects)
+        - label: Power is shown
+        - label: Cadence is shown
+        - label: Speed is shown
+        - label: ERG mode (fixed target power)
+        - label: Gradient mode (slope from the simulation)
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What does not work, and how? For example "connects, but ERG ignores the target" or "not found in the list".
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Developer mode log (optional)
+      description: The log from developer mode helps us a lot. Remove anything personal, such as location or account data, before posting.
+      render: text
