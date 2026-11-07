@@ -17,6 +17,7 @@ import { Horde } from './games/horde.js';
 import { Gruppetto } from './games/gruppetto.js';
 import { Mattoni } from './games/mattoni.js';
 import { Planata } from './games/planata.js';
+import { VideoRide } from './videoride.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
@@ -121,7 +122,24 @@ click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
 });
 click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : shift(e.detail)));
-click.addEventListener('hold', (e) => { if (activeGame?.active) activeGame.hold?.(e.detail); });
+click.addEventListener('hold', (e) => {
+  if (activeGame?.active) activeGame.hold?.(e.detail);
+  // pressione lunga = comandi musica (solo app Android): annulla il cambio fatto dalla pressione breve
+  clearTimeout(mediaTimer);
+  const d = e.detail;
+  if (d && GarminBridge && $('musicOn').checked && !(activeGame?.active && activeGame.hold)) {
+    mediaTimer = setTimeout(() => {
+      if (activeGame?.active) activeGame.input(-d); else shift(-d);
+      GarminBridge.mediaKey({ key: d > 0 ? 'next' : 'playpause' }).then(() => toast(d > 0 ? 'Brano successivo' : 'Play / pausa')).catch((err) => log(`Musica: ${err.message}`));
+    }, 800);
+  }
+});
+let mediaTimer = null;
+if (GarminBridge) {
+  $('musicNative').hidden = false; $('musicWeb').hidden = true;
+  $('musicOn').checked = localStorage.getItem('musicOn') === '1';
+  $('musicOn').addEventListener('change', () => localStorage.setItem('musicOn', $('musicOn').checked ? '1' : '0'));
+}
 
 $('connectHr').addEventListener('click', async () => {
   if (hrm.connected) { hrm.disconnect(); return; }
@@ -597,6 +615,7 @@ const gameHooks = {
   connected: () => trainer.connected,
   speedKmh: () => (state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : state.data.speed || 0),
   stats: () => ({ power: Math.round(state.data.power || 0), cadence: Math.round(currentCadence()), gear: state.mode === 'gears' ? state.gear + 1 : null }),
+  shift: (d) => shift(d),
   setGrade: (g) => {
     state.grade = g == null ? gradeBeforeGame : Math.max(-10, Math.min(15, g));
     syncInputs(); render(); applyMode(true);
@@ -639,6 +658,7 @@ const games = {
   gruppetto: { game: new Gruppetto($('gameCanvas'), gameHooks, gameAudio), title: 'Gruppetto', help: '+ destra · − sinistra · tieni premuto per curvare' },
   mattoni: { game: new Mattoni($('gameCanvas'), gameHooks, gameAudio), title: 'Mattoni', help: 'tieni + / − per muoverti · cadenza = velocità palla' },
   planata: { game: new Planata($('gameCanvas'), gameHooks, gameAudio), title: 'Planata', help: 'watt = quota · tieni + / − per spostarti' },
+  video: { game: new VideoRide($('gameCanvas'), gameHooks), title: 'Video', help: '+ / − cambiano marcia · il video segue la tua velocità', noAudio: true },
 };
 let activeGame = null;
 

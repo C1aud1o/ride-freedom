@@ -17,6 +17,8 @@ import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
+import android.media.AudioManager;
+import android.view.KeyEvent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
@@ -213,6 +215,20 @@ public class GarminBridgePlugin extends Plugin {
     public void getStatus(PluginCall call) { call.resolve(status()); }
 
     // dispositivi Bluetooth LE collegati al telefono (anche da altre app, es. Garmin Connect)
+    // comandi multimediali (Spotify, YouTube Music, podcast…) dal Click: play/pausa, brano successivo/precedente
+    @PluginMethod
+    public void mediaKey(PluginCall call) {
+        String k = call.getString("key", "playpause");
+        int code = "next".equals(k) ? KeyEvent.KEYCODE_MEDIA_NEXT
+                : "previous".equals(k) ? KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                : KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE;
+        AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        if (am == null) { call.reject("audio non disponibile"); return; }
+        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, code));
+        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, code));
+        call.resolve();
+    }
+
     @SuppressLint("MissingPermission")
     @PluginMethod
     public void connectedDevices(PluginCall call) {

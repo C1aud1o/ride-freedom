@@ -175,6 +175,14 @@
       </section>
 
       <section class="group">
+        <h3>Musica</h3>
+        <div id="musicNative" hidden>
+          <label class="switch"><input type="checkbox" id="musicOn"><span>Comanda la musica dal Click</span></label>
+          <p class="fine">Pressione lunga (quasi 1 secondo) su <b>+</b> = brano successivo, su <b>−</b> = play / pausa. La pressione breve resta il cambio. Funziona con Spotify, YouTube Music, podcast e qualsiasi app che suona in sottofondo.</p>
+        </div>
+        <p id="musicWeb" class="fine">Disponibile nell'app Android: dal browser non si possono comandare le altre app.</p>
+      </section>
+      <section class="group">
         <h3>Strava <span id="stravaStatus" class="pill">non collegato</span></h3>
         <div id="stravaBox" class="strava">
           <div id="stravaPublic" hidden>
@@ -224,6 +232,10 @@
     <div id="gameMenu" class="game-menu">
       <h2>Scegli il gioco</h2>
       <div id="progressPanel" class="prog"></div>
+      <button class="game-card video-card" data-game="video">
+        <span class="game-emoji" aria-hidden="true">▶</span>
+        <span><b>Pedala su un video</b><small>Un percorso da YouTube o un video tuo che scorre alla tua velocità: ti fermi e si ferma. + / − restano il cambio.</small></span>
+      </button>
       <button class="game-card" data-game="horde">
         <span class="game-emoji" aria-hidden="true">01</span>
         <span><b>L'Orda</b><small>Strada larga, orde sempre più grandi: tieni premuto + / − per sterzare, evolvi l'arma, prendi alleati dai portali. Più watt = più colpi.</small></span>
