@@ -5,6 +5,7 @@ import { EffectComposer } from '../../vendor/three/addons/postprocessing/EffectC
 import { RenderPass } from '../../vendor/three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from '../../vendor/three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from '../../vendor/three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from '../../vendor/three/addons/utils/BufferGeometryUtils.js';
 
 // bagliore (bloom): colpi, luci, gemme e lampi brillano. Si spegne da solo se il telefono fatica.
 export const glowSetting = { get on() { return localStorage.getItem('gameGlow') !== '0'; }, set on(v) { localStorage.setItem('gameGlow', v ? '1' : '0'); } };
@@ -211,6 +212,38 @@ export function rider(scene, gltf, color) {
   };
   r.pose(0, 0);
   return r;
+}
+
+// Folla: un modello "congelato" in un'unica geometria, disegnato tante volte con un solo draw call.
+// Si usa per i personaggi lontani (non serve l'animazione completa a 60 m).
+export function crowd(scene, gltf, height, capacity = 200) {
+  const root = gltf.scene.clone(true); root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root); const s = height / ((box.max.y - box.min.y) || 1);
+  const geos = []; const mats = [];
+  root.traverse((c) => {
+    if (!c.isMesh) return;
+    let g = c.geometry.clone(); g.applyMatrix4(c.matrixWorld);
+    for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+    if (g.index) g = g.toNonIndexed();
+    if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((g.attributes.position.count) * 2), 2));
+    geos.push(g); mats.push(Array.isArray(c.material) ? c.material[0] : c.material);
+  });
+  const geo = mergeGeometries(geos, true);
+  geo.translate(0, -box.min.y, 0); geo.scale(s, s, s);
+  const mesh = new THREE.InstancedMesh(geo, mats, capacity);
+  mesh.count = 0; mesh.frustumCulled = false; mesh.castShadow = false;
+  scene.add(mesh);
+  const m = new THREE.Matrix4(); const q = new THREE.Quaternion(); const e = new THREE.Euler(); const p = new THREE.Vector3(); const sc = new THREE.Vector3(1, 1, 1);
+  return {
+    mesh,
+    begin() { mesh.count = 0; },
+    add(x, y, z, rotY, tilt = 0) {
+      if (mesh.count >= capacity) return;
+      e.set(tilt, rotY, 0); q.setFromEuler(e); p.set(x, y, z);
+      mesh.setMatrixAt(mesh.count++, m.compose(p, q, sc));
+    },
+    end() { mesh.instanceMatrix.needsUpdate = true; },
+  };
 }
 
 // Molti oggetti uguali con un solo draw call per mesh

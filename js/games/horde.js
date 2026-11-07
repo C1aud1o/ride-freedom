@@ -2,7 +2,7 @@
 // Parti con una pistola contro pochi zombi; ondate sempre più grandi, armi che evolvono,
 // portali che danno alleati e potenziamenti. + / − cambiano corsia, i watt decidono la cadenza,
 // lo sprint scatena l'OVERDRIVE.
-import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights, tracer } from './kit3d.js';
+import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights, tracer, crowd } from './kit3d.js';
 import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
 import { SONGS } from './audio.js';
 
@@ -14,7 +14,8 @@ const NUDGE = 1.6;          // spostamento di un tocco singolo
 const STEER = 9;            // m/s tenendo premuto
 const CHUNK = 60;
 const SPAWN_Z = 120;        // i nemici compaiono lontano e si vedono arrivare
-const MAX_ALIVE = 140;
+const MAX_ALIVE = 320;
+const NEAR = 48;            // oltre questa distanza i nemici sono "folla" (istanze, niente animazione completa)
 // i nemici diventano più robusti a ogni ondata: le armi migliori servono davvero
 const waveHp = (w) => Math.pow(1.2, w - 1);
 const FORMATION = [[-1.3, -1.6], [1.3, -1.6], [0, -2.8], [-2.6, -2.8], [2.6, -2.8], [-1.3, -4], [1.3, -4], [-2.6, -5.2], [2.6, -5.2], [0, -5.2], [-1.3, -6.4], [1.3, -6.4]];
@@ -97,6 +98,9 @@ export class Horde {
     // proiettili
     this.bullets = []; this.bulletPool = new Pool(scene, () => tracer(), 260);
     this.fx = new Effects(scene, 160);
+    // folla lontana: un disegno per tipo di nemico
+    this.crowds = {};
+    for (const [type, def] of Object.entries(ENEMIES)) if (!def.boss) this.crowds[type] = crowd(scene, this.m[def.model], def.height, MAX_ALIVE);
     this.gemGeo = new THREE.OctahedronGeometry(0.32); this.gemMat = new THREE.MeshBasicMaterial({ color: '#7dff6a' });
     // segnalino del giocatore: anello luminoso a terra + linea di mira verso dove stai andando
     // alone morbido sotto il giocatore (si vede sempre dove sei, senza cerchi duri)
@@ -108,7 +112,8 @@ export class Horde {
 
   reset() {
     const { scene } = this.stage;
-    for (const e of this.enemies || []) scene.remove(e.c.root);
+    for (const e of this.enemies || []) if (e.c) scene.remove(e.c.root);
+    for (const c of Object.values(this.crowds || {})) { c.begin(); c.end(); }
     for (const a of this.allies || []) scene.remove(a.r.root);
     for (const g of this.gates || []) scene.remove(g.group);
     for (const gm of this.gems || []) scene.remove(gm.mesh);
@@ -217,11 +222,19 @@ export class Horde {
 
   spawnEnemy(type, x, z) {
     const def = ENEMIES[type];
-    const c = character(this.stage.scene, this.m[def.model], def.height);
-    c.root.rotation.y = Math.PI; c.root.position.set(x, def.float ? 0.4 : 0, z);
-    c.play(def.anim, { speed: def.speed / 2 });
     const hp = Math.round(def.hp * waveHp(this.wave) * (def.boss ? 1.6 : 1));
-    this.enemies.push({ type, def, c, x, z, hp, maxHp: hp, dead: false, deadT: 0, flash: 0, wob: Math.random() * 6 });
+    const e = { type, def, c: null, x, z, hp, maxHp: hp, dead: false, deadT: 0, flash: 0, wob: Math.random() * 6 };
+    if (def.boss) this.wake(e); // il Custode è sempre un personaggio completo
+    this.enemies.push(e);
+  }
+
+  // da "folla" a personaggio animato quando si avvicina
+  wake(e) {
+    const c = character(this.stage.scene, this.m[e.def.model], e.def.height);
+    c.root.rotation.y = Math.PI; c.root.position.set(e.x, e.def.float ? 0.4 : 0, e.z);
+    c.play(e.def.anim, { speed: e.def.speed / 2 });
+    c.mixer.update(Math.random()); // fase diversa per ognuno
+    e.c = c;
   }
 
   update(dt) {
@@ -275,7 +288,7 @@ export class Horde {
     const killRate = firepower / (3 * hpScale);
     const rate = clamp(killRate * (this.wave === 1 ? 0.45 : 0.62 + this.wave * 0.07) * this.pressure, 0.35, 40) * (this.bossAlive ? 0.25 : 1);
     this.spawnAcc += rate * dt;
-    const cap = Math.min(MAX_ALIVE, Math.round((14 + this.wave * 12) * Math.min(1.3, this.pressure)));
+    const cap = Math.min(MAX_ALIVE, Math.round((14 + this.wave * 8 + this.wave * this.wave * 1.2) * Math.min(1.3, this.pressure))); // le orde crescono sempre più in fretta
     while (this.spawnAcc >= 1 && alive < cap) {
       const group = Math.min(16, 1 + Math.floor(Math.random() * (1 + this.wave * 0.9)));
       this.spawnAcc -= group;
@@ -399,7 +412,8 @@ export class Horde {
     e.hp -= n; e.flash = 0.08;
     if (e.hp > 0) return;
     e.dead = true; e.deadT = 0;
-    e.c.play('die', { once: true, fade: 0.05 });
+    if (e.c) e.c.play('die', { once: true, fade: 0.05 });
+    else { e.deadT = 1.5; this.fx.spawn(e.x, 1, e.z, { tex: 'smoke', size: 2, life: 0.5, additive: false }); } // lontano: sparisce in una nuvola
     this.kills++; this.waveKills++; this.score += e.def.score * this.wave;
     this.prog('kills', 1, e.def.boss ? 200 : 1);
     this.xp += e.def.xp;
@@ -439,11 +453,13 @@ export class Horde {
   }
 
   updateEnemies(dt, v) {
+    for (const c of Object.values(this.crowds)) c.begin();
     for (const e of this.enemies) {
-      e.c.mixer.update(dt);
+      if (!e.c && !e.dead && e.z - this.z < NEAR) this.wake(e);
+      if (e.c) e.c.mixer.update(dt);
       if (e.dead) {
         e.deadT += dt;
-        if (e.deadT > 0.9) e.c.root.position.y -= dt * 1.5;
+        if (e.c && e.deadT > 0.9) e.c.root.position.y -= dt * 1.5;
         continue;
       }
       // camminano verso di te (convergendo un po')
@@ -451,9 +467,12 @@ export class Horde {
       const near = e.z - this.z < 28;
       e.x += clamp(this.x - e.x, -1, 1) * dt * (near ? (e.type === 'skeleton' ? 1.6 : 1.0) : 0.15);
       e.wob += dt;
-      e.c.root.position.set(e.x, e.def.float ? 0.4 + Math.sin(e.wob * 3) * 0.2 : 0, e.z);
-      e.flash = Math.max(0, e.flash - dt);
-      e.c.inner.scale.setScalar(e.c.scale * (e.flash > 0 ? 1.12 : 1));
+      const y = e.def.float ? 0.4 + Math.sin(e.wob * 3) * 0.2 : Math.abs(Math.sin(e.wob * e.def.speed * 2.2)) * 0.12;
+      if (e.c) {
+        e.c.root.position.set(e.x, e.def.float ? y : 0, e.z);
+        e.flash = Math.max(0, e.flash - dt);
+        e.c.inner.scale.setScalar(e.c.scale * (e.flash > 0 ? 1.12 : 1));
+      } else this.crowds[e.type]?.add(e.x, y, e.z, Math.PI + Math.sin(e.wob * 2.5) * 0.12, Math.sin(e.wob * e.def.speed * 2.2) * 0.08); // passo ondeggiante
       // contatto con te o con un alleato
       const hit = (sx, sz) => Math.abs(e.z - sz) < (e.def.boss ? 2 : 0.8) && Math.abs(e.x - sx) < (e.def.boss ? 3 : 1);
       for (const a of this.allies) if (hit(a.x, a.z)) { a.dead = true; e.hp -= 3; }
@@ -475,9 +494,10 @@ export class Horde {
       if (e.z < this.z - 6) { e.dead = true; e.deadT = 2; this.passed = (this.passed || 0) + 1; } // superati
     }
     this.enemies = this.enemies.filter((e) => {
-      if (e.dead && e.deadT > 1.6) { this.stage.scene.remove(e.c.root); return false; }
+      if (e.dead && e.deadT > 1.6) { if (e.c) this.stage.scene.remove(e.c.root); return false; }
       return true;
     });
+    for (const c of Object.values(this.crowds)) c.end();
   }
 
   gameOver() {
@@ -515,7 +535,7 @@ export class Horde {
     this.ensureChunks();
     this.player.root.position.set(this.x, 0, this.z);
     this.player.pose(dt, 70, true);
-    for (const e of this.enemies) e.c.mixer.update(dt);
+    for (const e of this.enemies) e.c?.mixer.update(dt);
     this.camera(dt);
   }
 
