@@ -316,3 +316,17 @@ body.game-open { overflow: hidden; }
 .video-pick .row2 a, .video-pick .file-btn { display: grid; place-items: center; text-decoration: none; text-align: center; }
 .video-pick .cta-sm { min-height: 48px; border: 0; border-radius: var(--r-btn); background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: var(--shadow-cta); }
 .video-pick .chips { grid-template-columns: repeat(3, 1fr); }
+
+/* ---------- PC e tablet orizzontali: due colonne, tutto a portata di tastiera ---------- */
+.desk-only { display: none; }
+kbd { font: 700 var(--fs-caption)/1 var(--font-ui); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--t4); background: var(--surface); color: var(--t1); }
+@media (min-width: 1024px) {
+  body { max-width: 1120px; }
+  main { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; column-gap: 24px; }
+  main > .sensors, main > #unsupported, main > .welcome, main > .banner, main > .desk-only { grid-column: 1 / -1; }
+  main > .readout { grid-column: 1; grid-row: span 3; }
+  main > .modes, main > .control, main > .session { grid-column: 2; }
+  .readout #power { font-size: 140px; }
+  .thumbbar { max-width: 640px; }
+}
+@media (min-width: 1024px) and (pointer: fine) { .desk-only { display: block; text-align: center; padding-bottom: 96px; } }

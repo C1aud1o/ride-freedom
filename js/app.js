@@ -205,6 +205,10 @@ window.addEventListener('keydown', (e) => {
   }
   if (['ArrowUp', 'ArrowRight', 'PageUp', '+', '='].includes(e.key)) { e.preventDefault(); step(+1); }
   if (['ArrowDown', 'ArrowLeft', 'PageDown', '-'].includes(e.key)) { e.preventDefault(); step(-1); }
+  // scorciatoie da PC (solo se nessun pannello è aperto e non si sta scrivendo)
+  if (e.target.tagName === 'TEXTAREA' || document.querySelector('.sheet:not([hidden])') || !$('gamePanel').hidden) return;
+  if (e.key === ' ' && !e.repeat) { e.preventDefault(); $('startStop').click(); }
+  if ((e.key === 'g' || e.key === 'G') && !e.repeat) openGame();
 });
 
 $('grade').addEventListener('input', (e) => { state.grade = +e.target.value; render(); applyMode(true); });

@@ -547,7 +547,7 @@ export class Horde {
       hudText(ctx, 'Pedala. Spara. Sopravvivi.', W / 2, 150, { size: 15, align: 'center' });
       const lines = ['Parti con una pistola: le ondate crescono sempre', 'Ogni uccisione fa evolvere l\'arma (10 armi)', 'Portali blu: alleati e potenziamenti. Rossi: evitali', 'Tieni premuto + / − per sterzare · più watt = più colpi', 'Passa sulle gemme verdi: l\'anello le attira', 'Sprint sopra soglia = OVERDRIVE', 'Ogni 5 ondate arriva il Custode'];
       lines.forEach((l, i) => hudText(ctx, '· ' + l, W / 2, H * 0.62 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
-      hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.62 + 130, { size: 12, align: 'center', color: '#bbb' });
+      hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.62 + lines.length * 20 + 14, { size: 12, align: 'center', color: '#bbb' });
       hudText(ctx, '+  INIZIA', W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
       this.hooks.progress?.drawToasts(ctx, W, dt);
       return;
