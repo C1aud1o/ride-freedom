@@ -284,7 +284,9 @@
         <div class="row2 backup-row"><button id="backupOut" class="ghost">Esporta i miei dati</button><label class="ghost file-btn">Importa dati<input id="backupIn" type="file" accept=".json,application/json" hidden></label></div>
         <p class="fine">Per passare dal telefono al PC (o viceversa): esporta qui, apri il file sull'altro dispositivo con "Importa dati". Storico, record, FTP e impostazioni; l'accesso a Strava non viene copiato.</p>
         <button id="openDebug" class="ghost">Sensori e log</button>
-        <button id="audioTest" class="ghost">Test audio</button>
+        <p class="fine">Audio: se non senti nulla, prova l'altro metodo e scegli quello che funziona.</p>
+        <div class="row2"><button id="audioTestA" class="ghost">Prova suono A</button><button id="audioTestB" class="ghost">Prova suono B</button></div>
+        <div class="chips audio-mode" id="audioMode"><button data-m="auto">Automatico</button><button data-m="web">A · Web Audio</button><button data-m="element">B · Lettore</button></div>
         <p id="audioResult" class="fine"></p>
         <details class="log"><summary>Registro eventi</summary><pre id="log"></pre></details>
         <p id="appVersion" class="fine"></p>

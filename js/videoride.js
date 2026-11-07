@@ -23,13 +23,24 @@ export class VideoRide {
       <h2>Pedala su un video</h2>
       <p>Incolla il link di un video YouTube di un percorso in bici (cerca per esempio "cycling 4K" o "virtual ride"), oppure scegli un video dal dispositivo. Il video scorre alla tua velocità.</p>
       <label class="field"><span>Link YouTube</span><input id="vrUrl" type="url" inputmode="url" placeholder="https://youtu.be/…" value="${last.replace(/"/g, '')}"></label>
-      <div class="row2"><button id="vrGo" class="cta-sm">Guarda</button><a class="ghost" href="https://www.youtube.com/results?search_query=virtual+cycling+4k" target="_blank" rel="noopener">Cerca su YouTube</a></div>
+      <div class="row2"><button id="vrGo" class="cta-sm">Guarda</button><button id="vrPaste" class="ghost">Incolla link</button></div>
+      <a class="ghost vr-search" href="https://www.youtube.com/results?search_query=virtual+cycling+4k" target="_blank" rel="noopener">Cerca su YouTube</a>
+      <p class="fine vr-how">${window.Capacitor?.isNativePlatform?.()
+    ? '<b>Dall\'app YouTube:</b> apri il video, premi <b>Condividi</b> e scegli <b>Ride Freedom</b>: torni qui e il video parte da solo.'
+    : '<b>Da YouTube:</b> apri il video, premi <b>Condividi → Copia link</b>, torna qui e premi <b>Incolla link</b>.'}</p>
       <label class="ghost file-btn">Video dal dispositivo<input id="vrFile" type="file" accept="video/*" hidden></label>
       <p class="fine">Velocità a cui è stato girato il video:</p>
       <div class="chips" id="vrRef">${REF_KMH.map((r) => `<button data-v="${r.v}" class="${r.v === this.ref ? 'on' : ''}">${r.v} km/h<small>${r.t}</small></button>`).join('')}</div>
       <p class="fine">Netflix, Prime Video e simili non si possono mettere dentro un'altra app (protezione dei contenuti): usa lo schermo diviso del telefono e la musica si comanda dal Click (Impostazioni → Musica).</p>`;
     panel.appendChild(this.ui);
     this.ui.querySelector('#vrGo').addEventListener('click', () => this.openUrl(this.ui.querySelector('#vrUrl').value));
+    this.ui.querySelector('#vrPaste').addEventListener('click', async () => {
+      try {
+        const t = await navigator.clipboard.readText();
+        this.ui.querySelector('#vrUrl').value = t.trim();
+        if (YT_RE.test(t)) this.openUrl(t.trim());
+      } catch { this.ui.querySelector('#vrUrl').focus(); }
+    });
     this.ui.querySelector('#vrFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) this.openFile(f); });
     this.ui.querySelectorAll('#vrRef button').forEach((b) => b.addEventListener('click', () => {
       this.ref = Number(b.dataset.v); localStorage.setItem('videoRef', this.ref);

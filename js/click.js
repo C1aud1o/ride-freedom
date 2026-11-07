@@ -160,6 +160,11 @@ export class ZwiftClick extends EventTarget {
       let held = 0; for (const id of pressed) held += this.map[id] || 0;
       held = Math.sign(held);
       if (held !== this.held) { this.held = held; this.emit('hold', held); }
+      // + e − insieme: apre il menu di navigazione
+      const dirs = new Set([...pressed].map((id) => this.map[id]).filter(Boolean));
+      const both = dirs.has(1) && dirs.has(-1);
+      if (both && !this.comboOn) this.emit('combo');
+      this.comboOn = both;
     }
     this.dbg.changed();
   }

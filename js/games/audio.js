@@ -7,6 +7,17 @@ const mtof = (n) => 440 * 2 ** ((n - 69) / 12);
 const JINGLE_FOR = { win: 'win', lose: 'lose', go: 'go', rescue: 'reward', overdrive: 'levelup', alarm: 'boss', menu: 'menu' };
 const JINGLE_FILES = ['win', 'win2', 'lose', 'lose2', 'go', 'reward', 'levelup', 'boss', 'menu'];
 
+// AudioBuffer → file WAV (16 bit mono) come URL locale
+function wavUrl(buf) {
+  const data = buf.getChannelData(0); const n = data.length; const sr = buf.sampleRate;
+  const ab = new ArrayBuffer(44 + n * 2); const v = new DataView(ab);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, data[i])) * 0x7fff, true);
+  return URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+}
+
 export class GameAudio {
   constructor() {
     this.ctx = null;
@@ -47,7 +58,9 @@ export class GameAudio {
 
   // suona un jingle (con piccola variazione tra le versioni disponibili)
   jingle(name, vol = 0.9) {
-    if (!this.ensure() || this.muted || !this.jingles) return false;
+    if (this.muted) return false;
+    if (this.useElements()) { const a = new Audio(`assets/audio/jingles/${name}.mp3`); a.volume = Math.min(1, vol); a.play().catch(() => {}); return true; }
+    if (!this.ensure() || !this.jingles) return false;
     const alt = this.jingles[`${name}2`] && Math.random() < 0.4 ? `${name}2` : name;
     const buf = this.jingles[alt]; if (!buf) return false;
     const src = this.ctx.createBufferSource(); src.buffer = buf;
@@ -60,6 +73,7 @@ export class GameAudio {
     this.muted = !this.muted;
     localStorage.setItem('gameMuted', this.muted ? '1' : '0');
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.55;
+    if (this.songEl) this.songEl.volume = this.muted ? 0 : 0.8;
     return this.muted;
   }
 
@@ -84,9 +98,14 @@ export class GameAudio {
   }
 
   sfx(name) {
-    if (!this.ensure() || this.muted) return;
+    if (this.muted) return;
+    if (this.useElements()) { this.playElementSfx(name); return; }
+    if (!this.ensure()) return;
     if (JINGLE_FOR[name] && this.jingle(JINGLE_FOR[name])) return;
-    const t = this.ctx.currentTime;
+    this.synth(name, this.ctx.currentTime);
+  }
+
+  synth(name, t) {
     switch (name) {
       case 'shot': this.tone({ freq: 900, to: 300, dur: 0.05, vol: 0.05 }); break;
       case 'mg': this.tone({ freq: 700, to: 200, dur: 0.04, vol: 0.05, type: 'sawtooth' }); this.noise({ dur: 0.03, vol: 0.05, freq: 3000 }); break;
@@ -119,6 +138,7 @@ export class GameAudio {
 
   // ---------- musica: sequencer a 16 passi per battuta ----------
   playSong(song) {
+    if (this.useElements()) { this.playElementSong(song); return; }
     if (!this.ensure()) return;
     this.stopSong();
     this.song = song; this.bpm = song.bpm; this.step = 0;
@@ -126,9 +146,93 @@ export class GameAudio {
     this.timer = setInterval(() => this.schedule(), 25);
   }
 
-  stopSong() { clearInterval(this.timer); this.timer = null; this.song = null; }
+  stopSong() {
+    clearInterval(this.timer); this.timer = null; this.song = null;
+    if (this.songEl) { this.songEl.pause(); this.songEl = null; }
+  }
 
-  setTempo(bpm) { this.bpm = Math.max(80, Math.min(175, bpm)); }
+  setTempo(bpm) {
+    this.bpm = Math.max(80, Math.min(175, bpm));
+    if (this.songEl && this.songBase) { this.songEl.playbackRate = Math.max(0.7, Math.min(1.4, this.bpm / this.songBase)); }
+  }
+
+  // ---------- modalità "lettore": suoni pre-renderizzati e riprodotti con <audio> ----------
+  // Su alcuni telefoni Android il Web Audio in tempo reale resta muto dentro l'app; il lettore audio
+  // di sistema (lo stesso dei video) invece funziona. I suoni si calcolano offline e diventano file WAV.
+  useElements() {
+    const m = localStorage.getItem('audioMode') || 'auto';
+    return m === 'element' || (m === 'auto' && !!window.Capacitor?.isNativePlatform?.());
+  }
+
+  async renderOffline(seconds, draw) {
+    const sr = 22050; const off = new OfflineAudioContext(1, Math.ceil(sr * seconds), sr);
+    const save = { ctx: this.ctx, sfxBus: this.sfxBus, musicBus: this.musicBus, noiseBuf: this.noiseBuf, master: this.master };
+    this.ctx = off;
+    this.master = off.createGain(); this.master.gain.value = 0.55; this.master.connect(off.destination);
+    this.sfxBus = off.createGain(); this.sfxBus.gain.value = 0.8; this.sfxBus.connect(this.master);
+    this.musicBus = off.createGain(); this.musicBus.gain.value = 0.32; this.musicBus.connect(this.master);
+    this.noiseBuf = off.createBuffer(1, sr, sr); const d = this.noiseBuf.getChannelData(0); for (let i = 0; i < sr; i++) d[i] = Math.random() * 2 - 1;
+    try { draw(); } finally { Object.assign(this, save); }
+    return wavUrl(await off.startRendering());
+  }
+
+  playElementSfx(name) {
+    if (JINGLE_FOR[name]) { this.jingle(JINGLE_FOR[name]); return; }
+    this.sfxUrls = this.sfxUrls || {}; this.sfxEls = this.sfxEls || {};
+    if (!this.sfxUrls[name]) {
+      if (this.sfxUrls[name] === undefined) {
+        this.sfxUrls[name] = null; // in preparazione
+        this.renderOffline(1.7, () => this.synth(name, 0.01)).then((u) => { this.sfxUrls[name] = u; }).catch(() => {});
+      }
+      return;
+    }
+    // piccolo gruppo di lettori per suono, così i colpi ravvicinati si sovrappongono
+    const pool = (this.sfxEls[name] = this.sfxEls[name] || []);
+    let a = pool.find((x) => x.paused || x.ended);
+    if (!a && pool.length < 4) { a = new Audio(this.sfxUrls[name]); pool.push(a); }
+    if (!a) a = pool[0];
+    a.volume = 1; a.currentTime = 0; a.play().catch(() => {});
+  }
+
+  // prepara in anticipo gli effetti più usati (si chiama al primo tocco)
+  warmUp() {
+    if (!this.useElements() || this.warmed) return; this.warmed = true;
+    const names = ['shot', 'mg', 'hit', 'coin', 'select', 'hurt', 'boom', 'pickup', 'beep', 'jump', 'land', 'laser', 'rocket', 'clank', 'boost', 'rescue', 'overdrive', 'flame', 'bomb', 'bigboom'];
+    let i = 0; const next = () => { if (i < names.length) { this.playElementSfxPrepare(names[i++]).finally(next); } }; next();
+  }
+
+  playElementSfxPrepare(name) {
+    this.sfxUrls = this.sfxUrls || {};
+    if (this.sfxUrls[name] !== undefined) return Promise.resolve();
+    this.sfxUrls[name] = null;
+    return this.renderOffline(1.7, () => this.synth(name, 0.01)).then((u) => { this.sfxUrls[name] = u; }).catch(() => {});
+  }
+
+  async playElementSong(song) {
+    this.stopSong(); this.song = song; this.bpm = song.bpm; this.songBase = song.bpm;
+    this.songCache = this.songCache || new Map();
+    if (!this.songCache.has(song)) {
+      const steps = song.lead.length; const dur = 60 / song.bpm / 4;
+      this.songCache.set(song, this.renderOffline(steps * dur + 0.05, () => {
+        for (let i = 0; i < steps; i++) this.scheduleStep(song, i, 0.02 + i * dur, dur, 0);
+      }));
+    }
+    const url = await this.songCache.get(song);
+    if (this.song !== song) return; // nel frattempo è cambiato brano
+    const a = new Audio(url); a.loop = true; a.volume = this.muted ? 0 : 0.8; a.preservesPitch = false;
+    this.songEl = a; a.play().catch(() => {});
+  }
+
+  scheduleStep(s, i, t, dur, tr) {
+    const b = s.bass[i % s.bass.length];
+    if (b) this.tone({ freq: mtof(b + tr), dur: dur * 1.8, vol: 0.22, type: 'triangle', at: t, bus: this.musicBus });
+    const l = s.lead[i];
+    if (l) this.tone({ freq: mtof(l + tr), dur: dur * 1.6, vol: 0.09, type: s.leadType || 'square', at: t, bus: this.musicBus });
+    const d = s.drums[i % s.drums.length];
+    if (d === 'k' || d === 'x') this.tone({ freq: 150, to: 40, dur: 0.12, vol: 0.5, type: 'sine', at: t, bus: this.musicBus });
+    if (d === 's' || d === 'x') this.noise({ dur: 0.1, vol: 0.25, freq: 1800, type: 'highpass', at: t, bus: this.musicBus });
+    if (d === 'h') this.noise({ dur: 0.03, vol: 0.12, freq: 7000, type: 'highpass', at: t, bus: this.musicBus });
+  }
 
   schedule() {
     if (!this.song || !this.ctx) return;
@@ -138,16 +242,7 @@ export class GameAudio {
       const i = this.step % total; const t = this.nextTime;
       const dur = 60 / this.bpm / 4;
       const tr = this.transpose;
-      if (!this.muted) {
-        const b = s.bass[i % s.bass.length];
-        if (b) this.tone({ freq: mtof(b + tr), dur: dur * 1.8, vol: 0.22, type: 'triangle', at: t, bus: this.musicBus });
-        const l = s.lead[i];
-        if (l) this.tone({ freq: mtof(l + tr), dur: dur * 1.6, vol: 0.09, type: s.leadType || 'square', at: t, bus: this.musicBus });
-        const d = s.drums[i % s.drums.length];
-        if (d === 'k' || d === 'x') this.tone({ freq: 150, to: 40, dur: 0.12, vol: 0.5, type: 'sine', at: t, bus: this.musicBus });
-        if (d === 's' || d === 'x') this.noise({ dur: 0.1, vol: 0.25, freq: 1800, type: 'highpass', at: t, bus: this.musicBus });
-        if (d === 'h') this.noise({ dur: 0.03, vol: 0.12, freq: 7000, type: 'highpass', at: t, bus: this.musicBus });
-      }
+      if (!this.muted) this.scheduleStep(s, i, t, dur, tr);
       this.nextTime += dur; this.step++;
     }
   }

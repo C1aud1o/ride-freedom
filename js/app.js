@@ -25,6 +25,7 @@ import './ui.js';
 import { coach, spokenTime } from './coach.js';
 import { glowSetting } from './games/kit3d.js';
 import { party, badges } from './celebrate.js';
+import { createClickNav } from './clicknav.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
@@ -130,8 +131,10 @@ $('connectClick').addEventListener('click', async () => {
 click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
 });
-click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : step(e.detail)));
+click.addEventListener('shift', (e) => { if (clickNav.active) return; if (activeGame?.active) activeGame.input(e.detail); else step(e.detail); });
+click.addEventListener('combo', () => { clearTimeout(mediaTimer); clickNav.toggle(); });
 click.addEventListener('hold', (e) => {
+  if (clickNav.hold(e.detail)) return; // in modalità navigazione i tasti muovono la selezione
   if (activeGame?.active) activeGame.hold?.(e.detail);
   // pressione lunga = comandi musica (solo app Android): annulla il cambio fatto dalla pressione breve
   clearTimeout(mediaTimer);
@@ -207,9 +210,10 @@ $('down').addEventListener('click', () => step(-1));
 
 // Tastiera / telecomandi Bluetooth che inviano frecce o pagina su/giù
 const keyDir = (k) => (['ArrowRight', 'ArrowUp', 'PageUp', '+', '=', ' ', 'd', 'D'].includes(k) ? 1 : ['ArrowLeft', 'ArrowDown', 'PageDown', '-', 'a', 'A'].includes(k) ? -1 : 0);
-window.addEventListener('keyup', (e) => { if (activeGame?.active && keyDir(e.key)) activeGame.hold?.(0); });
+window.addEventListener('keyup', (e) => { if (clickNav.active && keyDir(e.key)) { clickNav.hold(0); return; } if (activeGame?.active && keyDir(e.key)) activeGame.hold?.(0); });
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
+  if (clickNav.active && keyDir(e.key) && e.key !== ' ') { e.preventDefault(); if (!e.repeat) clickNav.hold(keyDir(e.key)); return; }
   if (activeGame?.active) {
     const d = keyDir(e.key);
     if (d) { e.preventDefault(); if (!e.repeat) { activeGame.input(d); activeGame.hold?.(d); } }
@@ -824,33 +828,44 @@ const gameHooks = {
 const gameAudio = new GameAudio();
 // sblocco dell'audio al primo tocco (WebView e browser lo tengono sospeso finché l'utente non interagisce)
 const unlockAudio = () => {
-  const c = gameAudio.ensure();
+  gameAudio.warmUp();
+  const c = gameAudio.useElements() ? null : gameAudio.ensure();
   if (c) { const b = c.createBuffer(1, 1, 22050); const src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); }
 };
 // resta in ascolto finché il contesto non è davvero attivo (Android lo sospende anche quando l'app va in background)
 for (const ev of ['pointerdown', 'keydown', 'touchend']) document.addEventListener(ev, () => { if (gameAudio.ctx?.state !== 'running') unlockAudio(); }, { capture: true });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && gameAudio.ctx?.state !== 'running') gameAudio.ctx?.resume().catch(() => {}); });
-$('audioTest').addEventListener('click', async () => {
-  const out = [];
+// Test audio: A = Web Audio in tempo reale, B = suoni preparati e riprodotti dal lettore di sistema
+async function audioTest(mode) {
+  const out = []; const prev = localStorage.getItem('audioMode');
   try {
-    const c = gameAudio.ensure();
-    if (!c) { $('audioResult').textContent = 'Web Audio non disponibile in questo browser.'; return; }
-    out.push(`stato iniziale: ${c.state}`);
-    if (c.state !== 'running') await c.resume().catch((e) => out.push(`resume: ${e.message}`));
-    out.push(`stato: ${c.state} · ${c.sampleRate} Hz`);
-    if (gameAudio.muted) out.push('ATTENZIONE: audio dei giochi disattivato (pulsante Audio nei giochi)');
-    gameAudio.sfx('pickup');
-    const t0 = c.currentTime;
-    await new Promise((r) => setTimeout(r, 600));
-    out.push(c.currentTime > t0 ? 'orologio audio in movimento: OK' : 'orologio audio fermo: il sistema blocca l\'audio');
-    const nJ = Object.keys(gameAudio.jingles || {}).length;
-    out.push(`jingle caricati: ${nJ}/9`);
-    if (nJ) setTimeout(() => gameAudio.jingle('win'), 200);
-    out.push('Senti una scala di note e poi un jingle? Se no, alza il volume multimediale del telefono.');
+    localStorage.setItem('audioMode', mode);
+    if (gameAudio.muted) out.push('ATTENZIONE: audio dei giochi disattivato (pulsante Audio nei giochi): lo riattivo');
+    if (gameAudio.muted) gameAudio.toggleMute();
+    if (mode === 'web') {
+      const c = gameAudio.ensure(); if (!c) throw new Error('Web Audio non disponibile');
+      if (c.state !== 'running') await c.resume().catch(() => {});
+      out.push(`A · Web Audio: ${c.state}, ${c.sampleRate} Hz`);
+      gameAudio.sfx('pickup'); setTimeout(() => gameAudio.jingle('win'), 450);
+    } else {
+      await gameAudio.playElementSfxPrepare('pickup');
+      out.push(gameAudio.sfxUrls?.pickup ? 'B · Lettore: suono preparato' : 'B · Lettore: impossibile preparare il suono');
+      gameAudio.sfx('pickup'); setTimeout(() => gameAudio.jingle('win'), 450);
+    }
+    out.push('Hai sentito le note e poi il jingle? Se sì, scegli questo metodo qui sotto.');
   } catch (err) { out.push(`errore: ${err.message}`); }
+  setTimeout(() => { if (prev) localStorage.setItem('audioMode', prev); else localStorage.removeItem('audioMode'); }, 1200);
   $('audioResult').textContent = out.join(' · ');
-  log(`Test audio: ${out.join(' | ')}`);
-});
+  log(`Test audio ${mode}: ${out.join(' | ')}`);
+}
+$('audioTestA').addEventListener('click', () => audioTest('web'));
+$('audioTestB').addEventListener('click', () => audioTest('element'));
+function renderAudioMode() { const m = localStorage.getItem('audioMode') || 'auto'; document.querySelectorAll('#audioMode button').forEach((b) => b.classList.toggle('on', b.dataset.m === m)); }
+document.querySelectorAll('#audioMode button').forEach((b) => b.addEventListener('click', () => {
+  localStorage.setItem('audioMode', b.dataset.m); gameAudio.stopSong(); gameAudio.warmed = false; gameAudio.warmUp(); renderAudioMode();
+  toast(b.dataset.m === 'auto' ? 'Audio automatico' : b.dataset.m === 'web' ? 'Audio: Web Audio' : 'Audio: lettore di sistema');
+}));
+renderAudioMode();
 const games = {
   horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: 'tieni + / − per sterzare · watt = colpi · sprint = overdrive' },
   racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },
@@ -884,6 +899,7 @@ function startGame(kind) {
   $('gameTitle').textContent = g.title;
   $('gameHelp').textContent = g.help;
   requestWakeLock();
+  if (kind !== 'video') clickNav.stop(); // nel gioco + e − tornano al gioco
   activeGame = g.game; window.__game = g.game; // accesso per la diagnostica e i test automatici
   activeGame.start();
 }
@@ -1163,3 +1179,67 @@ $('coachOn').addEventListener('change', () => { coach.on = $('coachOn').checked;
 
 $('gameGlow').checked = glowSetting.on;
 $('gameGlow').addEventListener('change', () => { glowSetting.on = $('gameGlow').checked; });
+
+// ---------- Navigazione con il Click, tasto indietro e link condivisi ----------
+const inGame = () => activeGame?.active && $('gameMenu').hidden && !document.querySelector('.video-pick:not([hidden])');
+const clickNav = createClickNav({
+  back: () => window.rfBack(),
+  isIdle: () => !click.pressed?.size,
+  onChange: (on) => document.body.classList.toggle('click-nav', on),
+  menuItems: () => {
+    const rec = { label: state.ride.running ? '⏸ Pausa registrazione' : '▶ Avvia registrazione', run: () => $('startStop').click() };
+    if (inGame()) {
+      return [
+        { label: '▶ Riprendi il gioco', run: () => clickNav.stop() },
+        { label: '✕ Esci dal gioco', run: () => closeGame() },
+        { label: gameAudio.muted ? '🔊 Attiva audio' : '🔇 Disattiva audio', run: () => $('muteGame').click() },
+        rec,
+      ];
+    }
+    return [
+      rec,
+      ...(state.ride.log.length ? [{ label: '🏁 Termina allenamento', run: () => $('finishRide').click() }] : []),
+      ...(isNative && !trainer.connected ? [{ label: '🔗 Collega il rullo', run: () => $('connectTrainer').click() }] : []),
+      { label: '📊 Allenamenti e percorsi', run: () => $('openWorkouts').click() },
+      { label: '🎮 Giochi', run: () => openGame() },
+      { label: '▶ Pedala su un video', run: () => { openGame(); startGame('video'); } },
+      { label: '📈 Storico e record', run: () => openHistory() },
+      { label: '⚙ Impostazioni', run: () => $('openSettings').click() },
+      { label: '☰ Esplora questa schermata', run: () => {} },
+      { label: '✕ Chiudi il menu Click', run: () => clickNav.stop() },
+    ];
+  },
+});
+// da tastiera: M apre il menu Click (comodo anche per provarlo dal PC)
+window.addEventListener('keydown', (e) => { if ((e.key === 'm' || e.key === 'M') && e.target.tagName !== 'INPUT') clickNav.toggle(); });
+
+// tasto indietro (Android e browser): chiude ciò che è aperto; per uscire va premuto due volte
+let backArmed = 0;
+window.rfBack = () => {
+  if (clickNav.menuOpen()) { clickNav.closeMenu(); return 'ok'; }
+  const sheets = [...document.querySelectorAll('.sheet')].filter((x) => !x.hidden);
+  if (sheets.length) { closeSheet(sheets[sheets.length - 1].id); return 'ok'; }
+  if (!$('debugPanel').hidden) { $('closeDebug').click(); return 'ok'; }
+  if (!$('gamePanel').hidden) { closeGame(); return 'ok'; }
+  if (clickNav.active) { clickNav.stop(); return 'ok'; }
+  if (Date.now() - backArmed < 2500) return state.ride.running ? 'background' : 'exit';
+  backArmed = Date.now();
+  toast(state.ride.running ? 'Premi ancora indietro: l\'app va in sottofondo e continua a registrare' : 'Premi ancora indietro per uscire');
+  return 'ok';
+};
+if (!isNative) {
+  // nel browser il tasto indietro passa dalla cronologia: teniamo un "segnaposto" per intercettarlo
+  window.history.pushState({ rf: 1 }, '');
+  window.addEventListener('popstate', () => { if (window.rfBack() === 'ok') window.history.pushState({ rf: 1 }, ''); else window.history.back(); });
+}
+
+// link condiviso da YouTube (Condividi → Ride Freedom): apre "Pedala su un video" con quel video
+window.rfShared = (text) => {
+  const m = String(text).match(/https?:\/\/\S+/); const url = m ? m[0] : String(text).trim();
+  if (!/youtu\.?be/.test(url)) { toast('Il link condiviso non è un video YouTube'); return; }
+  for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) closeSheet(sh.id);
+  if (activeGame) closeGame();
+  openGame(); startGame('video'); games.video.game.openUrl(url);
+  toast('Video ricevuto: pedala per farlo scorrere');
+};
+if (window.rfPendingShare) { window.rfShared(window.rfPendingShare); window.rfPendingShare = null; }
