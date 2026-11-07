@@ -365,6 +365,8 @@ setInterval(() => {
   }
   if (state.mode === 'gears') applyMode();
   if (workout && r.running) tickWorkout(1);
+  powerBuf.push(d.power || 0); if (powerBuf.length > 3) powerBuf.shift();
+  autoPauseCheck();
   render();
 }, 1000);
 
@@ -498,7 +500,7 @@ $('openSettings').addEventListener('click', () => openSheet('settingsSheet'));
 $('openDebug').addEventListener('click', () => closeSheet('settingsSheet'));
 function render() {
   const d = state.data; const r = state.ride;
-  $('power').textContent = Math.round(d.power || 0);
+  $('power').textContent = Math.round($('smooth3').checked && powerBuf.length ? powerBuf.reduce((a, b) => a + b, 0) / powerBuf.length : d.power || 0);
   $('cadence').textContent = hasRealCadence() ? Math.round(d.cadence || 0) : trainer.connected ? `~${Math.round(currentCadence())}` : '0';
   const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
   $('speed').textContent = speed.toFixed(1);
@@ -937,3 +939,26 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 
 $('openHistory').addEventListener('click', openHistory);
 $('finishHistory').addEventListener('click', openHistory);
+
+// ---------- Pausa automatica, potenza 3 s, schermo intero ----------
+const powerBuf = []; let idleSec = 0; let autoPaused = false;
+for (const id of ['autoPause', 'smooth3']) {
+  const saved = localStorage.getItem(id); if (saved != null) $(id).checked = saved === '1';
+  $(id).addEventListener('change', () => { localStorage.setItem(id, $(id).checked ? '1' : '0'); render(); });
+}
+function autoPauseCheck() {
+  if (!$('autoPause').checked || !trainer.connected) { autoPaused = false; return; }
+  const moving = (state.data.power || 0) > 5 || (state.data.speed || 0) > 2;
+  const r = state.ride;
+  if (r.running && !moving) {
+    if (++idleSec >= 5 && !activeGame?.active) { $('startStop').click(); autoPaused = true; toast('In pausa: riparte quando pedali'); }
+  } else idleSec = 0;
+  if (autoPaused && !r.running && moving) { autoPaused = false; $('startStop').click(); toast('Si riparte!'); }
+  if (r.running) autoPaused = autoPaused && !r.running;
+}
+$('startStop').addEventListener('click', () => { if (state.ride.running) idleSec = 0; });
+$('fullscreen').addEventListener('click', () => {
+  closeSheet('settingsSheet');
+  if (document.fullscreenElement) document.exitFullscreen?.(); else document.documentElement.requestFullscreen?.().catch(() => toast('Schermo intero non disponibile qui'));
+});
+if (!document.documentElement.requestFullscreen) $('fullscreen').hidden = true;
