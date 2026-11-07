@@ -380,3 +380,13 @@ body.in-workout .control, body.in-workout .modes { display: none; }
 .hs-dl dt { font-size: var(--fs-caption); color: var(--t3); }
 .hs-dl dd { margin: 0; font-weight: 700; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; min-height: 0; }
+
+/* ---------- Percorsi ---------- */
+.rt-pick { display: grid; gap: 12px; padding: 0 24px 16px; }
+.rt-pick h3, .wk-h3 { margin: 0; font: 700 var(--fs-caption)/1 var(--font-ui); text-transform: uppercase; letter-spacing: .08em; color: var(--t3); }
+.wk-h3 { padding: 8px 24px 0; }
+.rt-pick .file-btn { display: grid; place-items: center; }
+.rt-samples { display: grid; gap: 8px; }
+.rt-real { grid-template-columns: repeat(3, 1fr); }
+.rt-map { width: 96px; height: 96px; display: block; }
+body.in-route .chips:has([data-preset=grade]) { display: none; }

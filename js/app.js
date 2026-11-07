@@ -19,6 +19,7 @@ import { Mattoni } from './games/mattoni.js';
 import { Planata } from './games/planata.js';
 import { VideoRide } from './videoride.js';
 import { rideStats, renderHistory } from './history.js';
+import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock } from './workouts.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
@@ -354,6 +355,7 @@ setInterval(() => {
       hr: d.hr || null, speed: +speedMs.toFixed(3), distance: +r.distance.toFixed(1),
     });
     r.saved = false;
+    if (route) tickRoute(speedMs, r.log[r.log.length - 1]);
     if (r.log.length % 10 === 0) persist();
     // piccoli picchi: traguardi durante la pedalata
     const m = Math.floor(r.elapsed / 600);
@@ -380,8 +382,50 @@ function renderWorkoutList() {
   requestAnimationFrame(() => document.querySelectorAll('[data-prof]').forEach((c) => drawProfile(c, WORKOUTS.find((w) => w.id === c.dataset.prof), state.ftp)));
   document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(WORKOUTS.find((w) => w.id === b.dataset.wk))));
 }
-$('openWorkouts').addEventListener('click', () => { renderWorkoutList(); openSheet('workoutSheet'); });
+$('openWorkouts').addEventListener('click', () => { renderWorkoutList(); renderRoutePick(); openSheet('workoutSheet'); });
+
+// ---------- Percorsi GPX ----------
+let route = null; let routeDist = 0; let routeRealism = Number(localStorage.getItem('routeRealism')) || 0.5;
+function renderRoutePick() {
+  $('routeSamples').innerHTML = ROUTES.map((r) => `<button class="wk-item" data-route="${r.id}"><span class="row"><b>${r.name}</b><small>prova</small></span><small>${r.desc}</small></button>`).join('');
+  document.querySelectorAll('[data-route]').forEach((b) => b.addEventListener('click', () => startRoute(ROUTES.find((r) => r.id === b.dataset.route).make())));
+  document.querySelectorAll('#routeReal button').forEach((b) => b.classList.toggle('on', +b.dataset.r === routeRealism));
+}
+document.querySelectorAll('#routeReal button').forEach((b) => b.addEventListener('click', () => {
+  routeRealism = +b.dataset.r; localStorage.setItem('routeRealism', routeRealism); renderRoutePick();
+}));
+$('gpxFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { startRoute(parseGpx(await f.text(), f.name)); } catch (err) { toast(err.message); }
+  e.target.value = '';
+});
+function startRoute(rt) {
+  if (workout) finishWorkout(false);
+  route = rt; routeDist = 0;
+  if (state.mode !== 'gears' && state.mode !== 'sim') setMode('gears');
+  closeSheet('workoutSheet');
+  document.body.classList.add('in-route');
+  $('routeCard').hidden = false; $('rtName').textContent = rt.name;
+  if (!rt.hasEle) toast('Il GPX non ha le quote: percorso in piano');
+  if (!state.ride.running) $('startStop').click();
+  tickRoute(0, null);
+}
+function tickRoute(dm, sample) {
+  routeDist += dm;
+  const c = routeAt(route, routeDist);
+  if (sample) Object.assign(sample, { lat: +c.lat.toFixed(6), lon: +c.lon.toFixed(6), ele: +c.ele.toFixed(1) });
+  const g = Math.round(c.grade * routeRealism * 2) / 2;
+  if (g !== state.grade) { state.grade = g; syncInputs(); applyMode(true); }
+  $('rtGrade').textContent = c.grade.toFixed(1);
+  $('rtKm').textContent = `${(routeDist / 1000).toFixed(2)} / ${(route.total / 1000).toFixed(1)} km`;
+  $('rtInfo').textContent = `${route.gain} m di dislivello · quota ${Math.round(c.ele)} m${routeRealism < 1 ? ` · pendenza al ${routeRealism * 100}%` : ''}`;
+  drawElevation($('rtProfile'), route, routeDist); drawMap($('rtMap'), route, routeDist);
+  if (routeDist >= route.total) { toast(`Arrivo! ${route.name} completato`); gameAudio.sfx('win'); progress.event('routes', 1, 60); stopRoute(); }
+}
+function stopRoute() { route = null; $('routeCard').hidden = true; document.body.classList.remove('in-route'); state.grade = 0; syncInputs(); applyMode(true); }
+$('rtStop').addEventListener('click', () => { if (confirm('Terminare il percorso?')) stopRoute(); });
 function startWorkout(w) {
+  if (route) stopRoute();
   if (workout && !confirm(`Interrompere "${workout.w.name}"?`)) return;
   workout = new WorkoutRunner(w, state.ftp); wkLast = null; wkPower = []; wkLowCad = 0;
   setMode('erg');

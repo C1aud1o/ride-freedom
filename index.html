@@ -55,6 +55,15 @@
       </dl>
     </section>
 
+    <section id="routeCard" class="card workout" hidden aria-live="polite">
+      <div class="wk-head"><span id="rtName" class="wk-name"></span><span id="rtKm" class="wk-total"></span></div>
+      <div class="wk-main">
+        <div><span class="wk-label">Pendenza</span><span class="wk-target"><b id="rtGrade">0.0</b> %</span></div>
+        <canvas id="rtMap" class="rt-map"></canvas>
+      </div>
+      <canvas id="rtProfile" class="wk-profile"></canvas>
+      <div class="wk-actions"><span class="fine" id="rtInfo"></span><button id="rtStop" class="ghost">Termina percorso</button></div>
+    </section>
     <section id="workoutCard" class="card workout" hidden aria-live="polite">
       <div class="wk-head"><span id="wkName" class="wk-name"></span><span id="wkTotal" class="wk-total"></span></div>
       <div class="wk-main">
@@ -155,7 +164,16 @@
   <!-- Impostazioni -->
   <div id="workoutSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="workoutTitle">
-      <header class="sheet-head"><h2 id="workoutTitle">Allenamenti</h2><button class="close" data-close="workoutSheet" aria-label="Chiudi">×</button></header>
+      <header class="sheet-head"><h2 id="workoutTitle">Allenamenti e percorsi</h2><button class="close" data-close="workoutSheet" aria-label="Chiudi">×</button></header>
+      <section class="rt-pick">
+        <h3>Percorsi</h3>
+        <p class="fine">Carica un file GPX (esportalo da Strava, Komoot, Garmin Connect…): la pendenza segue il tracciato e la traccia finisce nel file .FIT, con la mappa su Strava.</p>
+        <label class="ghost file-btn">Carica un percorso GPX<input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden></label>
+        <div id="routeSamples" class="rt-samples"></div>
+        <p class="fine">Realismo della pendenza (100% = pendenza vera):</p>
+        <div class="chips rt-real" id="routeReal"><button data-r="0.5">50%</button><button data-r="0.75">75%</button><button data-r="1">100%</button></div>
+      </section>
+      <h3 class="wk-h3">Allenamenti</h3>
       <p class="fine wk-intro">Il rullo imposta da solo i watt di ogni tratto in base alla tua FTP (<b id="wkFtp">200</b> W, la cambi in Impostazioni o con il test). Durante l'allenamento + e − alzano o abbassano l'intensità del 5%.</p>
       <div id="workoutList" class="wk-list"></div>
     </div>
