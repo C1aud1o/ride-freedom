@@ -102,13 +102,7 @@ python3 -m http.server 8000
 
 ## Crediti
 - Modelli 3D: [Kenney](https://kenney.nl) — Racing Kit, Nature Kit, Blocky Characters, Graveyard Kit,
-  Blaster Kit (CC0), in `assets/3d`.
+  Blaster Kit, Platformer Kit (gioielli e monete) (CC0), in `assets/3d`.
+- Particelle: Kenney — Particle Pack (CC0), in `assets/fx` (scie dei colpi, lampi, fumo, scintille).
 - Jingle: Kenney — Music Jingles (CC0), in `assets/audio/jingles`.
 - Motore 3D: [three.js](https://threejs.org) (MIT), in `vendor/three`.
-
-## Crediti grafici
-
-Modelli e particelle di **Kenney** (www.kenney.nl), licenza CC0: Racing Kit, Nature Kit, Blocky Characters,
-Graveyard Kit, Blaster Kit, Platformer Kit (gioielli e monete, `assets/3d/pickups`) e Particle Pack
-(scie, lampi, fumo e scintille, `assets/fx`). Musiche: Kenney Music Jingles (CC0).
-
