@@ -523,6 +523,8 @@ function render() {
   const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
   $('speed').textContent = speed.toFixed(1);
   $('hr').textContent = d.hr ? d.hr : '--';
+  const hz = d.hr ? hrZone(d.hr) : null;
+  $('hrZone').textContent = hz ? `Z${hz.z} ${hz.name}` : ''; $('hrZone').style.color = hz?.color || '';
   $('time').textContent = fmtTime(r.elapsed);
   $('distance').textContent = (r.distance / 1000).toFixed(2);
   $('avgPower').textContent = r.samples ? Math.round(r.powerSum / r.samples) : 0;
@@ -996,4 +998,36 @@ $('shareImg').addEventListener('click', async () => {
     stats, series: st.series, ftp: state.ftp, route: route?.name || lastRouteName,
   });
   if (res === 'saved') toast('Immagine salvata');
+});
+
+// ---------- Zone di frequenza cardiaca (in % del battito massimo) ----------
+const HR_ZONES = [[0.6, 'Recupero', '#8a8f98'], [0.7, 'Fondo', '#4d8dff'], [0.8, 'Tempo', '#2fbf71'], [0.9, 'Soglia', '#f2c230'], [Infinity, 'Massimale', '#ff4d4d']];
+function hrMax() { return Number(localStorage.getItem('hrMax')) || Math.max(170, ...history().map((h) => h.maxHr || 0)) || 185; }
+function hrZone(hr) { const k = hr / hrMax(); const i = HR_ZONES.findIndex(([m]) => k < m); return { z: i + 1, name: HR_ZONES[i][1], color: HR_ZONES[i][2] }; }
+$('hrMax').value = localStorage.getItem('hrMax') || '';
+$('hrMax').addEventListener('change', (e) => { const v = Math.round(+e.target.value); if (v >= 120 && v <= 220) localStorage.setItem('hrMax', v); else { localStorage.removeItem('hrMax'); e.target.value = ''; } render(); });
+
+// ---------- Backup: esporta / importa i dati tra dispositivi ----------
+const NO_BACKUP = /^(stravaConfig|ride-freedom-session)$/;
+$('backupOut').addEventListener('click', () => {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!NO_BACKUP.test(k)) data[k] = localStorage.getItem(k); }
+  const blob = new Blob([JSON.stringify({ app: 'ride-freedom', version: 1, date: new Date().toISOString(), data })], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ride-freedom-dati-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('Dati esportati');
+});
+$('backupIn').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (j.app !== 'ride-freedom' || typeof j.data !== 'object') throw new Error('Non è un file di Ride Freedom');
+    // lo storico si unisce (niente doppioni), il resto si sovrascrive
+    const mine = history(); const theirs = JSON.parse(j.data.rideHistory || '[]');
+    const merged = [...new Map([...mine, ...theirs].map((h) => [h.t, h])).values()].sort((a, b) => a.t - b.t);
+    if (!confirm(`Importare ${theirs.length} uscite e le impostazioni del file? Lo storico verrà unito (${merged.length} uscite in totale).`)) return;
+    for (const [k, v] of Object.entries(j.data)) if (!NO_BACKUP.test(k) && k !== 'rideHistory') localStorage.setItem(k, v);
+    saveHistory(merged.slice(-200));
+    toast('Dati importati: ricarico…'); setTimeout(() => location.reload(), 900);
+  } catch (err) { toast(`Importazione non riuscita: ${err.message}`); }
 });

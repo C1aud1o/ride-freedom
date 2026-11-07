@@ -24,7 +24,7 @@ export function rideStats(log) {
   // serie compatta per il grafico: una media ogni 10 s
   const series = [];
   for (let i = 0; i < p.length; i += 10) { const c = p.slice(i, i + 10); series.push(Math.round(c.reduce((a, b) => a + b, 0) / c.length)); }
-  return { np, maxW: Math.round(Math.max(0, ...p)), best, avgHr: hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null, series: series.slice(0, 720) };
+  return { np, maxW: Math.round(Math.max(0, ...p)), best, maxHr: hrs.length ? Math.max(...hrs) : null, avgHr: hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null, series: series.slice(0, 720) };
 }
 
 const fmtDate = (t) => new Date(t).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });

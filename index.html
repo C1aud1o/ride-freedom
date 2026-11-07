@@ -51,7 +51,7 @@
       <dl class="metrics">
         <div><dt>Cadenza</dt><dd><span id="cadence">0</span><small>rpm</small></dd></div>
         <div><dt>Velocità</dt><dd><span id="speed">0.0</span><small>km/h</small></dd></div>
-        <div><dt>Battito</dt><dd><span id="hr">--</span><small>bpm</small></dd></div>
+        <div><dt>Battito <span id="hrZone" class="hr-zone"></span></dt><dd><span id="hr">--</span><small>bpm</small></dd></div>
       </dl>
     </section>
 
@@ -196,6 +196,7 @@
         <div class="fields">
           <label>Peso con la bici <span class="unit-input"><input id="mass" type="number" min="30" max="200" step="1" value="80" inputmode="numeric"><i>kg</i></span></label>
           <label>FTP <span class="unit-input"><input id="ftp" type="number" min="80" max="500" step="5" value="200" inputmode="numeric"><i>W</i></span></label>
+          <label>Battito massimo <span class="unit-input"><input id="hrMax" type="number" min="120" max="220" step="1" placeholder="auto" inputmode="numeric"><i>bpm</i></span></label>
         </div>
         <p class="fine">L'FTP colora le zone di potenza; il peso conta nel cambio virtuale.</p>
         <label class="switch"><input type="checkbox" id="autoPause" checked><span>Avvio e pausa automatici quando pedali o ti fermi</span></label>
@@ -265,6 +266,8 @@
       <section class="group">
         <h3>Diagnostica</h3>
         <button id="openHistory" class="ghost">Storico e record</button>
+        <div class="row2 backup-row"><button id="backupOut" class="ghost">Esporta i miei dati</button><label class="ghost file-btn">Importa dati<input id="backupIn" type="file" accept=".json,application/json" hidden></label></div>
+        <p class="fine">Per passare dal telefono al PC (o viceversa): esporta qui, apri il file sull'altro dispositivo con "Importa dati". Storico, record, FTP e impostazioni; l'accesso a Strava non viene copiato.</p>
         <button id="openDebug" class="ghost">Sensori e log</button>
         <button id="audioTest" class="ghost">Test audio</button>
         <p id="audioResult" class="fine"></p>

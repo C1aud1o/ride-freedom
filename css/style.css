@@ -391,3 +391,6 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); fon
 .rt-map { width: 96px; height: 96px; display: block; }
 body.in-route .chips:has([data-preset=grade]) { display: none; }
 .ahead { color: var(--accent); } .behind { color: #ff6b6b; }
+.hr-zone { font-weight: 700; margin-left: 4px; }
+.backup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.backup-row .file-btn { display: grid; place-items: center; }
