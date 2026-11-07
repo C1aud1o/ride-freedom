@@ -148,6 +148,7 @@
         <button id="reset" class="danger">Azzera sessione</button>
       </div>
       <p id="finishNudge" class="fine center"></p>
+      <button id="finishHistory" class="ghost">Storico e record</button>
     </div>
   </div>
 
@@ -157,6 +158,13 @@
       <header class="sheet-head"><h2 id="workoutTitle">Allenamenti</h2><button class="close" data-close="workoutSheet" aria-label="Chiudi">×</button></header>
       <p class="fine wk-intro">Il rullo imposta da solo i watt di ogni tratto in base alla tua FTP (<b id="wkFtp">200</b> W, la cambi in Impostazioni o con il test). Durante l'allenamento + e − alzano o abbassano l'intensità del 5%.</p>
       <div id="workoutList" class="wk-list"></div>
+    </div>
+  </div>
+
+  <div id="historySheet" class="sheet" hidden>
+    <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <header class="sheet-head"><h2 id="historyTitle">Storico</h2><button class="close" data-close="historySheet" aria-label="Chiudi">×</button></header>
+      <div id="historyBody" class="hs-body"></div>
     </div>
   </div>
 
@@ -234,6 +242,7 @@
 
       <section class="group">
         <h3>Diagnostica</h3>
+        <button id="openHistory" class="ghost">Storico e record</button>
         <button id="openDebug" class="ghost">Sensori e log</button>
         <button id="audioTest" class="ghost">Test audio</button>
         <p id="audioResult" class="fine"></p>

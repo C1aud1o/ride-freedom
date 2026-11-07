@@ -18,6 +18,7 @@ import { Gruppetto } from './games/gruppetto.js';
 import { Mattoni } from './games/mattoni.js';
 import { Planata } from './games/planata.js';
 import { VideoRide } from './videoride.js';
+import { rideStats, renderHistory } from './history.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock } from './workouts.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
@@ -558,7 +559,18 @@ function toast(text) {
 
 // ---------- storico, benvenuto, bentornato ----------
 function history() { try { return JSON.parse(localStorage.getItem('rideHistory') || '[]'); } catch { return []; } }
-function saveHistory(h) { try { localStorage.setItem('rideHistory', JSON.stringify(h)); } catch { /* pieno */ } }
+function saveHistory(h) {
+  // se lo spazio finisce, si tengono le serie solo delle uscite più recenti
+  for (let keep = h.length; keep >= 0; keep -= 20) {
+    try { localStorage.setItem('rideHistory', JSON.stringify(h.map((x, i) => (i < h.length - keep ? { ...x, series: undefined } : x)))); return; } catch { /* pieno */ }
+  }
+}
+function openHistory() {
+  renderHistory($('historyBody'), history(), state.ftp);
+  $('hsUseFtp')?.addEventListener('click', (e) => { state.ftp = +e.target.dataset.ftp; $('ftp').value = state.ftp; localStorage.setItem('ftp', state.ftp); toast(`FTP: ${state.ftp} W`); openHistory(); });
+  for (const id of ['settingsSheet', 'finishSheet']) closeSheet(id);
+  openSheet('historySheet');
+}
 function renderWelcome() {
   const el = $('welcome');
   const hist = history();
@@ -579,9 +591,11 @@ function renderWelcome() {
       <p>Ultimo allenamento ${when}.</p>
       <dl class="stats"><div><dt>Minuti</dt><dd>${Math.round(last.dur / 60)}</dd></div><div><dt>W medi</dt><dd>${last.avgW}</dd></div><div><dt>km</dt><dd>${last.km}</dd></div></dl>
       ${week.length ? `<span class="streak">● ${week.length} ${week.length === 1 ? 'allenamento' : 'allenamenti'} negli ultimi 7 giorni</span>` : ''}
-      <button class="cta" id="welcomeConnect">Collega il rullo</button>`;
+      <button class="cta" id="welcomeConnect">Collega il rullo</button>
+      <button class="ghost" id="welcomeHistory">Storico e record</button>`;
   }
   $('welcomeConnect')?.addEventListener('click', () => $('connectTrainer').click());
+  $('welcomeHistory')?.addEventListener('click', openHistory);
 }
 trainer.addEventListener('connected', () => renderWelcome());
 trainer.addEventListener('disconnected', () => renderWelcome());
@@ -848,8 +862,8 @@ $('finishRide').addEventListener('click', () => {
   const hist = history();
   const prev = hist[hist.length - 1];
   if (!r.historySaved && r.elapsed >= 60) {
-    hist.push({ t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy) });
-    saveHistory(hist.slice(-60)); r.historySaved = true; persist();
+    hist.push({ t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy), ...rideStats(r.log) });
+    saveHistory(hist.slice(-200)); r.historySaved = true; persist();
   }
   const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5).length;
   const mins = Math.round(r.elapsed / 60);
@@ -876,3 +890,6 @@ document.body.dataset.mode = state.mode;
 render();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+$('openHistory').addEventListener('click', openHistory);
+$('finishHistory').addEventListener('click', openHistory);
