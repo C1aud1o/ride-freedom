@@ -12,3 +12,10 @@ android/capacitor-cordova-android-plugins/build/
 *.b64
 test-results/
 playwright-report/
+
+# Firebase: log e cache locali, build delle Cloud Functions
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+functions/lib/

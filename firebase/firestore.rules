@@ -1,0 +1,266 @@
+rules_version = '2';
+
+// Regole Firestore di Spindro.
+// Modello dati e motivazioni: docs/account-architettura.md
+// Test: firebase/test/rules.test.js (npm test dentro firebase/, serve Java per l'emulatore).
+//
+// Principi:
+//  - tutto è negato se non è permesso esplicitamente;
+//  - ogni utente legge e scrive solo sotto users/{suoUid};
+//  - classifiche, sfide e medaglie: lettura pubblica (o del proprietario), scrittura SOLO dal
+//    server (Cloud Functions con Admin SDK, che non passa da queste regole);
+//  - il battito cardiaco (art. 9 GDPR) si salva solo se il profilo ha il consenso hrCloud attivo;
+//  - ogni scrittura porta updatedAt == request.time (serverTimestamp): serve alla sincronizzazione
+//    incrementale e impedisce date inventate.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- funzioni comuni ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // utenti con email: l'email deve essere verificata (Google lo è sempre)
+    function verified() {
+      return request.auth.token.email_verified == true
+        || request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    function data() {
+      return request.resource.data;
+    }
+
+    function isInt(v, lo, hi) {
+      return v is int && v >= lo && v <= hi;
+    }
+
+    function isNum(v, lo, hi) {
+      return (v is int || v is float) && v >= lo && v <= hi;
+    }
+
+    function isStr(v, lo, hi) {
+      return v is string && v.size() >= lo && v.size() <= hi;
+    }
+
+    function optInt(m, k, lo, hi) {
+      return !(k in m) || m[k] == null || isInt(m[k], lo, hi);
+    }
+
+    function stampedNow() {
+      return data().updatedAt == request.time;
+    }
+
+    function profilePath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    // consenso al battito nel cloud, letto dal profilo (una lettura in più solo quando serve)
+    function hrConsent(uid) {
+      let p = get(profilePath(uid)).data;
+      return 'consents' in p && 'hrCloud' in p.consents && p.consents.hrCloud.granted == true;
+    }
+
+    // ---------- profilo: users/{uid} ----------
+
+    // consenso registrato: versione del testo accettato e momento (deve essere "adesso")
+    function consentShape(c) {
+      return c is map
+        && c.keys().hasOnly(['v', 'at', 'granted'])
+        && isStr(c.v, 1, 20)
+        && c.at is timestamp
+        && (!('granted' in c) || c.granted is bool);
+    }
+
+    // un consenso nuovo o cambiato deve avere at == request.time (niente date retrodatate)
+    function consentFresh(newC, oldC, key) {
+      return (oldC != null && key in oldC && newC[key] == oldC[key])
+        || newC[key].at == request.time;
+    }
+
+    function consentsValid(newC, oldC) {
+      return newC is map
+        && newC.keys().hasAll(['terms', 'privacy'])
+        && newC.keys().hasOnly(['terms', 'privacy', 'hrCloud'])
+        && consentShape(newC.terms) && consentFresh(newC, oldC, 'terms')
+        && consentShape(newC.privacy) && consentFresh(newC, oldC, 'privacy')
+        && (!('hrCloud' in newC)
+            || (consentShape(newC.hrCloud) && 'granted' in newC.hrCloud
+                && consentFresh(newC, oldC, 'hrCloud')));
+    }
+
+    function profileValid() {
+      let d = data();
+      return d.keys().hasAll(['displayName', 'consents', 'ageOk', 'createdAt', 'updatedAt', 'schema'])
+        && d.keys().hasOnly(['displayName', 'country', 'consents', 'ageOk', 'createdAt', 'updatedAt', 'schema', 'locale'])
+        // soprannome: 2-24 caratteri, lettere (anche accentate), cifre, spazio, . _ -
+        && isStr(d.displayName, 2, 24)
+        && d.displayName.matches('^[\\p{L}\\p{N}][\\p{L}\\p{N} ._-]*$')
+        && (!('country' in d) || d.country == null || d.country.matches('^[A-Z]{2}$'))
+        && (!('locale' in d) || d.locale == null || d.locale.matches('^[a-z]{2}(-[A-Z]{2})?$'))
+        && d.ageOk == true   // dichiarazione "ho almeno 14 anni"
+        && d.schema == 1
+        && stampedNow();
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && verified() && profileValid()
+        && data().createdAt == request.time
+        && consentsValid(data().consents, null);
+      allow update: if isOwner(uid) && profileValid()
+        && data().createdAt == resource.data.createdAt
+        && consentsValid(data().consents, resource.data.consents);
+      // cancellare il profilo è permesso (fallback lato client); la cancellazione completa
+      // dell'account passa dalla Cloud Function deleteAccount
+      allow delete: if isOwner(uid);
+
+      // ---------- uscite: users/{uid}/rides/{rideId} ----------
+      // rideId = String(t), t = inizio uscita in ms (stessa chiave del merge dello storico locale)
+
+      function bestValid(b) {
+        return b is map
+          && b.keys().hasOnly(['5', '60', '300', '1200'])
+          && optInt(b, '5', 0, 3000) && optInt(b, '60', 0, 2500)
+          && optInt(b, '300', 0, 1500) && optInt(b, '1200', 0, 1000);
+      }
+
+      function hrValid(h) {
+        return h is map
+          && h.keys().hasOnly(['avgHr', 'maxHr', 'series', 'seriesV'])
+          && optInt(h, 'avgHr', 25, 240) && optInt(h, 'maxHr', 25, 250)
+          && (!('series' in h) || isStr(h.series, 0, 1500))
+          && optInt(h, 'seriesV', 1, 9);
+      }
+
+      function rideValid(rideId) {
+        let d = data();
+        return d.keys().hasAll(['t', 'dur', 'km', 'avgW', 'kj', 'updatedAt'])
+          && d.keys().hasOnly(['t', 'dur', 'km', 'avgW', 'kj', 'np', 'maxW', 'best',
+                               'series', 'seriesV', 'src', 'hr', 'deleted', 'updatedAt'])
+          && isInt(d.t, 1262304000000, request.time.toMillis() + 86400000) // dal 2010 a domani
+          && rideId == string(d.t)
+          && isInt(d.dur, 60, 86400)
+          // velocità media massima 80 km/h
+          && isNum(d.km, 0, 1500) && d.km * 3600 <= d.dur * 80
+          && isInt(d.avgW, 0, 1500)
+          && isInt(d.kj, 0, 30000)
+          && optInt(d, 'np', 0, 1500) && optInt(d, 'maxW', 0, 3000)
+          && (!('best' in d) || bestValid(d.best))
+          // serie della potenza: una media ogni 10 s, Uint16 LE in base64 (max 720 punti = 1920 caratteri)
+          && (!('series' in d) || isStr(d.series, 0, 1920))
+          && optInt(d, 'seriesV', 1, 9)
+          && (!('src' in d) || d.src in ['app', 'import'])
+          && (!('deleted' in d) || d.deleted is bool)
+          && (!('hr' in d) || (hrValid(d.hr) && hrConsent(request.auth.uid)))
+          && stampedNow();
+      }
+
+      match /rides/{rideId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && rideValid(rideId);
+        allow delete: if isOwner(uid);
+      }
+
+      // ---------- allenamenti personalizzati: users/{uid}/workouts/{workoutId} ----------
+
+      function workoutValid() {
+        let d = data();
+        return d.keys().hasAll(['name', 'steps', 'updatedAt'])
+          && d.keys().hasOnly(['name', 'tag', 'desc', 'steps', 'blocks', 'custom', 'deleted', 'updatedAt'])
+          && isStr(d.name, 1, 80)
+          && (!('tag' in d) || isStr(d.tag, 0, 60))
+          && (!('desc' in d) || isStr(d.desc, 0, 600))
+          && d.steps is list && d.steps.size() <= 400
+          && (!('blocks' in d) || (d.blocks is list && d.blocks.size() <= 200))
+          && (!('custom' in d) || d.custom is bool)
+          && (!('deleted' in d) || d.deleted is bool)
+          && stampedNow();
+      }
+
+      match /workouts/{workoutId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && workoutId.matches('^[A-Za-z0-9_-]{1,64}$') && workoutValid();
+        allow delete: if isOwner(uid);
+      }
+
+      // ---------- impostazioni: users/{uid}/settings/{doc} ----------
+      // prefs: chiavi note (valori come in localStorage, stringhe) + timbri per chiave (ms)
+      // games: record dei giochi, progressi, fantasmi dei percorsi (nessun dato sanitario)
+      // hr:    frequenza massima impostata -> dato sul battito, solo con consenso
+
+      function prefKeys() {
+        return ['ftp', 'mass', 'weekGoal', 'autoShift', 'autoCad', 'routeRealism', 'usePm',
+                'coachOn', 'musicOn', 'audioMode', 'gameMuted', 'gameGlow', 'clickMap',
+                'videoRef', 'lang', 'units'];
+      }
+
+      function valuesDoc(maxKeys) {
+        let d = data();
+        return d.keys().hasOnly(['values', 'stamps', 'updatedAt'])
+          && d.values is map && d.values.size() <= maxKeys
+          && (!('stamps' in d) || (d.stamps is map && d.stamps.keys().hasOnly(d.values.keys())))
+          && stampedNow();
+      }
+
+      match /settings/{docId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && (
+          (docId == 'prefs' && valuesDoc(40) && data().values.keys().hasOnly(prefKeys()))
+          || (docId == 'games' && valuesDoc(150))
+          || (docId == 'hr' && valuesDoc(2) && data().values.keys().hasOnly(['hrMax'])
+              && hrConsent(uid))
+        );
+        allow delete: if isOwner(uid);
+      }
+
+      // ---------- dati scritti solo dal server ----------
+      // server/state: stato anti-abuso (limiti, segnalazioni), creato da onUserCreate
+      // challenges/{YYYY-MM}: avanzamento nelle sfide del mese
+      // medals/{medalId}: medaglie ottenute
+      match /server/{docId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+      match /challenges/{month} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+      match /medals/{medalId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // ---------- classifiche: pubbliche in lettura, scritte solo da submitScore ----------
+    // boards/{boardId}                         metadati (titolo, ordine)
+    // boards/{boardId}/periods/{periodId}      periodId = 'all' oppure settimana ISO '2026-W45'
+    // boards/{boardId}/periods/{periodId}/entries/{uid}
+    match /boards/{boardId} {
+      allow read: if true;
+      allow write: if false;
+      match /periods/{periodId} {
+        allow read: if true;
+        allow write: if false;
+        match /entries/{entryUid} {
+          // lettura a pagine: niente richieste enormi in un colpo solo
+          allow get: if true;
+          allow list: if request.query.limit <= 100;
+          allow write: if false;
+        }
+      }
+    }
+
+    // ---------- sfide del mese: definizioni pubbliche ----------
+    match /challenges/{month} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

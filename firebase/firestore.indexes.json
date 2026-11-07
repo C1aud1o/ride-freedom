@@ -1,0 +1,57 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "country", "order": "ASCENDING" },
+        { "fieldPath": "sortKey", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "entries",
+      "fieldPath": "uid",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "rides",
+      "fieldPath": "series",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "rides",
+      "fieldPath": "hr",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "rides",
+      "fieldPath": "best",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "workouts",
+      "fieldPath": "steps",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "workouts",
+      "fieldPath": "blocks",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "settings",
+      "fieldPath": "values",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "settings",
+      "fieldPath": "stamps",
+      "indexes": []
+    }
+  ]
+}
