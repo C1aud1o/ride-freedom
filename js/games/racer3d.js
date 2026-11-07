@@ -591,10 +591,13 @@ export class Racer3D {
     this.pickups();
   }
 
+  // testo che sale dal corridore: conferma subito cosa hai preso
+  pop(text, color, t = 0.8) { (this.pops = this.pops || []).push({ text, color, t, t0: t, s: this.s, x: this.x }); }
+
   pickups() {
     for (const c of this.coins) {
       if (c.taken || Math.abs(c.s - this.s) > 0.9 || Math.abs(LANES[c.lane] - this.x) > 1) continue;
-      c.taken = true; c.mesh.visible = false; this.coinsTaken++;
+      c.taken = true; c.mesh.visible = false; this.coinsTaken++; this.pop('+1', '#ffcc33');
       this.audio.sfx('coin'); this.prog('coins', 1, 1);
       if (this.coinsTaken === 10) this.say('10 MONETE: +10% VELOCITÀ', '#ffcc33', 2);
     }
@@ -604,7 +607,7 @@ export class Racer3D {
       if (!this.item) {
         const place = this.place();
         const pool = place <= 2 ? ['shield', 'gel'] : place <= 5 ? ['gel', 'shield', 'wind'] : ['gel', 'wind', 'wind'];
-        this.item = pick(pool); this.audio.sfx('pickup');
+        this.item = pick(pool); this.audio.sfx('pickup'); this.pop(ITEMS[this.item].name, ITEMS[this.item].color, 1.2);
         this.say(`${ITEMS[this.item].name}: fai uno SPRINT per usarlo`, ITEMS[this.item].color, 2.2);
       }
     }
@@ -765,6 +768,17 @@ export class Racer3D {
   drawHud(dt) {
     const ctx = this.hctx; const W = this.W; const H = this.H;
     ctx.clearRect(0, 0, W, H);
+    if (this.pops?.length && this.camera) {
+      const v3 = new THREE.Vector3();
+      for (const q of this.pops) {
+        q.t -= dt; const k = 1 - q.t / q.t0; const p = this.at(q.s, q.x);
+        v3.set(p.x, p.y + 2.2 + k * 1.6, p.z).project(this.camera);
+        ctx.globalAlpha = Math.max(0, Math.min(1, (q.t / q.t0) * 2));
+        hudText(ctx, q.text, (v3.x + 1) / 2 * W, (1 - v3.y) / 2 * H, { size: 18, align: 'center', color: q.color });
+        ctx.globalAlpha = 1;
+      }
+      this.pops = this.pops.filter((q) => q.t > 0);
+    }
     if (this.state === 'loading') {
       ctx.fillStyle = '#0f0e0c'; if (!this.scene) ctx.fillRect(0, 0, W, H);
       hudText(ctx, 'CARICAMENTO…', W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' });

@@ -14,6 +14,9 @@ import { setupDebug } from './debugview.js';
 import { Strike3D } from './games/strike3d.js';
 import { Racer3D } from './games/racer3d.js';
 import { Horde } from './games/horde.js';
+import { Gruppetto } from './games/gruppetto.js';
+import { Mattoni } from './games/mattoni.js';
+import { Planata } from './games/planata.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
@@ -633,6 +636,9 @@ const games = {
   horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: 'tieni + / − per sterzare · watt = colpi · sprint = overdrive' },
   racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },
   shooter: { game: new Strike3D($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
+  gruppetto: { game: new Gruppetto($('gameCanvas'), gameHooks, gameAudio), title: 'Gruppetto', help: '+ destra · − sinistra · tieni premuto per curvare' },
+  mattoni: { game: new Mattoni($('gameCanvas'), gameHooks, gameAudio), title: 'Mattoni', help: 'tieni + / − per muoverti · cadenza = velocità palla' },
+  planata: { game: new Planata($('gameCanvas'), gameHooks, gameAudio), title: 'Planata', help: 'watt = quota · tieni + / − per spostarti' },
 };
 let activeGame = null;
 
