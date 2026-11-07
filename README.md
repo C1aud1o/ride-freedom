@@ -42,7 +42,14 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 - **Percorsi GPX**: la pendenza segue il tracciato (realismo 50/75/100%), profilo e mini mappa,
   sfida al tuo record sullo stesso percorso; il .FIT contiene la traccia GPS (mappa su Strava).
 - **Storico**: minuti settimanali, record 5 s / 1 / 5 / 20 min, FTP stimata, grafico di ogni uscita.
-- Pausa automatica, potenza media 3 s, schermo intero.
+- **Cambio automatico** (solo qui): con il cambio virtuale scegli la cadenza (80–95 rpm) e l'app cambia
+  marcia da sola per tenerla, come una bici con il cambio automatico; + / − restano attivi.
+- **Coach vocale in italiano**: annuncia tratti e watt degli allenamenti, gli ultimi 10 secondi,
+  le salite in arrivo sui percorsi, i traguardi e l'arrivo.
+- **Editor di allenamenti** a blocchi ed **esportazione** di ogni allenamento in .FIT "workout" per
+  Garmin (copia in GARMIN/NewFiles o tramite intervals.icu) e in .zwo; import di file .zwo.
+- Avvio e pausa automatici, potenza media 3 s, schermo intero, obiettivo settimanale, zone cardio,
+  backup dei dati tra dispositivi.
 - **PC e Mac**: stessa webapp con Chrome o Edge (Bluetooth del computer), layout a due colonne e
   scorciatoie (frecce o + / − per le marce, Spazio avvia/pausa, G giochi). Mancano solo le funzioni
   che richiedono l'app Android: ponte Garmin e comandi musica.

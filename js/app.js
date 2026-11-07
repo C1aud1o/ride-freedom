@@ -22,6 +22,7 @@ import { rideStats, renderHistory } from './history.js';
 import { shareCard } from './sharecard.js';
 import { WorkoutEditor } from './editor.js';
 import './ui.js';
+import { coach, spokenTime } from './coach.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
@@ -362,12 +363,13 @@ setInterval(() => {
     if (r.log.length % 10 === 0) persist();
     // piccoli picchi: traguardi durante la pedalata
     const m = Math.floor(r.elapsed / 600);
-    if (m > (r.lastMilestone || 0)) { r.lastMilestone = m; toast(`${m * 10} minuti! Continua così`); }
+    if (m > (r.lastMilestone || 0)) { r.lastMilestone = m; toast(`${m * 10} minuti! Continua così`); if (!workout) coach.say(`${m * 10} minuti. Continua così!`); }
     const k5 = Math.floor(r.distance / 5000);
     if (k5 > (r.lastKm || 0)) { r.lastKm = k5; toast(`${k5 * 5} km percorsi`); }
   }
   if (state.mode === 'gears') applyMode();
   if (workout && r.running) tickWorkout(1);
+  if (r.running) autoShiftTick();
   powerBuf.push(d.power || 0); if (powerBuf.length > 3) powerBuf.shift();
   autoPauseCheck();
   render();
@@ -456,6 +458,10 @@ function tickRoute(dm, sample) {
   const c = routeAt(route, routeDist);
   if (sample) Object.assign(sample, { lat: +c.lat.toFixed(6), lon: +c.lon.toFixed(6), ele: +c.ele.toFixed(1) });
   const g = Math.round(c.grade * routeRealism * 2) / 2;
+  if (dm) { // annuncia la prossima salita vera (una volta per salita)
+    const ahead = routeAt(route, routeDist + 300);
+    if (ahead.grade >= 4 && c.grade < 3 && routeDist - (route.lastClimbSaid ?? -1e9) > 800) { route.lastClimbSaid = routeDist; coach.say(`Salita in arrivo: ${Math.round(ahead.grade)} per cento tra 300 metri.`); }
+  }
   if (g !== state.grade) { state.grade = g; syncInputs(); applyMode(true); }
   $('rtGrade').textContent = c.grade.toFixed(1);
   $('rtKm').textContent = `${(routeDist / 1000).toFixed(2)} / ${(route.total / 1000).toFixed(1)} km`;
@@ -466,6 +472,7 @@ function tickRoute(dm, sample) {
     : `${route.gain} m di dislivello · quota ${Math.round(c.ele)} m${routeRealism < 1 ? ` · pendenza al ${routeRealism * 100}%` : ''}${routeGhost ? ' · record da battere' : ''}`;
   drawElevation($('rtProfile'), route, routeDist); drawMap($('rtMap'), route, routeDist);
   if (routeDist >= route.total) {
+    coach.say(`Arrivo! ${route.name} completato in ${spokenTime(routeT)}.`);
     routeTrace.push(Math.round(route.total));
     const prevT = routeGhost ? (routeGhost.length - 1) * 5 : Infinity;
     if (routeT < prevT) { try { localStorage.setItem(ghostKey(route), JSON.stringify(routeTrace)); } catch { /* pieno */ } toast(routeGhost ? `Nuovo record: ${fmtClock(routeT)} (−${fmtClock(prevT - routeT)})` : `Tempo: ${fmtClock(routeT)}. La prossima volta sfidi questo record!`); }
@@ -491,6 +498,10 @@ function tickWorkout(dt) {
   const st = workout.tick(dt);
   if (!st) return finishWorkout(true);
   if (state.erg !== st.target) { state.erg = Math.min(MAX_W, st.target); syncInputs(); render(); applyMode(true); }
+  if (wkLast !== st.i) {
+    coach.say(`${st.x.label.replace(/(\d+)\/(\d+)/, '$1 di $2')}. ${st.target} watt per ${spokenTime(st.x.d)}.`);
+  }
+  if (dt && st.next && Math.round(st.left) === 10 && st.x.d >= 40) coach.say(`Ultimi dieci secondi. Poi ${st.nextW} watt.`);
   if (wkLast !== null && wkLast !== st.i) { toast(`${st.x.label}: ${st.target} W`); gameAudio.sfx('go'); if (navigator.vibrate) navigator.vibrate([60, 60, 60]); }
   if (dt && st.next && st.left <= 3.5 && st.left > 0.5) gameAudio.sfx('beep');
   wkLast = st.i;
@@ -521,7 +532,7 @@ function finishWorkout(completed) {
     state.erg = Math.round(state.ftp * 0.5); syncInputs(); applyMode(true);
     return;
   }
-  if (completed) { toast(`${w.name} completato!`); gameAudio.sfx('win'); progress.event('workouts', 1, 50); }
+  if (completed) { coach.say(`${w.name} completato. Grande lavoro!`); toast(`${w.name} completato!`); gameAudio.sfx('win'); progress.event('workouts', 1, 50); }
 }
 $('wkSkip').addEventListener('click', () => { workout?.skip(); tickWorkout(0); });
 $('wkStop').addEventListener('click', () => { if (workout?.w.test) finishWorkout(true); else if (confirm('Terminare l\'allenamento?')) finishWorkout(false); });
@@ -1104,3 +1115,27 @@ async function offerFile(file, hint) {
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   toast(`Scaricato ${file.name}. ${hint}`);
 }
+
+// ---------- Cambio automatico (tiene la cadenza scelta) e coach vocale ----------
+let shiftHold = 0; const cadBuf = [];
+function autoShiftTick() {
+  if (state.mode !== 'gears' || !$('autoShift').checked || activeGame?.active) { cadBuf.length = 0; return; }
+  const cad = currentCadence(); if (cad < 40) { cadBuf.length = 0; return; }
+  cadBuf.push(cad); if (cadBuf.length > 3) cadBuf.shift();
+  if (shiftHold > 0) { shiftHold--; return; }
+  if (cadBuf.length < 3) return;
+  const avg = cadBuf.reduce((a, b) => a + b, 0) / 3; const target = Number(localStorage.getItem('autoCad')) || 90;
+  // fuori di più di 6 rpm per 3 secondi: una marcia alla volta, poi si aspetta che la gamba si adatti
+  if (avg < target - 6 && state.gear > 0) { shift(-1); shiftHold = 3; cadBuf.length = 0; }
+  else if (avg > target + 6 && state.gear < GEARS.length - 1) { shift(+1); shiftHold = 3; cadBuf.length = 0; }
+}
+function renderAutoShift() {
+  const on = localStorage.getItem('autoShift') === '1'; const c = Number(localStorage.getItem('autoCad')) || 90;
+  $('autoShift').checked = on; $('cadChips').hidden = !on;
+  document.querySelectorAll('#cadChips button').forEach((b) => b.classList.toggle('on', +b.dataset.c === c));
+}
+$('autoShift').addEventListener('change', () => { localStorage.setItem('autoShift', $('autoShift').checked ? '1' : '0'); renderAutoShift(); if ($('autoShift').checked) toast('Il cambio segue la tua cadenza: + e − restano attivi'); });
+document.querySelectorAll('#cadChips button').forEach((b) => b.addEventListener('click', () => { localStorage.setItem('autoCad', b.dataset.c); renderAutoShift(); }));
+renderAutoShift();
+$('coachOn').checked = coach.on;
+$('coachOn').addEventListener('change', () => { coach.on = $('coachOn').checked; if (coach.on) coach.say('Ciao! Sono il tuo coach. Ti avviso a ogni cambio di ritmo.', { force: true }); });

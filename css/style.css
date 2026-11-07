@@ -458,3 +458,4 @@ input[type=number] { -moz-appearance: textfield; }
 .wk-top { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .wk-top .cta-sm { min-height: 48px; border: 0; border-radius: var(--r-btn); background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: var(--shadow-cta); }
 .wk-top .file-btn { display: grid; place-items: center; }
+.autoshift { display: grid; gap: 8px; text-align: left; } #cadChips button { min-height: 44px; }

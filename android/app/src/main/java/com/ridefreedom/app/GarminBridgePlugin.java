@@ -19,6 +19,8 @@ import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
 import android.media.AudioManager;
 import android.view.KeyEvent;
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
@@ -215,6 +217,25 @@ public class GarminBridgePlugin extends Plugin {
     public void getStatus(PluginCall call) { call.resolve(status()); }
 
     // dispositivi Bluetooth LE collegati al telefono (anche da altre app, es. Garmin Connect)
+    // coach vocale: sintesi vocale di Android (la WebView non parla da sola)
+    private TextToSpeech tts;
+    private boolean ttsReady = false;
+
+    @PluginMethod
+    public void speak(PluginCall call) {
+        String text = call.getString("text", "");
+        if (tts == null) {
+            tts = new TextToSpeech(getContext(), status -> {
+                ttsReady = status == TextToSpeech.SUCCESS;
+                if (ttsReady) { tts.setLanguage(Locale.ITALIAN); tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rf"); }
+            });
+            call.resolve();
+            return;
+        }
+        if (ttsReady) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rf");
+        call.resolve();
+    }
+
     // comandi multimediali (Spotify, YouTube Music, podcast…) dal Click: play/pausa, brano successivo/precedente
     @PluginMethod
     public void mediaKey(PluginCall call) {
