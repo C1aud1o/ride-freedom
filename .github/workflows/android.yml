@@ -2,7 +2,7 @@ name: App Android (APK)
 
 on:
   push:
-    branches: [main, ccr-28a29a79-yshigo]
+    branches: [main, ccr-28a29a79-yshigo, 'spindro/**']
     paths:
       - 'android/**'
       - 'js/**'
@@ -21,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: android-apk
+  group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -41,17 +41,58 @@ jobs:
       - run: npm run build:web && npx cap sync android
         env:
           VERSION_CODE: ${{ github.run_number }}
-      - name: Compila l'APK
+      - name: Prepara la chiave di release (dai Secret GitHub)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/spindro-release.jks"
+            {
+              echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/spindro-release.jks"
+              echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "ANDROID_KEY_ALIAS=$KEY_ALIAS"
+              echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD"
+              echo "SPINDRO_SIGNED=true"
+            } >> "$GITHUB_ENV"
+            echo "Chiave di release trovata: build RELEASE firmata (APK foss + AAB play)."
+          else
+            echo "SPINDRO_SIGNED=false" >> "$GITHUB_ENV"
+            echo "::warning title=APK debug (fallback)::Secret ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD mancanti: compilo l'APK DEBUG come prima, niente AAB. Vedi docs/android-release.md"
+          fi
+      - name: Compila (release firmata, oppure debug se mancano i Secret)
         working-directory: android
         env:
           VERSION_CODE: ${{ github.run_number }}
-        run: ./gradlew assembleDebug --no-daemon
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk spindro.apk
+        run: |
+          if [ "$SPINDRO_SIGNED" = "true" ]; then
+            ./gradlew assembleFossRelease bundlePlayRelease --no-daemon
+            cp app/build/outputs/apk/foss/release/app-foss-release.apk ../spindro.apk
+            cp app/build/outputs/bundle/playRelease/app-play-release.aab ../spindro-play.aab
+          else
+            ./gradlew assembleFossDebug --no-daemon
+            cp app/build/outputs/apk/foss/debug/app-foss-debug.apk ../spindro.apk
+          fi
+          echo "Build ${VERSION_CODE} (versionName 1.0.${VERSION_CODE}), firmata release: $SPINDRO_SIGNED" >> "$GITHUB_STEP_SUMMARY"
+      - name: Elimina la chiave dal runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/spindro-release.jks"
       - uses: actions/upload-artifact@v4
         with:
           name: spindro-apk
           path: spindro.apk
+      # l'AAB serve solo per caricarlo a mano su Google Play: resta artifact della run, NON va nella release pubblica
+      - uses: actions/upload-artifact@v4
+        if: env.SPINDRO_SIGNED == 'true'
+        with:
+          name: spindro-play-aab
+          path: spindro-play.aab
+          if-no-files-found: error
+      # i branch di lavoro (spindro/**) compilano soltanto: la release pubblica si aggiorna da main e dal branch storico
       - name: Pubblica l'APK nella release "app-android"
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-28a29a79-yshigo'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: app-android

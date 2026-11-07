@@ -42,9 +42,11 @@ deve essere `localhost`.
 ```sh
 npm ci
 npm run build:web && npx cap sync android
-cd android && ./gradlew assembleDebug   # serve Android SDK (ANDROID_HOME) e JDK 21
+cd android && ./gradlew assembleFossDebug   # serve Android SDK (ANDROID_HOME) e JDK 21
+# -> app/build/outputs/apk/foss/debug/app-foss-debug.apk
 ```
 Su GitHub lo fa il workflow `.github/workflows/android.yml` a ogni push e pubblica l'APK nella release.
 
-Note: la chiave `android/app/spindro-debug.keystore` serve solo a firmare le installazioni dirette;
-per il Play Store servirà una chiave di rilascio privata.
+Note: la chiave `android/app/ridefreedom-debug.keystore` serve solo a firmare le build debug;
+la build release (APK foss + AAB per il Play Store) e la chiave privata sono spiegate in
+[android-release.md](android-release.md).

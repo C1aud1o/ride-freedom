@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// La firma di release si attiva solo se ci sono TUTTE le variabili d'ambiente e il file esiste
+def releaseKeystoreAvailable = ['ANDROID_KEYSTORE_FILE', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']
+        .every { System.getenv(it) } && file(System.getenv('ANDROID_KEYSTORE_FILE')).exists()
+
 android {
     namespace "com.spindro.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -17,13 +21,48 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // chiave fissa (non segreta, solo per installazioni dirette) così ogni nuovo APK aggiorna il precedente
+    // BuildConfig.DISTRIBUTION serve ai flavor (AGP 8 non genera BuildConfig di default)
+    buildFeatures {
+        buildConfig true
+    }
+
+    // Due varianti dallo stesso codice (docs/PIANO-LANCIO.md, sez. 3):
+    //  - foss: niente servizi Google -> APK pubblico (release GitHub, sito, F-Droid/IzzyOnDroid)
+    //  - play: AAB per il Play Store
+    // Per ora sono identiche: stesso applicationId, stesso codice.
+    flavorDimensions "distribution"
+    productFlavors {
+        foss {
+            dimension "distribution"
+            buildConfigField "String", "DISTRIBUTION", '"foss"'
+        }
+        play {
+            dimension "distribution"
+            buildConfigField "String", "DISTRIBUTION", '"play"'
+            // PUNTO DI AGGANCIO FIREBASE (sez. 5 del piano): quando servirà l'account opzionale,
+            // le dipendenze Firebase andranno SOLO qui, con "playImplementation ..." nel blocco
+            // dependencies e il google-services.json in app/src/play/. Il codice Java può
+            // distinguere le varianti con BuildConfig.DISTRIBUTION ("foss" / "play").
+        }
+    }
+
     signingConfigs {
+        // chiave fissa (non segreta, solo per installazioni dirette) così ogni nuovo APK debug aggiorna il precedente
         spindro {
             storeFile file('ridefreedom-debug.keystore')
             storePassword 'android'
             keyAlias 'ridefreedom'
             keyPassword 'android'
+        }
+        // chiave di release: arriva SOLO da variabili d'ambiente (in CI dai Secret GitHub),
+        // mai dal repository. Vedi docs/android-release.md
+        if (releaseKeystoreAvailable) {
+            release {
+                storeFile file(System.getenv('ANDROID_KEYSTORE_FILE'))
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
         }
     }
     buildTypes {
@@ -31,7 +70,16 @@ android {
             signingConfig signingConfigs.spindro
         }
         release {
+            if (releaseKeystoreAvailable) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn('Spindro: chiave di release assente (ANDROID_KEYSTORE_FILE & co.): la build release resterà NON firmata.')
+            }
+            // Riduzione del codice spenta di proposito: Capacitor trova i plugin (anche il BLE)
+            // per riflessione tramite annotazioni, e R8 rischierebbe di rimuoverli o rinominarli.
+            // Il guadagno sarebbe minimo (l'app è quasi tutta HTML/JS negli asset). Vedi docs/android-release.md
             minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
