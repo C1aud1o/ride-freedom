@@ -118,6 +118,7 @@ click.addEventListener('disconnected', () => {
   setStatus('clickStatus', 'Non connesso');
 });
 click.addEventListener('shift', (e) => (activeGame?.active ? activeGame.input(e.detail) : shift(e.detail)));
+click.addEventListener('hold', (e) => { if (activeGame?.active) activeGame.hold?.(e.detail); });
 
 $('connectHr').addEventListener('click', async () => {
   if (hrm.connected) { hrm.disconnect(); return; }
@@ -171,11 +172,13 @@ $('up').addEventListener('click', () => step(+1));
 $('down').addEventListener('click', () => step(-1));
 
 // Tastiera / telecomandi Bluetooth che inviano frecce o pagina su/giù
+const keyDir = (k) => (['ArrowRight', 'ArrowUp', 'PageUp', '+', '=', ' ', 'd', 'D'].includes(k) ? 1 : ['ArrowLeft', 'ArrowDown', 'PageDown', '-', 'a', 'A'].includes(k) ? -1 : 0);
+window.addEventListener('keyup', (e) => { if (activeGame?.active && keyDir(e.key)) activeGame.hold?.(0); });
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   if (activeGame?.active) {
-    if (['ArrowRight', 'ArrowUp', 'PageUp', '+', '=', ' '].includes(e.key)) { e.preventDefault(); activeGame.input(+1); }
-    if (['ArrowLeft', 'ArrowDown', 'PageDown', '-'].includes(e.key)) { e.preventDefault(); activeGame.input(-1); }
+    const d = keyDir(e.key);
+    if (d) { e.preventDefault(); if (!e.repeat) { activeGame.input(d); activeGame.hold?.(d); } }
     if (e.key === 'Escape') closeGame();
     return;
   }
@@ -627,7 +630,7 @@ $('audioTest').addEventListener('click', async () => {
   log(`Test audio: ${out.join(' | ')}`);
 });
 const games = {
-  horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: '+ / − corsia · watt = colpi · sprint = overdrive' },
+  horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: 'tieni + / − per sterzare · watt = colpi · sprint = overdrive' },
   racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },
   shooter: { game: new Strike3D($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
 };
@@ -655,7 +658,7 @@ function startGame(kind) {
   $('gameTitle').textContent = g.title;
   $('gameHelp').textContent = g.help;
   requestWakeLock();
-  activeGame = g.game;
+  activeGame = g.game; window.__game = g.game; // accesso per la diagnostica e i test automatici
   activeGame.start();
 }
 function closeGame() {
@@ -676,8 +679,10 @@ $('muteGame').addEventListener('click', () => { $('muteGame').textContent = game
 $('gameCanvas').addEventListener('pointerdown', (e) => {
   if (!activeGame?.active) return;
   const r = e.currentTarget.getBoundingClientRect();
-  activeGame.input(e.clientX - r.left < r.width / 2 ? -1 : +1);
+  const d = e.clientX - r.left < r.width / 2 ? -1 : +1;
+  activeGame.input(d); activeGame.hold?.(d);
 });
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('gameCanvas').addEventListener(ev, () => activeGame?.active && activeGame.hold?.(0));
 // ---------- Strava ----------
 const strava = new Strava(STRAVA_PROXY);
 let stravaBusy = false;

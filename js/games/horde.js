@@ -7,21 +7,28 @@ import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
 import { SONGS } from './audio.js';
 
 const A = 'assets/3d';
-const LANES = [-2.7, 0, 2.7];
+// strada larga: ti muovi liberamente (tieni premuto + / − per sterzare)
+const ROAD = 7.2;           // metà larghezza percorribile
+const ROAD_W = 17;          // larghezza asfalto
+const NUDGE = 1.6;          // spostamento di un tocco singolo
+const STEER = 9;            // m/s tenendo premuto
 const CHUNK = 60;
-const MAX_ALIVE = 70;
+const SPAWN_Z = 120;        // i nemici compaiono lontano e si vedono arrivare
+const MAX_ALIVE = 140;
+// i nemici diventano più robusti a ogni ondata: le armi migliori servono davvero
+const waveHp = (w) => Math.pow(1.2, w - 1);
 const FORMATION = [[-1.3, -1.6], [1.3, -1.6], [0, -2.8], [-2.6, -2.8], [2.6, -2.8], [-1.3, -4], [1.3, -4], [-2.6, -5.2], [2.6, -5.2], [0, -5.2], [-1.3, -6.4], [1.3, -6.4]];
 
 const WEAPONS = [
-  { name: 'PISTOLA', model: 'blaster-a', rate: 2.2, dmg: 1, shots: 1, spread: 0, speed: 38, color: '#fff3a0', xp: 12 },
-  { name: 'REVOLVER', model: 'blaster-k', rate: 2.6, dmg: 1.6, shots: 1, spread: 0, speed: 40, color: '#ffd166', xp: 25 },
-  { name: 'MITRAGLIETTA', model: 'blaster-j', rate: 6, dmg: 1, shots: 1, spread: 0.05, speed: 42, color: '#ffe08a', xp: 45 },
-  { name: 'FUCILE A POMPA', model: 'blaster-c', rate: 1.6, dmg: 1.4, shots: 6, spread: 0.32, speed: 34, color: '#ff9f43', xp: 70 },
-  { name: 'MITRAGLIATRICE', model: 'blaster-n', rate: 9, dmg: 1.4, shots: 1, spread: 0.06, speed: 46, color: '#ffd166', xp: 110 },
-  { name: 'FUCILE D\'ASSALTO', model: 'blaster-g', rate: 7, dmg: 2.4, shots: 2, spread: 0.08, speed: 50, color: '#b8f2ff', xp: 160 },
-  { name: 'LANCIARAZZI', model: 'blaster-h', rate: 1.6, dmg: 10, shots: 1, spread: 0, speed: 26, color: '#ff6b35', splash: 3.2, xp: 230 },
-  { name: 'CANNONE AL PLASMA', model: 'blaster-b', rate: 3.2, dmg: 7, shots: 1, spread: 0, speed: 34, color: '#c77dff', splash: 2.2, pierce: true, xp: 320 },
-  { name: 'MINIGUN', model: 'blaster-p', rate: 18, dmg: 2.2, shots: 1, spread: 0.1, speed: 52, color: '#7dff6a', xp: 450 },
+  { name: 'PISTOLA', model: 'blaster-a', rate: 2.2, dmg: 1, shots: 1, spread: 0, speed: 38, color: '#fff3a0', xp: 20 },
+  { name: 'REVOLVER', model: 'blaster-k', rate: 2.6, dmg: 1.6, shots: 1, spread: 0, speed: 40, color: '#ffd166', xp: 50 },
+  { name: 'MITRAGLIETTA', model: 'blaster-j', rate: 6, dmg: 1, shots: 1, spread: 0.05, speed: 42, color: '#ffe08a', xp: 135 },
+  { name: 'FUCILE A POMPA', model: 'blaster-c', rate: 1.6, dmg: 1.4, shots: 6, spread: 0.32, speed: 34, color: '#ff9f43', xp: 210 },
+  { name: 'MITRAGLIATRICE', model: 'blaster-n', rate: 9, dmg: 1.4, shots: 1, spread: 0.06, speed: 46, color: '#ffd166', xp: 330 },
+  { name: 'FUCILE D\'ASSALTO', model: 'blaster-g', rate: 7, dmg: 2.4, shots: 2, spread: 0.08, speed: 50, color: '#b8f2ff', xp: 480 },
+  { name: 'LANCIARAZZI', model: 'blaster-h', rate: 1.6, dmg: 10, shots: 1, spread: 0, speed: 26, color: '#ff6b35', splash: 3.2, xp: 690 },
+  { name: 'CANNONE AL PLASMA', model: 'blaster-b', rate: 3.2, dmg: 7, shots: 1, spread: 0, speed: 34, color: '#c77dff', splash: 2.2, pierce: true, xp: 960 },
+  { name: 'MINIGUN', model: 'blaster-p', rate: 18, dmg: 2.2, shots: 1, spread: 0.1, speed: 52, color: '#7dff6a', xp: 1350 },
   { name: 'LASER', model: 'blaster-l', rate: 10, dmg: 5, shots: 1, spread: 0, speed: 80, color: '#4de3ff', pierce: true, xp: Infinity },
 ];
 
@@ -81,7 +88,7 @@ export class Horde {
   build() {
     const { scene } = this.stage;
     scene.background = skyTexture('#0b0a1f', '#2a1745', '#5b2a52');
-    scene.fog = new THREE.Fog('#2a1840', 30, 110);
+    scene.fog = new THREE.Fog('#2a1840', 60, 175);
     this.sun = lights(scene, { sky: '#b9a6ff', ground: '#1a1426', sun: '#ffd9b0', hemi: 1.3, sunI: 1.6 });
     const moon = new THREE.Mesh(new THREE.SphereGeometry(6, 20, 14), new THREE.MeshBasicMaterial({ color: '#fff4d6', fog: false }));
     moon.position.set(-60, 55, 260); scene.add(moon); this.moon = moon;
@@ -91,7 +98,14 @@ export class Horde {
     const bulletGeo = new THREE.SphereGeometry(0.13, 8, 6);
     this.bullets = []; this.bulletPool = new Pool(scene, () => new THREE.Mesh(bulletGeo, new THREE.MeshBasicMaterial({ color: '#fff3a0' })), 260);
     this.fx = new Effects(scene, 160);
-    this.gemGeo = new THREE.OctahedronGeometry(0.22); this.gemMat = new THREE.MeshBasicMaterial({ color: '#7dff6a' });
+    this.gemGeo = new THREE.OctahedronGeometry(0.32); this.gemMat = new THREE.MeshBasicMaterial({ color: '#7dff6a' });
+    // segnalino del giocatore: anello luminoso a terra + linea di mira verso dove stai andando
+    const ringMat = new THREE.MeshBasicMaterial({ color: '#d9ff3d', transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.35, 40), ringMat); this.ring.rotation.x = -Math.PI / 2; this.ring.renderOrder = 2; scene.add(this.ring);
+    this.aim = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 1.4), new THREE.MeshBasicMaterial({ color: '#d9ff3d', transparent: true, opacity: 0.5, depthWrite: false })); this.aim.rotation.x = -Math.PI / 2; scene.add(this.aim);
+    // raggio del magnete per le gemme
+    this.magnet = new THREE.Mesh(new THREE.RingGeometry(3.9, 4, 48), new THREE.MeshBasicMaterial({ color: '#7dff6a', transparent: true, opacity: 0.18, depthWrite: false })); this.magnet.rotation.x = -Math.PI / 2; scene.add(this.magnet);
+    this.pops = [];
     this.reset();
   }
 
@@ -104,7 +118,8 @@ export class Horde {
     if (this.player) scene.remove(this.player.root);
     for (const b of this.bullets) b.mesh.visible = false;
     this.bullets = [];
-    this.z = 0; this.x = 0; this.lane = 1; this.hp = 3; this.maxHp = 5;
+    this.z = 0; this.x = 0; this.tx = 0; this.held = 0; this.heldT = 0; this.hp = 5; this.maxHp = 6; this.pops = [];
+    this.pressure = 1; this.calmT = 0; this.waveKills = 0;
     this.weapon = 0; this.xp = 0; this.rateMul = 1; this.dmgMul = 1;
     this.kills = 0; this.score = 0; this.wave = 1; this.waveT = 0; this.spawnAcc = 0;
     this.enemies = []; this.allies = []; this.gates = []; this.gems = [];
@@ -116,17 +131,17 @@ export class Horde {
   }
 
   ensureChunks() {
-    const first = Math.floor((this.z - 20) / CHUNK); const last = Math.floor((this.z + 130) / CHUNK);
+    const first = Math.floor((this.z - 25) / CHUNK); const last = Math.floor((this.z + 190) / CHUNK);
     for (let k = first; k <= last; k++) if (!this.chunks.has(k)) this.chunks.set(k, this.makeChunk(k));
     for (const [k, objs] of this.chunks) if (k < first - 1) { objs.forEach((o) => { this.stage.scene.remove(o); if (o.isInstancedMesh) o.dispose(); }); this.chunks.delete(k); }
   }
 
   makeChunk(k) {
     const { scene } = this.stage; const z0 = k * CHUNK; const objs = [];
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(9.4, CHUNK), new THREE.MeshLambertMaterial({ map: this.roadTex }));
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, CHUNK), new THREE.MeshLambertMaterial({ map: this.roadTex }));
     road.rotation.x = -Math.PI / 2; road.position.set(0, 0.01, z0 + CHUNK / 2); road.receiveShadow = true;
     scene.add(road); objs.push(road);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, CHUNK), new THREE.MeshLambertMaterial({ color: k % 2 ? '#2c3a2a' : '#2a3727' }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, CHUNK), new THREE.MeshLambertMaterial({ color: k % 2 ? '#2c3a2a' : '#2a3727' }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(0, -0.02, z0 + CHUNK / 2); ground.receiveShadow = true;
     scene.add(ground); objs.push(ground);
     // scenografia
@@ -134,16 +149,16 @@ export class Horde {
     const add = (name, x, z, rot, s) => { (sets[name] = sets[name] || []).push(mat4(x, 0, z, rot, s)); };
     for (let z = z0; z < z0 + CHUNK; z += 6) {
       for (const side of [-1, 1]) {
-        add(hash(z * 3 + side) > 0.5 ? 'iron-fence' : 'iron-fence-damaged', side * 5.6, z + 3, Math.PI / 2, 2.6);
+        add(hash(z * 3 + side) > 0.5 ? 'iron-fence' : 'iron-fence-damaged', side * (ROAD_W / 2 + 0.6), z + 3, Math.PI / 2, 2.6);
         const r = hash(z * 1.7 + side * 5);
-        const x = side * (7.5 + hash(z + side) * 14);
+        const x = side * (ROAD_W / 2 + 2.5 + hash(z + side) * 16);
         if (r < 0.35) add(pick(['gravestone-cross', 'gravestone-round', 'gravestone-bevel', 'gravestone-broken', 'cross']), x, z + hash(z) * 5, hash(z * 9) * 6, 2.6);
         else if (r < 0.65) add(pick(['pine', 'pine-crooked']), x + side * 4, z, hash(z * 7) * 6, 5 + hash(z * 2) * 3);
-        else if (r < 0.75) add('pumpkin-carved', side * 6.8, z + 2, side > 0 ? -1 : 1, 2.2);
+        else if (r < 0.75) add('pumpkin-carved', side * (ROAD_W / 2 + 1.6), z + 2, side > 0 ? -1 : 1, 2.2);
         else if (r < 0.82) add('crypt-small', x + side * 6, z, side > 0 ? -Math.PI / 2 : Math.PI / 2, 3.2);
         else if (r < 0.9) add('rocks', x, z, hash(z) * 6, 3);
       }
-      if (Math.round(z / 6) % 3 === 0) { add('lightpost-double', -5.2, z, 0, 2.6); add('lightpost-double', 5.2, z + 9, 0, 2.6); }
+      if (Math.round(z / 6) % 3 === 0) { add('lightpost-double', -ROAD_W / 2 - 0.2, z, 0, 2.6); add('lightpost-double', ROAD_W / 2 + 0.2, z + 9, 0, 2.6); }
     }
     for (const [name, mats] of Object.entries(sets)) if (this.m[name]) objs.push(...scatter(scene, this.m[name], mats));
     return objs;
@@ -155,15 +170,20 @@ export class Horde {
     if (this.state === 'menu') { if (dir > 0 && this.stateT > 0.4) this.begin(); return; }
     if (this.state === 'over') { if (this.stateT > 1.4) { this.reset(); this.begin(); } return; }
     if (this.state !== 'play') return;
-    this.lane = clamp(this.lane + dir, 0, 2);
-    this.audio.sfx('select');
+    this.tx = clamp(this.tx + dir * NUDGE, -ROAD, ROAD);
   }
+
+  // tenuto premuto: sterzata continua
+  hold(dir) { this.held = dir; this.heldT = 0; }
 
   begin() {
     this.state = 'play'; this.stateT = 0;
     this.audio.playSong(SONGS.factory); this.audio.sfx('go');
     this.say('ONDATA 1', '#d9ff3d', 2, true);
   }
+
+  // testo che sale dal giocatore (feedback immediato di cosa hai preso)
+  pop(text, color, t = 1) { this.pops.push({ text, color, t, t0: t, x: this.x, z: this.z }); }
 
   say(text, color = '#ffd34d', t = 1.6, big = false) { this.texts.push({ text, color, t, big }); }
   prog(stat, n = 1, xp = 0) { this.hooks.progress?.event(stat, n, xp); }
@@ -203,7 +223,7 @@ export class Horde {
     const c = character(this.stage.scene, this.m[def.model], def.height);
     c.root.rotation.y = Math.PI; c.root.position.set(x, def.float ? 0.4 : 0, z);
     c.play(def.anim, { speed: def.speed / 2 });
-    const hp = Math.round(def.hp * (1 + (this.wave - 1) * 0.18));
+    const hp = Math.round(def.hp * waveHp(this.wave) * (def.boss ? 1.6 : 1));
     this.enemies.push({ type, def, c, x, z, hp, maxHp: hp, dead: false, deadT: 0, flash: 0, wob: Math.random() * 6 });
   }
 
@@ -225,7 +245,8 @@ export class Horde {
     // avanzamento
     const v = Math.max(1.5, (kmh / 3.6) * 0.75);
     this.z += v * dt;
-    this.x = lerp(this.x, LANES[this.lane], Math.min(1, dt * 7));
+    if (this.held) { this.heldT += dt; if (this.heldT > 0.12) this.tx = clamp(this.tx + this.held * STEER * dt, -ROAD, ROAD); }
+    this.x = lerp(this.x, this.tx, Math.min(1, dt * 8));
     this.ensureChunks();
     this.shake = Math.max(0, this.shake - dt); this.hurtT = Math.max(0, this.hurtT - dt);
     const g = this.bossAlive ? 4 : Math.round((1.5 + 1.5 * Math.sin(this.z / 140)) * 2) / 2;
@@ -240,24 +261,33 @@ export class Horde {
 
     // ondate
     this.waveT += dt;
-    if (this.waveT > 24) {
-      this.waveT = 0; this.wave++;
+    // l'ondata finisce quando ne abbatti abbastanza (o dopo 45 s): il ritmo segue la tua forza
+    if (this.waveKills >= 12 + this.wave * 10 || this.waveT > 45) {
+      this.waveT = 0; this.wave++; this.waveKills = 0;
       this.hooks.progress?.setMax('hordeWave', this.wave);
-      if (this.wave % 4 === 0) { this.spawnEnemy('keeper', 0, this.z + 70); this.bossAlive = true; this.audio.sfx('alarm'); this.say(`ONDATA ${this.wave}: IL CUSTODE!`, '#ff4d4d', 3, true); }
+      if (this.wave % 5 === 0) { this.spawnEnemy('keeper', 0, this.z + 70); this.bossAlive = true; this.audio.sfx('alarm'); this.say(`ONDATA ${this.wave}: IL CUSTODE!`, '#ff4d4d', 3, true); }
       else this.say(`ONDATA ${this.wave}`, '#d9ff3d', 2, true);
     }
+    // regista: i nemici arrivano a gocce e poi a fiumi; si adatta a come stai andando
+    this.calmT += dt;
+    if (this.calmT > 12) this.pressure = Math.min(1.8, this.pressure + dt * 0.006);
     const alive = this.enemies.filter((e) => !e.dead).length;
-    const rate = 0.7 * Math.pow(1.32, this.wave - 1);
+    const firepower = (1 + this.allies.length * 0.85) * WEAPONS[this.weapon].rate * WEAPONS[this.weapon].dmg * WEAPONS[this.weapon].shots * this.rateMul * this.dmgMul;
+    const hpScale = waveHp(this.wave);
+    // quanti nemici al secondo riesci (circa) ad abbattere: la pressione resta un po' sotto o sopra
+    const killRate = firepower / (3 * hpScale);
+    const rate = clamp(killRate * (this.wave === 1 ? 0.45 : 0.62 + this.wave * 0.07) * this.pressure, 0.35, 40) * (this.bossAlive ? 0.25 : 1);
     this.spawnAcc += rate * dt;
-    while (this.spawnAcc >= 1 && alive < MAX_ALIVE) {
-      this.spawnAcc -= 1;
-      const group = Math.min(12, 1 + Math.floor(this.wave / 2 + Math.random() * this.wave * 0.6));
+    const cap = Math.min(MAX_ALIVE, Math.round((14 + this.wave * 12) * Math.min(1.3, this.pressure)));
+    while (this.spawnAcc >= 1 && alive < cap) {
+      const group = Math.min(16, 1 + Math.floor(Math.random() * (1 + this.wave * 0.9)));
+      this.spawnAcc -= group;
       const r = Math.random();
-      const type = this.wave >= 3 && r < 0.12 ? 'vampire' : this.wave >= 2 && r < 0.4 ? 'skeleton' : this.wave >= 4 && r < 0.55 ? 'ghost' : 'zombie';
-      const cx = (Math.random() - 0.5) * 6;
-      for (let i = 0; i < group && this.enemies.length < MAX_ALIVE + 20; i++) this.spawnEnemy(type, clamp(cx + (Math.random() - 0.5) * 3.5, -4.2, 4.2), this.z + 75 + Math.random() * 14 + i * 0.6);
+      const type = this.wave >= 3 && r < 0.1 ? 'vampire' : this.wave >= 2 && r < 0.35 ? 'skeleton' : this.wave >= 4 && r < 0.5 ? 'ghost' : 'zombie';
+      const cx = (Math.random() * 2 - 1) * (ROAD - 1);
+      for (let i = 0; i < group; i++) this.spawnEnemy(type, clamp(cx + (Math.random() - 0.5) * (2 + group * 0.5), -ROAD - 0.5, ROAD + 0.5), this.z + SPAWN_Z + Math.random() * 10 + i * 0.7);
     }
-    if (alive >= MAX_ALIVE) this.spawnAcc = Math.min(this.spawnAcc, 1);
+    if (alive >= cap) this.spawnAcc = Math.min(this.spawnAcc, 1);
 
     // portali
     if (this.z + 70 > this.nextGate && !this.bossAlive) { this.spawnGates(this.nextGate + 0); this.nextGate += 150; }
@@ -275,15 +305,15 @@ export class Horde {
     const roll = () => { let r = Math.random() * total; for (const g of GATES) if ((r -= g.w) < 0) return g; return GATES[0]; };
     let a = roll(); let b = roll(); let guard = 0;
     while ((b === a || (!a.good && !b.good)) && guard++ < 10) b = roll();
-    for (const [def, x] of [[a, -2.7], [b, 2.7]]) {
+    for (const [def, x] of [[a, -ROAD / 2], [b, ROAD / 2]]) {
       const group = new THREE.Group();
       const col = def.good ? '#2b8cff' : '#ff3b3b';
-      const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 2.6), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false }));
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(ROAD - 0.3, 2.8), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false }));
       panel.position.y = 1.5; group.add(panel);
-      const label = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.85), new THREE.MeshBasicMaterial({ map: labelTexture(def.text, null, '#ffffff'), transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+      const label = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.4), new THREE.MeshBasicMaterial({ map: labelTexture(def.text, null, '#ffffff'), transparent: true, side: THREE.DoubleSide, depthWrite: false }));
       label.position.set(0, 1.6, -0.02); label.rotation.y = Math.PI; group.add(label);
       const postMat = new THREE.MeshLambertMaterial({ color: def.good ? '#9cd2ff' : '#ff9c9c', emissive: col, emissiveIntensity: 0.4 });
-      for (const px of [-1.85, 1.85]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3, 0.18), postMat); post.position.set(px, 1.5, 0); group.add(post); }
+      for (const px of [-(ROAD / 2 - 0.1), ROAD / 2 - 0.1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3, 0.18), postMat); post.position.set(px, 1.5, 0); group.add(post); }
       group.position.set(x, 0, z);
       this.stage.scene.add(group);
       this.gates.push({ def, x, z, group, used: false });
@@ -295,8 +325,9 @@ export class Horde {
       if (g.used || this.z < g.z) continue;
       g.used = true;
       // passa dal portale della propria metà strada (la corsia centrale passa in mezzo)
-      if (Math.abs(this.x - g.x) < 1.8) {
+      if (Math.abs(this.x - g.x) < ROAD / 2 + 0.2) {
         g.def.apply(this);
+        this.pop(g.def.text, g.def.good ? '#4de3ff' : '#ff6b6b', 1.4);
         this.say(g.def.text, g.def.good ? '#4de3ff' : '#ff6b6b', 1.6, true);
         this.audio.sfx(g.def.good ? 'rescue' : 'hurt');
         this.fx.spawn(g.x, 1.5, g.z, { tex: g.def.good ? 'blue' : 'red', size: 6, life: 0.5 });
@@ -317,7 +348,7 @@ export class Horde {
       const holder = s.self ? this : s.ally;
       holder.fireT = (holder.fireT || 0) - dt;
       if (holder.fireT > 0) continue;
-      const target = this.nearest(s.x, s.z, 48);
+      const target = this.nearest(s.x, s.z, 62);
       if (!target) { holder.fireT = 0.1; continue; }
       holder.fireT = (1 / this.fireRate) * (s.self ? 1 : 1.15);
       const ang = Math.atan2(target.x - s.x, target.z - s.z);
@@ -327,7 +358,7 @@ export class Horde {
         mesh.material.color.set(od ? '#ffffff' : w.color);
         mesh.scale.setScalar(w.splash ? 2.2 : od ? 1.4 : 1);
         mesh.position.set(s.x + Math.sin(a) * 0.7, 1.25, s.z + Math.cos(a) * 0.7);
-        this.bullets.push({ mesh, vx: Math.sin(a) * w.speed, vz: Math.cos(a) * w.speed, life: 1.4, dmg: w.dmg * this.dmgMul * (od ? 2 : 1), splash: w.splash, pierce: w.pierce || od, hits: null });
+        this.bullets.push({ mesh, vx: Math.sin(a) * w.speed, vz: Math.cos(a) * w.speed, life: 1.8, dmg: w.dmg * this.dmgMul * (od ? 2 : 1), splash: w.splash, pierce: w.pierce || od, hits: null });
       }
       this.fx.spawn(s.x + Math.sin(ang) * 0.8, 1.3, s.z + Math.cos(ang) * 0.8, { tex: 'spark', size: 0.7, life: 0.06, grow: 0 });
       if (s.self) this.audio.sfx(w.splash ? 'rocket' : w.rate > 8 ? 'mg' : w.pierce ? 'laser' : 'shot');
@@ -338,7 +369,7 @@ export class Horde {
     let best = null; let bd = range;
     for (const e of this.enemies) {
       if (e.dead || e.z < z - 1) continue;
-      const d = Math.hypot(e.x - x, e.z - z) - (e.def.boss ? 4 : 0);
+      const d = Math.hypot(e.x - x, (e.z - z) * 0.8) - (e.def.boss ? 1 : 0);
       if (d < bd) { bd = d; best = e; }
     }
     return best;
@@ -371,11 +402,11 @@ export class Horde {
     if (e.hp > 0) return;
     e.dead = true; e.deadT = 0;
     e.c.play('die', { once: true, fade: 0.05 });
-    this.kills++; this.score += e.def.score * this.wave;
+    this.kills++; this.waveKills++; this.score += e.def.score * this.wave;
     this.prog('kills', 1, e.def.boss ? 200 : 1);
     this.xp += e.def.xp;
     if (this.xp >= WEAPONS[this.weapon].xp) this.evolve();
-    if (Math.random() < 0.18 || e.def.boss) this.dropGem(e.x, e.z, e.def.boss ? 12 : 1);
+    if (Math.random() < 0.3 || e.def.boss) this.dropGem(e.x, e.z, e.def.boss ? 12 : e.def.xp > 2 ? 3 : 1);
     if (e.def.boss) {
       this.bossAlive = false; this.fx.explode(e.x, 2.5, e.z, 2.5); this.shake = 0.8;
       this.audio.sfx('win'); this.say('IL CUSTODE È CADUTO!', '#d9ff3d', 2.6, true); this.prog('bosses', 1, 150);
@@ -393,12 +424,18 @@ export class Horde {
 
   updateGems(dt) {
     for (const g of this.gems) {
-      g.t += dt; g.mesh.rotation.y += dt * 4;
-      if (g.t > 0.6) { // volano verso di te
-        const dx = this.x - g.mesh.position.x; const dz = this.z - g.mesh.position.z; const d = Math.hypot(dx, dz) || 1;
-        g.mesh.position.x += (dx / d) * 22 * dt; g.mesh.position.z += (dz / d) * 22 * dt + 6 * dt;
-        if (d < 1) { g.done = true; this.stage.scene.remove(g.mesh); this.xp += 2; this.score += 5; this.audio.sfx('coin'); if (this.xp >= WEAPONS[this.weapon].xp) this.evolve(); }
-      }
+      g.t += dt; g.mesh.rotation.y += dt * 4; g.mesh.position.y = 0.7 + Math.sin(g.t * 5) * 0.15;
+      const dx = this.x - g.mesh.position.x; const dz = this.z - g.mesh.position.z; const d = Math.hypot(dx, dz) || 1;
+      // restano a terra: le prendi passandoci vicino (anello verde = raggio del magnete)
+      if (d < 4 || g.pull) {
+        g.pull = true;
+        g.mesh.position.x += (dx / d) * 26 * dt; g.mesh.position.z += (dz / d) * 26 * dt + 6 * dt;
+        if (d < 1) {
+          g.done = true; this.stage.scene.remove(g.mesh); this.xp += 2; this.score += 5 * this.wave;
+          this.audio.sfx('coin'); this.pop('+2', '#7dff6a', 0.8); this.ringPulse = 0.25;
+          if (this.xp >= WEAPONS[this.weapon].xp) this.evolve();
+        }
+      } else if (dz > 6) { g.done = true; this.stage.scene.remove(g.mesh); }
     }
     this.gems = this.gems.filter((g) => !g.done);
   }
@@ -413,7 +450,8 @@ export class Horde {
       }
       // camminano verso di te (convergendo un po')
       e.z -= e.def.speed * dt;
-      e.x += clamp(this.x - e.x, -1, 1) * dt * 0.35;
+      const near = e.z - this.z < 28;
+      e.x += clamp(this.x - e.x, -1, 1) * dt * (near ? (e.type === 'skeleton' ? 1.6 : 1.0) : 0.15);
       e.wob += dt;
       e.c.root.position.set(e.x, e.def.float ? 0.4 + Math.sin(e.wob * 3) * 0.2 : 0, e.z);
       e.flash = Math.max(0, e.flash - dt);
@@ -430,12 +468,13 @@ export class Horde {
         if (this.overdrive > 0) { this.damage(e, 999); continue; }
         if (this.hurtT <= 0) {
           this.hp -= e.def.boss ? 2 : 1; this.hurtT = 1.2; this.shake = 0.4; this.audio.sfx('hurt');
+          this.pressure = Math.max(0.55, this.pressure * 0.78); this.calmT = 0; this.pop('−1 ♥', '#ff4d6d', 1);
           if (navigator.vibrate) navigator.vibrate(90);
           if (this.hp <= 0) return this.gameOver();
         }
         if (!e.def.boss) this.damage(e, 999);
       }
-      if (e.z < this.z - 6) { e.dead = true; e.deadT = 2; } // superati
+      if (e.z < this.z - 6) { e.dead = true; e.deadT = 2; this.passed = (this.passed || 0) + 1; } // superati
     }
     this.enemies = this.enemies.filter((e) => {
       if (e.dead && e.deadT > 1.6) { this.stage.scene.remove(e.c.root); return false; }
@@ -457,7 +496,12 @@ export class Horde {
   animate(dt) {
     const cad = this.cadence || 85;
     this.player.root.position.set(this.x, 0, this.z);
-    this.player.root.rotation.set(0, 0, (LANES[this.lane] - this.x) * -0.08);
+    this.player.root.rotation.set(0, clamp((this.tx - this.x) * 0.12, -0.5, 0.5), (this.tx - this.x) * -0.06);
+    this.ringPulse = Math.max(0, (this.ringPulse || 0) - dt);
+    this.ring.position.set(this.x, 0.05, this.z); this.ring.scale.setScalar(1 + this.ringPulse * 1.6);
+    this.ring.material.color.set(this.hurtT > 0 ? '#ff4d6d' : this.overdrive > 0 ? '#4de3ff' : this.ringPulse > 0 ? '#7dff6a' : '#d9ff3d');
+    this.aim.position.set(this.tx, 0.04, this.z + 2.2); this.aim.visible = Math.abs(this.tx - this.x) > 0.3;
+    this.magnet.position.set(this.x, 0.03, this.z);
     this.player.pose(dt, cad, true);
     this.player.root.visible = !(this.hurtT > 0 && Math.floor(this.hurtT * 12) % 2);
     for (const a of this.allies) {
@@ -481,11 +525,11 @@ export class Horde {
   camera(dt) {
     const cam = this.stage.camera;
     const sx = this.shake > 0 ? (Math.random() - 0.5) * this.shake : 0;
-    const target = new THREE.Vector3(this.x * 0.45 + sx, 7.2, this.z - 8);
+    const target = new THREE.Vector3(this.x * 0.6 + sx, 11, this.z - 12.5);
     if (!this.camInit) { cam.position.copy(target); this.camInit = true; }
     cam.position.lerp(target, Math.min(1, dt * 5));
-    cam.lookAt(this.x * 0.55, 0.6, this.z + 12);
-    cam.fov = 58 + (this.overdrive > 0 ? 6 : 0); cam.updateProjectionMatrix();
+    cam.lookAt(this.x * 0.7, 0, this.z + 19);
+    cam.fov = 62 + (this.overdrive > 0 ? 6 : 0); cam.far = 400; cam.updateProjectionMatrix();
     this.sun.position.set(this.x + 15, 30, this.z - 10); this.sun.target.position.set(this.x, 0, this.z + 8);
     this.moon.position.set(-60, 55, this.z + 260);
   }
@@ -501,7 +545,7 @@ export class Horde {
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       hudText(ctx, "L'ORDA", W / 2, 120, { size: 56, align: 'center', color: '#d9ff3d' });
       hudText(ctx, 'Pedala. Spara. Sopravvivi.', W / 2, 150, { size: 15, align: 'center' });
-      const lines = ['Parti con una pistola: le ondate crescono sempre', 'Ogni uccisione fa evolvere l\'arma (10 armi)', 'Portali blu: alleati e potenziamenti. Rossi: evitali', '+ / − cambi corsia · più watt = più colpi', 'Sprint sopra soglia = OVERDRIVE', 'Ogni 4 ondate arriva il Custode'];
+      const lines = ['Parti con una pistola: le ondate crescono sempre', 'Ogni uccisione fa evolvere l\'arma (10 armi)', 'Portali blu: alleati e potenziamenti. Rossi: evitali', 'Tieni premuto + / − per sterzare · più watt = più colpi', 'Passa sulle gemme verdi: l\'anello le attira', 'Sprint sopra soglia = OVERDRIVE', 'Ogni 5 ondate arriva il Custode'];
       lines.forEach((l, i) => hudText(ctx, '· ' + l, W / 2, H * 0.62 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
       hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.62 + 130, { size: 12, align: 'center', color: '#bbb' });
       hudText(ctx, '+  INIZIA', W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
@@ -544,6 +588,15 @@ export class Horde {
       hudText(ctx, x.text, W / 2, ty, { size: x.big ? 28 : 15, color: x.color, align: 'center' }); ty += x.big ? 34 : 22;
       ctx.globalAlpha = 1;
     }
+    const v3 = new THREE.Vector3();
+    for (const p of this.pops) {
+      p.t -= dt; const k = 1 - p.t / p.t0;
+      v3.set(p.x, 2.6 + k * 2.2, p.z).project(this.stage.camera);
+      ctx.globalAlpha = clamp(p.t / p.t0 * 2, 0, 1);
+      hudText(ctx, p.text, (v3.x + 1) / 2 * W, (1 - v3.y) / 2 * H, { size: 20, align: 'center', color: p.color });
+      ctx.globalAlpha = 1;
+    }
+    this.pops = this.pops.filter((p) => p.t > 0);
     if (this.hurtT > 0.9) { ctx.fillStyle = `rgba(255,0,40,${(this.hurtT - 0.9) * 0.9})`; ctx.fillRect(0, 0, W, H); }
     if (this.state === 'over') {
       ctx.fillStyle = 'rgba(8,4,14,.8)'; ctx.fillRect(0, 0, W, H);

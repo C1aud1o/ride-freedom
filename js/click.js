@@ -156,6 +156,10 @@ export class ZwiftClick extends EventTarget {
       }
       this.pressed = pressed;
       this.dbg.extra.pressed = [...pressed];
+      // direzione tenuta premuta (per sterzare in continuo nei giochi)
+      let held = 0; for (const id of pressed) held += this.map[id] || 0;
+      held = Math.sign(held);
+      if (held !== this.held) { this.held = held; this.emit('hold', held); }
     }
     this.dbg.changed();
   }
