@@ -19,6 +19,7 @@ import { Mattoni } from './games/mattoni.js';
 import { Planata } from './games/planata.js';
 import { VideoRide } from './videoride.js';
 import { rideStats, renderHistory } from './history.js';
+import { shareCard } from './sharecard.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock } from './workouts.js';
 import { GameAudio } from './games/audio.js';
@@ -440,7 +441,8 @@ function tickRoute(dm, sample) {
     if (routeT < prevT) { try { localStorage.setItem(ghostKey(route), JSON.stringify(routeTrace)); } catch { /* pieno */ } toast(routeGhost ? `Nuovo record: ${fmtClock(routeT)} (−${fmtClock(prevT - routeT)})` : `Tempo: ${fmtClock(routeT)}. La prossima volta sfidi questo record!`); }
     else toast(`Arrivo in ${fmtClock(routeT)}: record ${fmtClock(prevT)}`); gameAudio.sfx('win'); progress.event('routes', 1, 60); stopRoute(); }
 }
-function stopRoute() { route = null; $('routeCard').hidden = true; document.body.classList.remove('in-route'); state.grade = 0; syncInputs(); applyMode(true); }
+let lastRouteName = null;
+function stopRoute() { lastRouteName = route?.name || lastRouteName; route = null; $('routeCard').hidden = true; document.body.classList.remove('in-route'); state.grade = 0; syncInputs(); applyMode(true); }
 $('rtStop').addEventListener('click', () => { if (confirm('Terminare il percorso?')) stopRoute(); });
 function startWorkout(w) {
   if (route) stopRoute();
@@ -978,3 +980,18 @@ $('fullscreen').addEventListener('click', () => {
   if (document.fullscreenElement) document.exitFullscreen?.(); else document.documentElement.requestFullscreen?.().catch(() => toast('Schermo intero non disponibile qui'));
 });
 if (!document.documentElement.requestFullscreen) $('fullscreen').hidden = true;
+
+$('shareImg').addEventListener('click', async () => {
+  const r = state.ride; if (!r.log.length) { toast('Nessun dato da condividere'); return; }
+  const st = rideStats(r.log); const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
+  const mins = Math.round(r.elapsed / 60);
+  const stats = [['Potenza media', avgW, 'W'], ['Tempo', fmtTime(r.elapsed), ''], ['Distanza', (r.distance / 1000).toFixed(1), 'km'], ['Energia', Math.round(r.energy), 'kJ']];
+  if (st.np) stats.push(['Normalizzata', st.np, 'W']);
+  if (st.best[1200]) stats.push(['Migliori 20 min', st.best[1200], 'W']); else if (st.best[60]) stats.push(['Miglior minuto', st.best[60], 'W']);
+  const res = await shareCard({
+    title: $('finishTitle').textContent || `${mins} minuti in sella`,
+    date: new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }),
+    stats, series: st.series, ftp: state.ftp, route: route?.name || lastRouteName,
+  });
+  if (res === 'saved') toast('Immagine salvata');
+});
