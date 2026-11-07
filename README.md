@@ -32,6 +32,22 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
   - **L'Orda**: sparatutto "a orde" in 3D. Si parte con una pistola contro pochi zombi, le ondate
     crescono senza fine (scheletri, fantasmi, vampiri, il Custode gigante), l'arma evolve in 10 passi
     fino al laser e i portali danno alleati che sparano con te. Più watt = più colpi.
+- **Altri giochi 3D**: **Planata** (aereo a pedali, i watt sono la quota: un allenamento a intervalli
+    travestito), **Gruppetto** (raccogli i ciclisti che si accodano alla tua scia; la pendenza sale con il
+    gruppo), **Mattoni** (rimbalzi: la cadenza è la velocità della palla). Nei giochi si sterza tenendo
+    premuto + / −.
+- **Pedala su un video**: un video YouTube o un file tuo che scorre alla tua velocità.
+- **Allenamenti strutturati** in ERG (sblocco, fondo, sweet spot, soglia, VO2max, piramide, 30/30)
+  calcolati sulla FTP, con + / − che regolano l'intensità, e **test FTP a rampa**.
+- **Percorsi GPX**: la pendenza segue il tracciato (realismo 50/75/100%), profilo e mini mappa,
+  sfida al tuo record sullo stesso percorso; il .FIT contiene la traccia GPS (mappa su Strava).
+- **Storico**: minuti settimanali, record 5 s / 1 / 5 / 20 min, FTP stimata, grafico di ogni uscita.
+- Pausa automatica, potenza media 3 s, schermo intero.
+- **PC e Mac**: stessa webapp con Chrome o Edge (Bluetooth del computer), layout a due colonne e
+  scorciatoie (frecce o + / − per le marce, Spazio avvia/pausa, G giochi). Mancano solo le funzioni
+  che richiedono l'app Android: ponte Garmin e comandi musica.
+- **App Android** (APK): tutto quanto sopra più il **ponte Garmin** (il telefono trasmette potenza,
+  cadenza e velocità all'orologio come un sensore) e la **musica dal Click** (pressione lunga).
 - **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
   valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
   assegnarli a cambiata +/−.
@@ -42,7 +58,8 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
 
 ## Requisiti
 
-- **Android**: Chrome (Web Bluetooth supportato).
+- **Android**: Chrome (Web Bluetooth supportato) o l'app (https://mta-world.com/app/ride-freedom.apk).
+- **PC / Mac / Linux / ChromeOS**: Chrome o Edge (serve il Bluetooth nel computer o una chiavetta Bluetooth 4.0+).
 - **iPhone/iPad**: Safari non supporta Web Bluetooth → usa il browser gratuito **Bluefy**.
 - La pagina deve essere servita in **HTTPS** (o da `localhost`).
 
