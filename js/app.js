@@ -10,7 +10,7 @@ import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit, encodeWorkoutFit, encodeZwo } from './fit.js';
 import { Strava } from './strava.js';
-import { STRAVA_PROXY } from './config.js';
+import { STRAVA_PROXY, GOATCOUNTER_URL, SENTRY_DSN } from './config.js';
 import { initMonitoring, track, consentAsked, consentGiven, setConsent } from './monitor.js';
 import { buildReportUrl } from './report.js';
 import { setupDebug } from './debugview.js';
@@ -825,7 +825,9 @@ function answerConsent(yes) {
 }
 $('consentYes').addEventListener('click', () => answerConsent(true));
 $('consentNo').addEventListener('click', () => answerConsent(false));
-if (!consentAsked()) openSheet('consentSheet');
+// se statistiche o segnalazione errori non sono configurate (fork, build di prova) non si chiede né si mostra nulla
+$('analyticsRow').hidden = !GOATCOUNTER_URL; $('errorsNote').hidden = !SENTRY_DSN; $('privacyGroup').hidden = !GOATCOUNTER_URL && !SENTRY_DSN;
+if (GOATCOUNTER_URL && !consentAsked()) openSheet('consentSheet');
 
 // ---------- Segnala il tuo rullo (issue GitHub precompilata, senza dati personali) ----------
 function trainerReportUrl() {

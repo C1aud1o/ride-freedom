@@ -40,6 +40,20 @@ Chiunque abbia un rullo smart deve potersi allenare bene, divertirsi e avere i d
 
 - **Budget di utilizzo**: il piano ha un limite ogni 5 ore e lo condividono tutte le sottosessioni. Quindi: **al massimo 3 sottosessioni insieme**, Haiku per testi e traduzioni, Sonnet per il codice normale, Opus solo per Bluetooth, sicurezza e architettura. Commit e push frequenti, così un'interruzione non fa perdere lavoro.
 
+## Stato (2026-11-08)
+**Sviluppo per il test chiuso: completo.** Il prodotto ha:
+- rulli FTMS, Tacx FE-C e Wahoo legacy; Zwift Click, Play e Ride;
+- 5 lingue;
+- modalità sviluppatore e "Segnala il tuo rullo";
+- monitoraggio con consenso;
+- account facoltativo con sincronizzazione, classifiche e sfide del mese;
+- build firmata e flavor foss/play;
+- documenti legali in bozza, sito vetrina, immagini e testi per gli store, contenuti di lancio;
+- prima esperienza rifinita (avvio 9,1 s → 3,4 s su 4G lento, accessibilità 100).
+
+Test: 49 sull'app, 47 sui rulli, controller e traduzioni: tutti verdi.
+**Bloccato da:** azioni del proprietario 3, 4 e 5 (account Play, tester, chiave). Finché l'account Play non c'è, solo piccole correzioni, per risparmiare il limite settimanale.
+
 ## Decisioni prese
 | Data | Decisione | Motivo |
 |---|---|---|
@@ -49,6 +63,8 @@ Chiunque abbia un rullo smart deve potersi allenare bene, divertirsi e avere i d
 | 2026-11-07 | **Nuova chiave di firma**, conservata solo nei Secret di GitHub | La chiave vecchia è da considerare pubblica |
 | 2026-11-07 | Account facoltativo, tutto gratis; login solo nella variante Play e sul web ufficiale | Fiducia della community, nessuna parte chiusa |
 | 2026-11-07 | Hosting: GitHub Pages fino all'arrivo degli account, poi Firebase Hosting; APK su GitHub Releases | Costo zero, banda illimitata per gli APK |
+| 2026-11-08 | App Android: accesso solo con email al lancio; login Google nativo dopo | Google blocca il suo login nelle WebView; il login nativo è lavoro delicato e non serve per il lancio |
+| 2026-11-08 | Il consenso alle statistiche si chiede solo quando le statistiche sono configurate | Non chiedere un consenso inutile |
 | 2026-11-07 | Niente Google Analytics. Monitoraggio con Sentry (UE) e GoatCounter | Privacy, nessun banner cookie |
 
 ## Cose che solo il proprietario può fare

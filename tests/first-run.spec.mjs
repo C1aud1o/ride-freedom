@@ -13,13 +13,10 @@ for (const lang of ['en', 'it']) {
     await page.addInitScript({ path: FAKE_BLE });
     await page.goto('/index.html'); // nessun localStorage: utente nuovo
 
-    // 1) apertura: benvenuto con tre passi e un solo pulsante grande; chiede il consenso
+    // 1) apertura: benvenuto con tre passi e un solo pulsante grande
     await expect(page.locator('#welcome')).toBeVisible();
     await expect(page.locator('#welcome li')).toHaveCount(3);
-    await expect(page.locator('#consentSheet')).toBeVisible();
-    // 2) consenso: due scelte chiare, bersagli ≥ 44 px
-    for (const id of ['#consentNo', '#consentYes']) expect((await page.locator(id).boundingBox()).height).toBeGreaterThanOrEqual(44);
-    await page.click('#consentNo');
+    // senza GoatCounter configurato (repo e build di prova) il consenso non viene chiesto: è coperto da monitoring.spec
     await expect(page.locator('#consentSheet')).toBeHidden();
 
     // 3) il rullo non si trova: compare l'aiuto con soluzioni concrete e il link "Segnala il tuo rullo"
