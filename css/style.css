@@ -520,3 +520,23 @@ body:not(.dev) .dev-only { display: none !important; }
 .ghost.danger { border-color: rgba(255, 77, 77, .5); background: rgba(255, 77, 77, .08); }
 .pill.warn { background: rgba(242, 194, 48, .15); color: #f2c230; }
 #accountGroup select { font: 700 var(--fs-body)/1 var(--font-ui); background: var(--ink); color: var(--t1); border: 1px solid var(--t4); border-radius: 12px; padding: 12px; min-height: 44px; }
+
+/* sfide del mese (home) e classifiche (menu giochi) */
+.challenges { padding: 20px; display: grid; gap: 12px; }
+.challenges h2 { margin: 0; font: 700 var(--fs-title)/1.1 var(--font-num); text-transform: uppercase; }
+.ch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.ch-list li { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: baseline; }
+.ch-list .goal-bar { grid-column: 1 / -1; }
+.ch-list small { color: var(--t3); }
+.ch-list li.done .ch-name { color: var(--accent); }
+.boards { margin: 12px 0; }
+.bd-invite { margin: 0; text-align: center; color: var(--t3); }
+.bd summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+.bd-body { display: grid; gap: 10px; }
+.bd-body .chips { flex-wrap: wrap; }
+.bd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.bd-rows li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: 8px; }
+.bd-rows li.me { background: var(--accent-5); color: var(--accent); }
+.bd-rank { color: var(--t3); font-variant-numeric: tabular-nums; }
+.bd-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-me { margin: 4px 0 0; font-weight: 700; }

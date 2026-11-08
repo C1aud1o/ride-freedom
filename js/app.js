@@ -28,7 +28,8 @@ import './ui.js';
 import { coach, spokenTime } from './coach.js';
 import { glowSetting } from './games/kit3d.js';
 import { party, badges } from './celebrate.js';
-import { initAccount, dataChanged } from './account/index.js';
+import { initAccount, dataChanged, accountsAvailable, submitGameScore, renderBoards } from './account/index.js';
+import * as challenges from './challenges.js';
 import { createClickNav } from './clicknav.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { workouts, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
@@ -739,10 +740,24 @@ function openHistory() {
   for (const id of ['settingsSheet', 'finishSheet']) closeSheet(id);
   openSheet('historySheet');
 }
+// card delle sfide del mese: solo dallo storico locale, anche senza account
+function renderChallenges(hist, riding) {
+  const el = $('challengeCard');
+  if (riding || !hist.length) { el.hidden = true; return; }
+  const list = challenges.progress(hist, challenges.monthKey(), state.ftp);
+  const month = fmtDate(new Date(), { month: 'long' });
+  const medals = Object.keys(challenges.loadDone()).length;
+  el.hidden = false;
+  el.innerHTML = `<h2>${t('challenges.title', { month })}</h2><ul class="ch-list">${list.map((c) => {
+    const left = c.metric === 'z2' ? t('challenges.valueMin', { done: Math.round(c.value), target: c.target }) : t('challenges.value', { done: fmtNum(Math.round(c.value)), target: c.target });
+    return `<li class="${c.done ? 'done' : ''}" data-ch="${c.id}"><span class="ch-name">${c.done ? '🏅 ' : ''}${t(`challenges.${c.metric}`, { n: c.metric === 'z2' ? c.target / 60 : c.target })}</span><small>${c.done ? t('challenges.completed') : left}</small><span class="goal-bar" role="progressbar" aria-valuenow="${c.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${c.pct}%"></i></span></li>`;
+  }).join('')}</ul>${medals ? `<p class="fine">${t('challenges.medals', { count: medals })}</p>` : ''}`;
+}
 function renderWelcome() {
   const el = $('welcome');
   const hist = history();
   const riding = trainer.connected || state.ride.log.length;
+  renderChallenges(hist, riding);
   if (riding) { el.hidden = true; return; }
   el.hidden = false;
   if (!hist.length) {
@@ -941,6 +956,18 @@ if (GarminBridge) {
 
 // ---------- Gioco ----------
 let gradeBeforeGame = 0;
+// Classifiche: durata e potenza della partita si misurano qui (1 campione al secondo mentre un gioco è aperto)
+let gameRunT0 = 0; let gamePower = []; let gameSampler = null;
+function reportGameScore({ game, stage, score }) {
+  const dur = Math.round((Date.now() - gameRunT0) / 1000);
+  // in demo (rullo non collegato) o senza partita avviata non si invia nulla
+  if (!accountsAvailable || !gameRunT0 || dur < 20 || !trainer.connected || !Number.isFinite(score)) { gameRunT0 = 0; return; }
+  gameRunT0 = 0;
+  const p = gamePower.slice(-Math.max(1, dur));
+  const avgW = p.length ? Math.round(p.reduce((a, b) => a + b, 0) / p.length) : 0;
+  const maxW = p.length ? Math.max(avgW, ...p) : 0;
+  submitGameScore({ game, ...(stage !== undefined ? { stage } : {}), score: game === 'racer' ? score : Math.round(score), durationSec: dur, avgW, maxW });
+}
 const progress = new Progress();
 const gameHooks = {
   progress,
@@ -948,6 +975,8 @@ const gameHooks = {
   speedKmh: () => (state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : state.data.speed || 0),
   stats: () => ({ power: Math.round(state.data.power || 0), cadence: Math.round(currentCadence()), gear: state.mode === 'gears' ? state.gear + 1 : null }),
   shift: (d) => shift(d),
+  runStart: () => { gameRunT0 = Date.now(); },
+  runEnd: (r) => reportGameScore(r),
   setGrade: (g) => {
     state.grade = g == null ? gradeBeforeGame : Math.max(-10, Math.min(15, g));
     syncInputs(); render(); applyMode(true);
@@ -1006,6 +1035,7 @@ const games = {
 let activeGame = null; let activeKind = null;
 
 function openGame() {
+  renderBoards($('boardPanel'), { stages: [0, 1, 2].map((i) => `games.racer.stage${i + 1}.name`) });
   $('gamePanel').hidden = false;
   $('gameMenu').hidden = false;
   progress.renderMenu($('progressPanel'));
@@ -1029,6 +1059,7 @@ function startGame(kind) {
   $('gameTitle').textContent = t(g.title);
   $('gameHelp').textContent = t(g.help);
   requestWakeLock();
+  if (accountsAvailable && !gameSampler) gameSampler = setInterval(() => { gamePower.push(Math.min(2500, Math.round(state.data.power || 0))); if (gamePower.length > 10800) gamePower.shift(); }, 1000);
   if (kind !== 'video') clickNav.stop(); // nel gioco + e − tornano al gioco
   activeGame = g.game; window.__game = g.game; // accesso per la diagnostica e i test automatici
   activeGame.start();
@@ -1037,6 +1068,7 @@ function closeGame() {
   if (activeGame) { // dal gioco si torna al menu, dal menu si esce
     activeGame.stop();
     activeGame = null; activeKind = null;
+    clearInterval(gameSampler); gameSampler = null; gamePower = []; gameRunT0 = 0;
     openGame();
     return;
   }
@@ -1045,6 +1077,13 @@ function closeGame() {
 }
 document.querySelectorAll('.game-card').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.game)));
 $('openGame').addEventListener('click', openGame);
+// invito "Accedi per entrare in classifica": chiude i giochi e apre le impostazioni sulla sezione Account
+window.addEventListener('account:open', () => {
+  if (activeGame) closeGame();
+  $('gamePanel').hidden = true; document.body.classList.remove('game-open');
+  openSheet('settingsSheet');
+  setTimeout(() => document.getElementById('accountGroup')?.scrollIntoView({ block: 'start' }), 150);
+});
 $('closeGame').addEventListener('click', closeGame);
 const showMute = () => { $('muteGame').textContent = gameAudio.muted ? t('games.audioOff') : t('games.audioOn'); };
 showMute();
@@ -1135,10 +1174,14 @@ $('finishRide').addEventListener('click', () => {
     if (streak >= 2) medals.push({ ico: '🔥', title: t('finish.streak', { n: streak }), sub: t('finish.streakSub') });
     if (!hist.length) medals.push({ ico: '★', title: t('finish.first'), sub: t('finish.firstSub') });
   }
+  let chDone = [];
   if (!r.historySaved && r.elapsed >= 60) {
     const entry = { t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy), ...rideStats(r.log) };
+    const histBefore = [...hist];
     hist.push(entry);
     saveHistory(hist.slice(-200)); r.historySaved = true; persist();
+    chDone = challenges.newlyDone(histBefore, hist, challenges.monthKey(), state.ftp);
+    challenges.markDone(chDone);
     dataChanged('rides', String(entry.t));
   }
   const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5).length;
@@ -1152,6 +1195,7 @@ $('finishRide').addEventListener('click', () => {
     ? t('strava.alreadyOn', { url: r.stravaUrl })
     : strava.connected ? '' : t('strava.connectHint');
   if (gl && goalBefore && goalBefore.done < gl.goal && gl.done >= gl.goal) medals.unshift({ ico: '🏁', title: t('finish.goalTitle'), sub: t('finish.goalSub', { done: gl.done, goal: gl.goal }) });
+  for (const c of chDone) medals.unshift({ ico: '🏅', title: t('challenges.badge', { name: t(`challenges.${c.metric}`, { n: c.metric === 'z2' ? c.target / 60 : c.target }) }), sub: t('challenges.badgeSub') });
   badges($('finishBadges'), medals.slice(0, 4));
   openSheet('finishSheet');
   if (r.elapsed >= 60) track('ride-complete');

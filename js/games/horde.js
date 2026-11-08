@@ -183,7 +183,7 @@ export class Horde {
   hold(dir) { this.held = dir; this.heldT = 0; }
 
   begin() {
-    this.state = 'play'; this.stateT = 0;
+    this.state = 'play'; this.stateT = 0; this.hooks.runStart?.();
     this.audio.playSong(SONGS.factory); this.audio.sfx('go');
     this.say(t('games.horde.wave', { n: 1 }), '#d9ff3d', 2, true);
   }
@@ -514,6 +514,7 @@ export class Horde {
     this.newBest = this.score > this.best;
     if (this.newBest) { this.best = this.score; localStorage.setItem('hordeBest', this.best); }
     this.prog('races', 0, 40 + this.wave * 10);
+    this.hooks.runEnd?.({ game: 'horde', score: this.score });
     this.hooks.setGrade(0);
     this.finalDist = dist;
   }

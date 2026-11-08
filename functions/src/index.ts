@@ -10,6 +10,7 @@ import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/fire
 import * as functionsV1 from 'firebase-functions/v1';
 import { logger } from 'firebase-functions';
 import { isoWeek, monthKey, sortKeyOf, validateScore } from './validate';
+import { ChallengeDef, DEFAULT_CHALLENGES } from './challenges';
 
 initializeApp();
 const db = getFirestore();
@@ -162,8 +163,6 @@ export const onProfileUpdated = onDocumentUpdated('users/{uid}', async (event) =
 // ---------------------------------------------------------------------------
 // Sfide del mese: avanzamento calcolato dal server a ogni nuova uscita
 // ---------------------------------------------------------------------------
-interface ChallengeDef { id: string; metric: 'km' | 'minutes' | 'rides' | 'kj'; target: number; }
-
 export const onRideCreated = onDocumentCreated('users/{uid}/rides/{rideId}', async (event) => {
   const r = event.data?.data();
   if (!r || r.deleted) return;
@@ -173,7 +172,8 @@ export const onRideCreated = onDocumentCreated('users/{uid}/rides/{rideId}', asy
   const end = Number(r.t) + Number(r.dur) * 1000;
   if (monthKey(new Date(Number(r.t))) !== month || created.getTime() - end > 2 * 864e5 || r.src === 'import') return;
   const uid = event.params.uid;
-  const defs = ((await db.doc(`challenges/${month}`).get()).get('items') ?? []) as ChallengeDef[];
+  // definizioni del mese pubblicate a mano, altrimenti quelle di default (come in js/challenges.js)
+  const defs = ((await db.doc(`challenges/${month}`).get()).get('items') ?? DEFAULT_CHALLENGES) as ChallengeDef[];
   const progRef = db.doc(`users/${uid}/challenges/${month}`);
   await db.runTransaction(async (tx) => {
     const prog = (await tx.get(progRef)).data() ?? {};

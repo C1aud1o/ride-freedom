@@ -1,6 +1,6 @@
 // Caricamento pigro dell'SDK Firebase (modulare, da CDN gstatic con versione esatta).
 // Se FIREBASE_CONFIG è vuoto questo modulo non fa NULLA: nessun import, nessuna richiesta di rete.
-import { FIREBASE_CONFIG, FIREBASE_EMULATOR, FIREBASE_VERSION, FIREBASE_REGION } from '../config.js';
+import { FIREBASE_CONFIG, FIREBASE_EMULATOR, FIREBASE_VERSION, FIREBASE_REGION, FIREBASE_APPCHECK_SITE_KEY } from '../config.js';
 
 export const accountsAvailable = !!(FIREBASE_CONFIG && typeof FIREBASE_CONFIG === 'object' && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId);
 
@@ -15,6 +15,10 @@ export function loadSdk() {
       import(`${base}/firebase-firestore-lite.js`), import(`${base}/firebase-functions.js`),
     ]);
     const a = app.initializeApp(FIREBASE_CONFIG);
+    if (FIREBASE_APPCHECK_SITE_KEY && !FIREBASE_EMULATOR) { // App Check: solo la nostra app può scrivere le classifiche
+      const ac = await import(`${base}/firebase-app-check.js`);
+      ac.initializeAppCheck(a, { provider: new ac.ReCaptchaV3Provider(FIREBASE_APPCHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+    }
     const authI = auth.getAuth(a);
     const dbI = fs.getFirestore(a);
     const functions = fn.getFunctions(a, FIREBASE_REGION);

@@ -17,6 +17,8 @@ export const GOATCOUNTER_URL = '';
 export const FIREBASE_CONFIG = null;
 // true = usa gli emulatori locali (Auth 9099, Firestore 8080, Functions 5001): solo per i test.
 export const FIREBASE_EMULATOR = false;
+// Chiave pubblica reCAPTCHA v3 per App Check (le classifiche la richiedono: submitScore ha enforceAppCheck). Vuota = App Check spento (emulatori, test).
+export const FIREBASE_APPCHECK_SITE_KEY = '';
 // Versione ESATTA dell'SDK, caricato solo se FIREBASE_CONFIG c'è, da https://www.gstatic.com/firebasejs/<versione>/
 export const FIREBASE_VERSION = '12.19.0';
 // Regione delle Cloud Functions (fissa, vedi functions/src/index.ts)

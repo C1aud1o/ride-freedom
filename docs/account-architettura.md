@@ -1,6 +1,6 @@
 # Account, sincronizzazione e classifiche: architettura (E2)
 
-*Stato: progetto + regole + test. **Login web, profilo, consensi e sincronizzazione (E3/E4) sono integrati** (`js/account/`, spenti finché `FIREBASE_CONFIG` in `js/config.js` è `null`). Restano il login nativo Android e le classifiche (E5).*
+*Stato: progetto + regole + test. **Login web, profilo, consensi e sincronizzazione (E3/E4) sono integrati** (`js/account/`, spenti finché `FIREBASE_CONFIG` in `js/config.js` è `null`). Le classifiche e le sfide del mese (E5) sono integrate (§16). Resta il login nativo Android.*
 
 Riferimenti: `docs/PIANO-LANCIO.md` sez. 4, 5, 7 · bozze legali in `docs/legal/` (privacy sez. 4 e 5, cancellazione account) · setup della console in `docs/firebase-setup.md`.
 
@@ -383,3 +383,18 @@ In CI li esegue `.github/workflows/rules.yml` su Ubuntu con Java 21.
 Scelte rispetto al progetto: Firestore **Lite** (nessun listener); `sync:vals`, `sync:last`, `sync:force`, `sync:bad`, `account:session` si aggiungono alle chiavi di §4.1 (tutte fuori dal backup: `NO_BACKUP` copre `sync:*` e `account:session`); i timbri delle impostazioni si ricavano **confrontando** i valori a ogni sincronizzazione, quindi non serve `setPref()` sparso nel codice; l'SDK si scarica solo se il dispositivo era già entrato o al primo tocco su "Accedi" (chi non usa l'account non contatta Google).
 
 Da verificare col progetto Firebase vero (gli emulatori non provano tutto): Google popup e domini autorizzati; email di verifica e reimpostazione password consegnate (modelli, mittente, spam); `deleteAccount` deployata (qui nei test è simulata) e accesso recente; trigger `onProfileUpdated` che cancella il battito alla revoca; indici; App Check in monitoraggio; costi di lettura reali.
+
+## 16. Classifiche e sfide del mese lato web (E5)
+
+| File | Compito |
+|---|---|
+| `js/account/boards.js` | invio punteggi (`submitScore`, coda di 10 con 3 tentativi se manca la rete) e classifiche a tab Settimana / Sempre / Il mio Paese. Si carica solo con gli account disponibili |
+| `js/account/index.js` | `submitGameScore` (no-op senza account collegato) e `renderBoards` (pannello nascosto senza `FIREBASE_CONFIG`) |
+| `js/challenges.js` | sfide del mese, modulo puro: avanzamento dallo storico locale, zona 2 dalla serie di potenza (56-75% FTP) |
+| `functions/src/challenges.ts` | sfide di default del server (km, uscite): usate se manca `challenges/{YYYY-MM}`; devono coincidere con `js/challenges.js` (test) |
+
+- **Invio**: ogni gioco chiama `hooks.runStart()` all'inizio e `hooks.runEnd({game, stage?, score})` alla fine. `app.js` misura durata e potenza (1 campione al secondo) e invia solo se il rullo è collegato (in demo no), la partita dura almeno 20 s e l'utente è collegato. Il `runId` evita i doppioni.
+- **Lettura**: 20 righe + la mia riga + un `count()` per la posizione (≤ 22 letture a vista), cache di 5 minuti in `sessionStorage`, "Aggiorna" esplicito. Senza login c'è solo l'invito "Accedi per entrare in classifica": nessuna rete, SDK non scaricato.
+- **App Check**: `FIREBASE_APPCHECK_SITE_KEY` in `js/config.js` (chiave reCAPTCHA v3). Vuota = spento: finché non è impostata (e App Check non è imposto) l'invio va solo con gli emulatori.
+- **Sfide**: avanzamento solo locale (funziona senza account). La medaglia si ricorda in `challengeDone` e compare a fine uscita; con l'account il server assegna anche la sua (km e uscite). La zona 2 è solo locale: il server non conosce la FTP.
+- **TODO**: tarare i limiti in `functions/src/games.ts` con punteggi veri; `challengeDone` non è ancora sincronizzata tra dispositivi; sfide di mesi diversi in `BY_MONTH` (client) e in `challenges/{YYYY-MM}` (server).

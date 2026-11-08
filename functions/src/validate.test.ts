@@ -45,3 +45,15 @@ test('settimana ISO', () => {
   assert.equal(isoWeek(new Date('2027-01-01T00:00:00Z')), '2026-W53');
   assert.equal(isoWeek(new Date('2024-12-30T00:00:00Z')), '2025-W01');
 });
+
+test('ogni gioco dell\'app ha limiti anti-cheat (e le sfide di default coincidono con js/challenges.js)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const app = readFileSync('../js/app.js', 'utf8');
+  const block = app.slice(app.indexOf('\nconst games = {')).split('\n};')[0];
+  const keys = [...block.matchAll(/^  (\w+): \{ game:/gm)].map((m) => m[1]).filter((k) => k !== 'video');
+  assert.ok(keys.length >= 6);
+  for (const k of keys) assert.ok(GAMES[k], `mancano i limiti per ${k}`);
+  const { DEFAULT_CHALLENGES } = await import('./challenges');
+  const client = readFileSync('../js/challenges.js', 'utf8');
+  for (const c of DEFAULT_CHALLENGES) assert.ok(client.includes(`{ id: '${c.id}', metric: '${c.metric}', target: ${c.target} }`));
+});

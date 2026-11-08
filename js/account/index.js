@@ -16,3 +16,20 @@ export function dataChanged(col, id, opts) {
   try { if (!localStorage.getItem('sync:uid')) return; } catch { return; }
   import('./sync.js').then((m) => m.dataChanged(col, id, opts)).catch(() => {});
 }
+
+// ---- Classifiche (E5) ----
+const signedIn = () => { try { return !!localStorage.getItem('sync:uid'); } catch { return false; } };
+
+// Fine partita: invia il punteggio solo se c'è un account collegato. Mai bloccante, mai un errore verso l'utente.
+export function submitGameScore(payload) {
+  if (!accountsAvailable || !signedIn()) return;
+  import('./boards.js').then((m) => m.submitScore(payload)).catch(() => {});
+}
+
+// Menu giochi: classifiche con account, invito discreto senza. Senza configurazione il pannello resta nascosto e non parte nulla.
+export function renderBoards(el, opts) {
+  if (!el) return;
+  if (!accountsAvailable) { el.hidden = true; return; }
+  el.hidden = false;
+  import('./boards.js').then((m) => m.render(el, { ...opts, signedIn: signedIn() })).catch(() => { el.hidden = true; });
+}

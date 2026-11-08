@@ -505,7 +505,7 @@ export class Racer3D {
     this.rivals = RIVALS.map((r, i) => ({ ...r, name: t(r.name), line: t(r.line), i, s: 3 + (6 - i) * 2.2, x: LANES[i % 3], targetX: LANES[i % 3], speed: 0, finished: null, boost: 0, slow: 0, said: 0, phase: Math.random() * 6 }));
     for (const c of this.coins) { c.taken = false; c.mesh.visible = true; }
     for (const b of this.boxes) b.takenAt = -99;
-    this.state = 'countdown'; this.stateT = 0; this.lastBeep = 4;
+    this.state = 'countdown'; this.stateT = 0; this.lastBeep = 4; this.hooks.runStart?.();
     this.sentGrade = null;
     this.audio.playSong(SONGS.race);
   }
@@ -696,6 +696,7 @@ export class Racer3D {
     const best = Number(localStorage.getItem(key)) || Infinity;
     this.newBest = this.raceT < best;
     if (this.newBest) localStorage.setItem(key, this.raceT.toFixed(1));
+    this.hooks.runEnd?.({ game: 'racer', stage: this.stageIndex, score: Math.round(this.raceT * 10) / 10 });
     this.prog('races', 1, 60 + ([100, 70, 50][place - 1] || 0));
     if (place <= 3) this.prog('podiums', 1, 0);
     if (place === 1) { this.prog('wins', 1, 0); this.hooks.progress?.addToList('tracksWon', this.stageIndex); }

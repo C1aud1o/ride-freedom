@@ -42,6 +42,7 @@ export class Base3D {
   begin() {
     this.state = 'play'; this.stateT = 0; this.score = 0;
     this.audio.playSong(SONGS[this.songName] || SONGS.race); this.audio.sfx('go');
+    this.hooks.runStart?.();
     this.onBegin?.();
   }
 
@@ -53,6 +54,7 @@ export class Base3D {
     this.newBest = this.score > this.best;
     if (this.newBest) { this.best = this.score; localStorage.setItem(`${this.key}Best`, this.best); this.audio.sfx('win'); }
     this.hooks.progress?.event('races', 0, 20 + extraXp);
+    this.hooks.runEnd?.({ game: this.key, score: this.score });
     this.hooks.setGrade(0);
   }
 

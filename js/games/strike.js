@@ -260,7 +260,7 @@ export class Strike {
     if (this.state === 'select') return;
     this.stateT += dt;
     if (this.state === 'over') return;
-    if (this.state === 'title' && this.stateT > 2.6) this.state = 'play';
+    if (this.state === 'title' && this.stateT > 2.6) { this.state = 'play'; this.hooks.runStart?.(); }
     if (this.state === 'clear') {
       if (this.stateT > 5) {
         this.levelIndex++;
@@ -712,6 +712,7 @@ export class Strike {
       this.state = 'over'; this.stateT = 0;
       this.audio.stopSong(); this.audio.sfx('lose');
       if (this.score > this.best) { this.best = this.score; localStorage.setItem('strikeBest2', this.best); this.newRecord = true; } else this.newRecord = false;
+      this.hooks.runEnd?.({ game: 'shooter', score: Math.round(this.score) });
     }
   }
 
