@@ -1,6 +1,6 @@
 // Strumenti 3D comuni ai giochi (Three.js + modelli Kenney CC0).
 import * as THREE from 'three';
-import { GLTFLoader } from '../../vendor/three/addons/loaders/GLTFLoader.js';
+import { Quality } from './kit/quality.js';
 import { EffectComposer } from '../../vendor/three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from '../../vendor/three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from '../../vendor/three/addons/postprocessing/UnrealBloomPass.js';
@@ -11,45 +11,54 @@ import { mergeGeometries } from '../../vendor/three/addons/utils/BufferGeometryU
 export const glowSetting = { get on() { return localStorage.getItem('gameGlow') !== '0'; }, set on(v) { localStorage.setItem('gameGlow', v ? '1' : '0'); } };
 
 export { THREE };
-const loader = new GLTFLoader();
-const cache = new Map();
-export function loadModel(path) {
-  if (!cache.has(path)) cache.set(path, loader.loadAsync(path));
-  return cache.get(path);
-}
-export async function loadAll(map, onProgress) {
-  const out = {}; let done = 0; const entries = Object.entries(map);
-  await Promise.all(entries.map(async ([k, p]) => { out[k] = await loadModel(p); done++; onProgress?.(done / entries.length); }));
-  return out;
-}
+// caricamento con cache e decoder meshopt (js/games/kit/loader.js)
+export { loadGLTF as loadModel, loadAll } from './kit/loader.js';
+export { Quality, qualitySetting, LEVELS } from './kit/quality.js';
+export { Shake, TimeScale, WindLines, Confetti } from './kit/juice.js';
+export { PALETTE, TIMES, skyDome, styleLights, styleFog, toonMaterial, toonify } from './kit/style.js';
+export { Cyclist, loadCyclistTemplate, makeKit, makeCrowdGeometry, BIKE } from './kit/cyclist.js';
+export { Instanced, scatterModel, crowdInstances, prepareModel } from './kit/env.js';
 
-// Palcoscenico: canvas WebGL sotto il canvas dell'interfaccia (2D)
+// Palcoscenico: canvas WebGL sotto il canvas dell'interfaccia (2D).
+// La qualità (alta/media/bassa) decide pixel ratio, ombre e bagliore; in automatico scende se i fps non reggono.
 export class Stage {
-  constructor(hudCanvas) {
+  constructor(hudCanvas, { quality = new Quality() } = {}) {
     this.hud = hudCanvas;
+    this.quality = quality;
     this.gl = document.createElement('canvas');
     this.gl.className = 'game-gl';
     hudCanvas.parentElement.insertBefore(this.gl, hudCanvas);
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.gl, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    this.renderer.shadowMap.enabled = true;
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.gl, antialias: quality.level === 'high', powerPreference: 'high-performance' });
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.ctx = hudCanvas.getContext('2d');
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 800);
-    if (glowSetting.on) {
+    this.applyQuality(quality.cfg);
+    quality.onChange((cfg) => { this.applyQuality(cfg); this.resize(); });
+    this.lastFrame = 0;
+    this.onResize = () => this.resize();
+    window.addEventListener('resize', this.onResize);
+    this.resize();
+  }
+  applyQuality(cfg) {
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.pixelRatio));
+    if (this.renderer.shadowMap.enabled !== cfg.shadows) {
+      this.renderer.shadowMap.enabled = cfg.shadows;
+      this.scene?.traverse((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.needsUpdate = true; }); });
+    }
+    this.scene?.traverse((o) => { if (o.isDirectionalLight && o.castShadow && o.shadow.mapSize.x !== cfg.shadowMap) { o.shadow.mapSize.set(cfg.shadowMap, cfg.shadowMap); o.shadow.map?.dispose(); o.shadow.map = null; } });
+    const wantBloom = cfg.bloom && glowSetting.on;
+    if (wantBloom && !this.composer) {
       this.composer = new EffectComposer(this.renderer);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
       // soglia alta: brillano solo le cose davvero luminose (scie, vampate, lune, gemme)
       this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.45, 0.82);
       this.composer.addPass(this.bloom);
       this.composer.addPass(new OutputPass());
-    }
-    this.frames = []; this.lastFrame = 0;
-    this.onResize = () => this.resize();
-    window.addEventListener('resize', this.onResize);
-    this.resize();
+    } else if (!wantBloom && this.composer) { this.composer.dispose?.(); this.composer = null; this.bloom = null; }
+    this.cfg = cfg;
+    this.onQuality?.(cfg);
   }
   resize() {
     const r = this.hud.getBoundingClientRect();
@@ -67,15 +76,10 @@ export class Stage {
     return { x: (v.x + 1) / 2 * this.W, y: (1 - v.y) / 2 * this.H, visible: v.z < 1 };
   }
   render() {
-    if (this.composer) {
-      // se per 3 secondi si va sotto i ~28 fps, il bagliore si spegne per questa partita
-      const now = performance.now();
-      if (this.lastFrame) { this.frames.push(now - this.lastFrame); if (this.frames.length > 90) this.frames.shift(); }
-      this.lastFrame = now;
-      if (this.frames.length >= 90 && this.frames.reduce((a, b) => a + b, 0) / 90 > 36) { this.composer.dispose?.(); this.composer = null; }
-      else { this.composer.render(); return; }
-    }
-    this.renderer.render(this.scene, this.camera);
+    const now = performance.now();
+    if (this.lastFrame) this.quality.sample(Math.min(0.25, (now - this.lastFrame) / 1000));
+    this.lastFrame = now;
+    if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
   }
   dispose() {
     window.removeEventListener('resize', this.onResize);

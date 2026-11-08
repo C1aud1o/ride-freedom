@@ -1376,6 +1376,9 @@ $('coachOn').addEventListener('change', () => { coach.on = $('coachOn').checked;
 
 $('gameGlow').checked = glowSetting.on;
 $('gameGlow').addEventListener('change', () => { glowSetting.on = $('gameGlow').checked; });
+// qualità grafica dei giochi 3D (stessa chiave di games/kit/quality.js): auto misura i fps all'avvio
+try { $('gameQuality').value = localStorage.getItem('gameQuality') || 'auto'; } catch { /* niente storage */ }
+$('gameQuality').addEventListener('change', () => { try { localStorage.setItem('gameQuality', $('gameQuality').value); if ($('gameQuality').value === 'auto') localStorage.removeItem('gameQualityAuto'); } catch { /* niente storage */ } });
 
 // ---------- Navigazione con il Click, tasto indietro e link condivisi ----------
 const inGame = () => activeGame?.active && $('gameMenu').hidden && !document.querySelector('.video-pick:not([hidden])');
