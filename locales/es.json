@@ -1069,5 +1069,14 @@
   "calib.retry": "Reintentar",
   "calib.done": "Listo: {f} rpm por km/h. Desde ahora la cadencia y el cambio virtual usan este valor.",
   "calib.needTrainer": "Conecta primero el rodillo",
-  "ui.cancel": "Cancelar"
+  "ui.cancel": "Cancelar",
+  "ftpAsk.title": "¿Cuánto empujas?",
+  "ftpAsk.why": "Los entrenamientos usan porcentajes de tu FTP (la potencia que mantienes durante una hora aprox.). Aún no la has configurado: elige tu nivel, escríbela si la sabes o haz el test.",
+  "ftpAsk.new": "Estoy empezando",
+  "ftpAsk.mid": "Monto de vez en cuando",
+  "ftpAsk.fit": "Entreno a menudo",
+  "ftpAsk.strong": "Estoy muy en forma",
+  "ftpAsk.own": "La sé:",
+  "ftpAsk.test": "Hacer el test (20 min)",
+  "ftpAsk.ok": "Confirmar"
 }

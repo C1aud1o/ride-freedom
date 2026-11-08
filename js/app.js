@@ -204,6 +204,7 @@ function shift(dir) {
 function step(dir) {
   if (workout && !workout.w.test) { // durante un allenamento + / − regolano l'intensità
     workout.bias = Math.min(1.5, Math.max(0.5, +(workout.bias + dir * 0.05).toFixed(2)));
+    try { localStorage.setItem('wkBias', workout.bias); } catch { /* */ } // ricordata per i prossimi allenamenti
     toast(t('workout.intensity', { pct: Math.round(workout.bias * 100) })); tickWorkout(0); return;
   }
   if (state.mode === 'gears') return shift(dir);
@@ -504,10 +505,27 @@ function tickRoute(dm, sample) {
 let lastRouteName = null;
 function stopRoute() { lastRouteName = route?.name || lastRouteName; route = null; $('routeCard').hidden = true; document.body.classList.remove('in-route'); state.grade = 0; syncInputs(); applyMode(true); }
 $('rtStop').addEventListener('click', () => { if (confirm(t('route.confirmStop'))) stopRoute(); });
+// Prima del primo allenamento: se l'FTP non è mai stata impostata (l'app userebbe 200 W) la si chiede,
+// con una stima semplice da livello e peso, oppure si propone il test a rampa.
+function askFtp(w) {
+  const box = document.createElement('div'); box.className = 'calib';
+  const lv = [['ftpAsk.new', 1.8], ['ftpAsk.mid', 2.5], ['ftpAsk.fit', 3.2], ['ftpAsk.strong', 3.9]];
+  box.innerHTML = `<div class="calib-box" role="dialog" aria-modal="true"><h2>${t('ftpAsk.title')}</h2><p>${t('ftpAsk.why')}</p>
+    <div class="ftp-levels">${lv.map(([k, wkg]) => `<button class="ghost" data-ftp="${Math.round(state.mass * wkg / 5) * 5}">${t(k)}<small>≈ ${Math.round(state.mass * wkg / 5) * 5} W</small></button>`).join('')}</div>
+    <label class="ftp-own"><span>${t('ftpAsk.own')}</span> <span class="unit-input"><input type="number" min="80" max="500" step="5" inputmode="numeric" placeholder="${state.ftp}"><i>W</i></span></label>
+    <div class="row2"><button class="ghost" data-test>${t('ftpAsk.test')}</button><button class="cta" data-ok>${t('ftpAsk.ok')}</button></div></div>`;
+  document.body.appendChild(box);
+  const set = (v) => { state.ftp = Math.min(500, Math.max(80, Math.round(v / 5) * 5)); $('ftp').value = state.ftp; localStorage.setItem('ftp', state.ftp); };
+  box.querySelectorAll('[data-ftp]').forEach((b) => b.addEventListener('click', () => { set(+b.dataset.ftp); box.remove(); startWorkout(w); }));
+  box.querySelector('[data-ok]').addEventListener('click', () => { const v = +box.querySelector('input').value; if (v >= 80) set(v); else set(state.ftp); box.remove(); startWorkout(w); });
+  box.querySelector('[data-test]').addEventListener('click', () => { set(state.ftp); box.remove(); startWorkout(workouts().find((x) => x.test) || w); });
+}
 function startWorkout(w) {
+  if (!w.test && !localStorage.getItem('ftp')) { closeSheet('workoutSheet'); askFtp(w); return; }
   if (route) stopRoute();
   if (workout && !confirm(t('workout.confirmInterrupt', { name: workout.w.name }))) return;
-  workout = new WorkoutRunner(w, state.ftp); wkLast = null; wkPower = []; wkLowCad = 0;
+  workout = new WorkoutRunner(w, state.ftp); wkLast = null;
+  if (!w.test) workout.bias = Math.min(1.5, Math.max(0.5, Number(localStorage.getItem('wkBias')) || 1)); wkPower = []; wkLowCad = 0;
   setMode('erg');
   closeSheet('workoutSheet');
   document.body.classList.add('in-workout');

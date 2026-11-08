@@ -1069,5 +1069,14 @@
   "calib.retry": "Nochmal",
   "calib.done": "Fertig: {f} U/min pro km/h. Trittfrequenz und virtuelle Schaltung nutzen jetzt diesen Wert.",
   "calib.needTrainer": "Verbinde zuerst den Rollentrainer",
-  "ui.cancel": "Abbrechen"
+  "ui.cancel": "Abbrechen",
+  "ftpAsk.title": "Wie stark trittst du?",
+  "ftpAsk.why": "Trainings nutzen Prozent deiner FTP (die Leistung, die du etwa eine Stunde halten kannst). Du hast sie noch nicht eingestellt: Wähle dein Level, gib sie ein, wenn du sie kennst, oder mach den Test.",
+  "ftpAsk.new": "Ich fange gerade an",
+  "ftpAsk.mid": "Ich fahre ab und zu",
+  "ftpAsk.fit": "Ich trainiere oft",
+  "ftpAsk.strong": "Ich bin sehr fit",
+  "ftpAsk.own": "Ich kenne sie:",
+  "ftpAsk.test": "Test machen (20 Min.)",
+  "ftpAsk.ok": "Bestätigen"
 }

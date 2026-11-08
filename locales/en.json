@@ -1069,5 +1069,14 @@
   "calib.retry": "Try again",
   "calib.done": "Done: {f} rpm per km/h. Cadence and virtual shifting now use this value.",
   "calib.needTrainer": "Connect the trainer first",
-  "ui.cancel": "Cancel"
+  "ui.cancel": "Cancel",
+  "ftpAsk.title": "How hard do you push?",
+  "ftpAsk.why": "Workouts use percentages of your FTP (the power you can hold for about an hour). You haven't set it yet: pick your level, type it if you know it, or take the test.",
+  "ftpAsk.new": "Just starting",
+  "ftpAsk.mid": "I ride now and then",
+  "ftpAsk.fit": "I train often",
+  "ftpAsk.strong": "I'm very fit",
+  "ftpAsk.own": "I know it:",
+  "ftpAsk.test": "Take the test (20 min)",
+  "ftpAsk.ok": "Confirm"
 }

@@ -589,3 +589,7 @@ body:not(.dev) .dev-only { display: none !important; }
 @keyframes calib-beat { from { opacity: 1; transform: scale(1.12); } to { opacity: .25; transform: scale(1); } }
 .calib-count { font-size: 1.3rem; font-weight: 700; min-height: 1.6em; }
 @media (prefers-reduced-motion: reduce) { .calib-beat.on { animation: none; opacity: 1; } }
+.ftp-levels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.ftp-levels button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 56px; }
+.ftp-levels small { opacity: .75; }
+.ftp-own { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 0 14px; text-align: left; }

@@ -1069,5 +1069,14 @@
   "calib.retry": "Réessayer",
   "calib.done": "C'est fait : {f} tr/min par km/h. La cadence et les vitesses virtuelles utilisent désormais cette valeur.",
   "calib.needTrainer": "Connecte d'abord le home-trainer",
-  "ui.cancel": "Annuler"
+  "ui.cancel": "Annuler",
+  "ftpAsk.title": "Quelle est ta puissance ?",
+  "ftpAsk.why": "Les séances utilisent des pourcentages de ta FTP (la puissance que tu tiens environ une heure). Tu ne l'as pas encore réglée : choisis ton niveau, saisis-la si tu la connais, ou fais le test.",
+  "ftpAsk.new": "Je débute",
+  "ftpAsk.mid": "Je roule de temps en temps",
+  "ftpAsk.fit": "Je m'entraîne souvent",
+  "ftpAsk.strong": "Je suis très entraîné",
+  "ftpAsk.own": "Je la connais :",
+  "ftpAsk.test": "Faire le test (20 min)",
+  "ftpAsk.ok": "Confirmer"
 }
