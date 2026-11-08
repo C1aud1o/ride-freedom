@@ -38,6 +38,8 @@ Chiunque abbia un rullo smart deve potersi allenare bene, divertirsi e avere i d
 - Testi per l'utente: frasi brevi, niente gergo, in tutte le lingue presenti.
 - Commit in italiano, finché il repo non sarà pubblico; da allora in inglese.
 
+- **Budget di utilizzo**: il piano ha un limite ogni 5 ore e lo condividono tutte le sottosessioni. Quindi: **al massimo 3 sottosessioni insieme**, Haiku per testi e traduzioni, Sonnet per il codice normale, Opus solo per Bluetooth, sicurezza e architettura. Commit e push frequenti, così un'interruzione non fa perdere lavoro.
+
 ## Decisioni prese
 | Data | Decisione | Motivo |
 |---|---|---|
