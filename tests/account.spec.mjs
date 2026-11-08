@@ -236,3 +236,16 @@ test.describe('con l\'emulatore Firebase', () => {
     expect(await page.evaluate(() => localStorage.getItem('ftp'))).toBe('230'); // i dati locali non si toccano
   });
 });
+
+test('nell\'app Android il pulsante Google non c\'è: resta l\'email, con una riga che spiega', async ({ page }) => {
+  // Google blocca il login Google nelle WebView: l'app nativa (Capacitor) deve nasconderlo
+  await page.route('**/vendor/capacitor/capacitor.js', (route) => route.fulfill({ contentType: 'text/javascript', body: `window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', registerPlugin: () => new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : async () => ({})) }) };` }));
+  await setup(page, { config: true });
+  await page.click('#openSettings');
+  await expect(page.locator('#accountGroup')).toBeVisible();
+  await expect(page.locator('#accountGroup [data-act=google]')).toHaveCount(0);
+  await expect(page.locator('#accountGroup [data-testid=google-later]')).toBeVisible();
+  await expect(page.locator('#accountGroup #accEmail')).toBeVisible();
+  await expect(page.locator('#accountGroup [data-act=signin]')).toBeVisible();
+  expect(page.errors).toEqual([]);
+});

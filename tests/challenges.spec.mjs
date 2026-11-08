@@ -48,7 +48,7 @@ test('le sfide del server coincidono con quelle dell\'app e ogni gioco ha i suoi
   const ts = read('functions/src/challenges.ts');
   for (const c of ch.CHALLENGES.filter((x) => x.metric !== 'z2')) expect(ts).toContain(`{ id: '${c.id}', metric: '${c.metric}', target: ${c.target} }`);
   const app = read('js/app.js');
-  const keys = [...app.slice(app.indexOf('\nconst games = {')).split('\n};')[0].matchAll(/^  (\w+): \{ game:/gm)].map((m) => m[1]).filter((k) => k !== 'video');
+  const keys = [...app.slice(app.indexOf('\nconst GAME_DEFS = {')).split('\n};')[0].matchAll(/^  (\w+): \{ load:/gm)].map((m) => m[1]).filter((k) => k !== 'video');
   expect(keys.length).toBeGreaterThanOrEqual(6);
   const rules = read('functions/src/games.ts');
   for (const k of keys) expect(rules, `limiti anti-cheat per ${k}`).toMatch(new RegExp(`^  ${k}: \\{`, 'm'));

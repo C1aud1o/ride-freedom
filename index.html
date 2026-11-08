@@ -15,7 +15,7 @@
 </head>
 <body data-mode="gears">
   <header class="top">
-    <span class="wordmark">Spin<b>dro</b></span>
+    <h1 class="wordmark">Spin<b>dro</b></h1>
     <span class="top-actions">
       <button id="openWorkouts" class="icon-btn" data-i18n-attr="aria-label:nav.workouts">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h18M5 19v-5M9 19V9M13 19v-7M17 19V5" /></svg>
@@ -139,10 +139,12 @@
     </section>
 
     <section class="card session" data-i18n-attr="aria-label:home.session">
+      <dl class="session-dl">
       <div><dt class="label" data-i18n="home.time"></dt><dd id="time">0:00</dd></div>
       <div><dt class="label">km</dt><dd id="distance">0.00</dd></div>
       <div><dt class="label" data-i18n="home.avgPower"></dt><dd id="avgPower">0</dd></div>
       <div><dt class="label">kJ</dt><dd id="kj">0</dd></div>
+      </dl>
       <button id="finishRide" class="finish-link" disabled data-i18n="home.finish"></button>
     </section>
     <p class="fine desk-only" data-i18n-html="home.keyboard"></p>
@@ -187,7 +189,7 @@
   <!-- Allenamenti e percorsi -->
   <div id="workoutSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="workoutTitle">
-      <header class="sheet-head"><h2 id="workoutTitle" data-i18n="workouts.title"></h2><button class="close" data-close="workoutSheet" data-i18n-attr="aria-label:ui.close">×</button></header>
+      <div class="sheet-head"><h2 id="workoutTitle" data-i18n="workouts.title"></h2><button class="close" data-close="workoutSheet" data-i18n-attr="aria-label:ui.close">×</button></div>
       <section class="rt-pick">
         <h3 data-i18n="routes.title"></h3>
         <p class="fine" data-i18n="routes.intro"></p>
@@ -204,14 +206,14 @@
 
   <div id="editorSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
-      <header class="sheet-head"><h2 id="editorTitle" data-i18n="editor.create"></h2><button class="close" data-close="editorSheet" data-i18n-attr="aria-label:ui.close">×</button></header>
+      <div class="sheet-head"><h2 id="editorTitle" data-i18n="editor.create"></h2><button class="close" data-close="editorSheet" data-i18n-attr="aria-label:ui.close">×</button></div>
       <div id="editorBody" class="ed-body"></div>
     </div>
   </div>
 
   <div id="historySheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
-      <header class="sheet-head"><h2 id="historyTitle" data-i18n="history.title"></h2><button class="close" data-close="historySheet" data-i18n-attr="aria-label:ui.close">×</button></header>
+      <div class="sheet-head"><h2 id="historyTitle" data-i18n="history.title"></h2><button class="close" data-close="historySheet" data-i18n-attr="aria-label:ui.close">×</button></div>
       <div id="historyBody" class="hs-body"></div>
     </div>
   </div>
@@ -219,7 +221,7 @@
   <!-- Consenso alle statistiche anonime (primo avvio) -->
   <div id="consentSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
-      <header class="sheet-head"><h2 id="consentTitle" data-i18n="privacy.title"></h2></header>
+      <div class="sheet-head"><h2 id="consentTitle" data-i18n="privacy.title"></h2></div>
       <p data-i18n="privacy.body"></p>
       <p class="fine" data-i18n="privacy.errors"></p>
       <p class="fine" data-i18n="privacy.change"></p>
@@ -230,7 +232,7 @@
   <!-- Impostazioni -->
   <div id="settingsSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <header class="sheet-head"><h2 id="settingsTitle" data-i18n="settings.title"></h2><button class="close" data-close="settingsSheet" data-i18n-attr="aria-label:ui.close">×</button></header>
+      <div class="sheet-head"><h2 id="settingsTitle" data-i18n="settings.title"></h2><button class="close" data-close="settingsSheet" data-i18n-attr="aria-label:ui.close">×</button></div>
 
       <section class="group">
         <h3 data-i18n="settings.you"></h3>
@@ -349,7 +351,7 @@
     </div>
   </div>
 
-  <div id="gamePanel" class="game-panel" hidden>
+  <div id="gamePanel" class="game-panel" hidden role="region" data-i18n-attr="aria-label:games.title">
     <canvas id="gameCanvas"></canvas>
     <div class="game-bar">
       <strong id="gameTitle" data-i18n="games.title"></strong>

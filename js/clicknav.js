@@ -36,7 +36,7 @@ export function createClickNav({ menuItems, back, onChange, isIdle = () => true 
   function paint() {
     document.querySelectorAll('.cn-focus').forEach((e) => e.classList.remove('cn-focus'));
     const el = nav.items[nav.idx]; if (!el) return;
-    el.classList.add('cn-focus'); el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('cn-focus'); el.scrollIntoView({ block: 'center', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
   function refresh(keep = false) { const cur = nav.items[nav.idx]; collect(); if (keep && cur) { const i = nav.items.indexOf(cur); if (i >= 0) nav.idx = i; } paint(); }
   function poke() { clearTimeout(nav.idleT); nav.idleT = setTimeout(() => stop(), 30000); }
