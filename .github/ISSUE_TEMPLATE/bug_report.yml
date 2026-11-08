@@ -1,0 +1,77 @@
+name: Bug report
+description: Something does not work as expected in the app.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please search existing issues first.
+        Security problems must not be reported here: see SECURITY.md.
+  - type: input
+    id: summary
+    attributes:
+      label: Short summary
+      description: One sentence describing the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app
+        2. Connect the trainer
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+    options:
+      - Web app (browser)
+      - Android app
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown in the app settings, or the release tag you installed.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone or computer, and browser or Android version
+      placeholder: "e.g. Pixel 7, Android 15, Chrome 130"
+    validations:
+      required: true
+  - type: input
+    id: trainer
+    attributes:
+      label: Trainer (if relevant)
+      placeholder: "e.g. Van Rysel D100, firmware 1.2.3"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Developer mode log (optional)
+      description: If you can, paste the log from developer mode. Remove anything personal such as location or account data before posting.
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or other information
