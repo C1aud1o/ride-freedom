@@ -5,7 +5,7 @@
 // I dizionari (locales/*.json) si caricano con un top-level await: chi importa questo modulo li trova già pronti.
 
 // Lingue disponibili: il selettore nelle Impostazioni si popola da qui.
-export const LANGS = { it: 'Italiano', en: 'English' };
+export const LANGS = { it: 'Italiano', en: 'English', fr: 'Français', es: 'Español', de: 'Deutsch' };
 const BASE = 'en';
 const FALLBACKS = ['en', 'it'];
 const dicts = {};
@@ -66,7 +66,7 @@ export function ordinal(n) {
   try { form = new Intl.PluralRules(lang, { type: 'ordinal' }).select(n); } catch { /* resta other */ }
   return t(has(`ordinal.${form}`) ? `ordinal.${form}` : 'ordinal.other', { n });
 }
-export function speechLang() { return { it: 'it-IT', en: 'en-US' }[lang] || lang; }
+export function speechLang() { return { it: 'it-IT', en: 'en-US', fr: 'fr-FR', es: 'es-ES', de: 'de-DE' }[lang] || lang; }
 
 // ---- HTML statico ----
 //   data-i18n="k"  data-i18n-html="k"  data-i18n-attr="placeholder:k;aria-label:k2"
