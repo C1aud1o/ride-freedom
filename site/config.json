@@ -1,0 +1,13 @@
+{
+  "siteUrl": "https://spindro.fit",
+  "name": "Spindro",
+  "defaultLang": "en",
+  "langs": ["en", "it"],
+  "appPath": "/app/",
+  "github": "https://github.com/c1aud1o/ride-freedom",
+  "apk": "https://github.com/c1aud1o/ride-freedom/releases/download/app-android/spindro.apk",
+  "playStore": "https://play.google.com/store/apps/details?id=com.spindro.app",
+  "playStoreLive": false,
+  "contactIssues": "https://github.com/c1aud1o/ride-freedom/issues",
+  "legalPages": ["privacy", "terms", "account-deletion", "licenses", "trademarks"]
+}

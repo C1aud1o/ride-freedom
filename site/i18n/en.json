@@ -1,0 +1,119 @@
+{
+  "htmlLang": "en",
+  "langName": "English",
+  "ogLocale": "en_US",
+  "nav": { "features": "Features", "watch": "Watch", "games": "Games", "compat": "Compatibility", "faq": "FAQ", "skip": "Skip to content", "lang": "Language" },
+  "cta": { "app": "Open web app", "android": "Download for Android", "github": "GitHub", "apk": "Direct APK from GitHub Releases", "soon": "Google Play: coming soon" },
+  "home": {
+    "title": "Spindro: Smart Trainer Cycling | Free, open-source Zwift alternative",
+    "description": "Free, open-source smart trainer app. No subscription. Virtual gears, 3D games, workouts, GPX routes and your watch as a bike computer. Works with Van Rysel D100, Elite, Wahoo, Tacx and more.",
+    "kicker": "Free · Open source · No subscription",
+    "h1": "Spindro: Smart Trainer Cycling",
+    "sub": "Free, open-source smart trainer app. No subscription.",
+    "lead": "A free alternative to Zwift for affordable smart trainers: virtual gears, 3D games, structured workouts and routes, and your watch as the bike computer.",
+    "heroNote": "Runs in Chrome or Edge on Android, PC and Mac. On iPhone use the free Bluefy browser.",
+    "heroFig": "Example values, not a real ride",
+    "shotPh": "Placeholder — screenshot coming soon",
+    "stepsTitle": "How it works",
+    "steps": [
+      { "t": "Open the app", "d": "Open the web app in Chrome, or install the Android app. Nothing to sign up for." },
+      { "t": "Connect your trainer", "d": "Tap Connect, pick your trainer from the Bluetooth list. Spindro chooses the right protocol by itself." },
+      { "t": "Pedal and shift", "d": "Change gear with the on-screen buttons, the keyboard or a Zwift Click, and feel the resistance change." }
+    ],
+    "featuresTitle": "What you get",
+    "featuresLead": "Everything runs in the app on your phone or computer. No cloud needed.",
+    "features": [
+      { "i": "gears", "t": "Virtual gears", "d": "24 gears like a real bike, with an optional automatic mode that holds your cadence. Resistance follows gear, cadence and slope." },
+      { "i": "modes", "t": "ERG, slope and resistance", "d": "Fixed-power ERG up to 600 W, slope simulation, or a plain resistance level. Power, cadence, speed and heart rate in real time." },
+      { "i": "workouts", "t": "Workouts and editor", "d": "Ready-made sessions based on your FTP, a ramp FTP test, a block editor, export to Garmin (.FIT) and Zwift (.ZWO), import of .ZWO files." },
+      { "i": "route", "t": "GPX routes", "d": "The slope follows the track, with profile and mini map. Race your own record on the same route." },
+      { "i": "video", "t": "Ride a YouTube video", "d": "Pick a video or your own file and it plays at your speed." },
+      { "i": "game", "t": "3D games", "d": "Race, shoot and fly with your legs. Climbs reach the trainer as real slope; sprints power up your game." },
+      { "i": "history", "t": "History and records", "d": "Weekly minutes, 5 s / 1 / 5 / 20 min records, estimated FTP, a chart for every ride." },
+      { "i": "strava", "t": "Strava and FIT files", "d": "Every ride is recorded as a .FIT file with GPS track on routes. Upload to Strava from the app or import into Garmin Connect." },
+      { "i": "coach", "t": "Voice coach", "d": "Announces intervals, target watts, the last 10 seconds, climbs ahead and the finish. Currently in Italian, more languages coming." }
+    ],
+    "watchTitle": "Your watch is the bike computer",
+    "watchLead": "With the Android app the phone broadcasts power, cadence and speed over Bluetooth, just like a sensor. Your Garmin or other sports watch records the ride as an ordinary indoor cycling activity.",
+    "watchPoints": [
+      "Pair the watch with “Spindro” as a power, cadence and speed sensor.",
+      "Wear the watch, press start on the watch, ride. The activity syncs to Garmin Connect and then Strava as usual.",
+      "No watch bridge? Save the .FIT file at the end of the ride and import it into Garmin Connect.",
+      "Heart rate: use a strap, or a watch in “broadcast heart rate” mode."
+    ],
+    "watchNote": "The watch bridge needs the Android app. The web app on PC, Mac or iPhone cannot act as a sensor.",
+    "clickTitle": "Zwift Click, without Zwift",
+    "clickLead": "Already own a Zwift Click, Play or Ride? Use it as a Bluetooth shifter in Spindro. No Zwift account, no Zwift app.",
+    "clickPoints": [
+      "Shift up and down with the Click buttons while you ride.",
+      "Move through the menus and the games with the same buttons.",
+      "No Click? Use the on-screen buttons, the arrow keys or a Bluetooth remote."
+    ],
+    "clickNote": "Click support is experimental: it is rebuilt from open-source projects and not yet confirmed on every firmware. Play and Ride may need extra work.",
+    "gamesTitle": "Games that make you pedal",
+    "gamesLead": "Six 3D games, plus riding on a video. Your watts and cadence are the controller.",
+    "games": [
+      { "t": "Turbo Pedali 3D", "d": "A road stage with 8 named riders, three stages (sea, mountain, hills), drafting, coins, sprint power-ups, jerseys and a podium." },
+      { "t": "Pedal Strike 3D", "d": "Side-scrolling shooter with three heroes, three missions, five weapons and three bosses. Watts set the fire rate; a sprint triggers OVERDRIVE." },
+      { "t": "L'Orda", "d": "Endless waves of zombies. The weapon evolves in ten steps up to a laser, and portals bring allies. More watts, more shots." },
+      { "t": "Planata", "d": "Fly a pedal-powered plane where watts are your altitude: an interval session in disguise." },
+      { "t": "Gruppetto", "d": "Pick up riders who join your slipstream while the slope rises with the group." },
+      { "t": "Mattoni", "d": "A brick-breaker where your cadence is the ball's speed." },
+      { "t": "Ride on a video", "d": "A YouTube video or your own file, played at your speed." }
+    ],
+    "compatTitle": "Which trainers and watches?",
+    "compatLead": "Spindro speaks the Bluetooth protocols most trainers use: FTMS, Tacx FE-C, Wahoo legacy, plus power and speed/cadence sensors. Only the Van Rysel D100 is verified so far; the rest are expected to work and we need your reports.",
+    "compatBtn": "See the compatibility list",
+    "shotsTitle": "A look inside",
+    "shots": [
+      { "k": "home", "c": "The main screen: power, cadence, speed and the virtual gear." },
+      { "k": "game", "c": "One of the 3D games, driven by your legs." },
+      { "k": "finish", "c": "The end-of-ride card with your summary and .FIT download." }
+    ],
+    "faqTitle": "Questions",
+    "faq": [
+      { "q": "Is it really free?", "a": "Yes. No subscription, no ads, no in-app purchases. The source code is open on GitHub. The project is run by one person; you can help with bug reports, trainer reports and code." },
+      { "q": "Do I need an account?", "a": "No. You open the app and ride. Your rides, records and settings stay on your device. You can export a backup to move them to another device." },
+      { "q": "Does it work on iPhone and iPad?", "a": "Not in Safari: Apple does not allow Web Bluetooth there. Install the free Bluefy browser from the App Store and open Spindro in it. A native iOS app may come later." },
+      { "q": "Which browser and device do I need?", "a": "Android: Chrome, or the Android app. PC, Mac, Linux and ChromeOS: Chrome or Edge with Bluetooth. The page must be served over HTTPS." },
+      { "q": "Which trainers work?", "a": "Most smart trainers from the last few years speak FTMS. See the compatibility page for what is verified, what is expected, and how to report yours." },
+      { "q": "Is it a Zwift replacement?", "a": "It replaces Zwift for controlling your trainer, structured training and having fun on the bike. It is not an online virtual world: there is no multiplayer. The trainer accepts one Bluetooth connection at a time, so close Zwift first." },
+      { "q": "What happens to my data and privacy?", "a": "This website has no trackers and no cookies, and its fonts are served from the same site. In the app, ride data stays on your device. Data leaves it only if you use Strava (it sends the ride to Strava), play a YouTube video (Google's player loads) or export a file. Read the privacy policy for the details." }
+    ],
+    "finalTitle": "Ready to ride?",
+    "finalText": "Open the web app and connect your trainer in under a minute."
+  },
+  "compat": {
+    "title": "Compatible trainers and watches | Spindro",
+    "description": "Smart trainers, Zwift Click controllers and watches that work with Spindro: FTMS, Tacx FE-C, Wahoo, Cycling Power. Honest status: verified, should work, reported by users.",
+    "h1": "Compatible trainers and watches",
+    "lead": "Spindro picks the protocol on its own: FTMS, then Tacx FE-C over Bluetooth, then Wahoo legacy, then read-only Cycling Power or Speed & Cadence. Below is what we support and how sure we are.",
+    "legendTitle": "What the labels mean",
+    "status": { "verified": "Verified", "expected": "Should work", "reported": "Reported by users" },
+    "statusDesc": {
+      "verified": "Tested on the real device by the author.",
+      "expected": "The protocol is supported by the code, but this model has never been tried.",
+      "reported": "Users told us it works. No report has been collected yet."
+    },
+    "trainers": "Smart trainers and sensors",
+    "controllers": "Controllers and heart rate",
+    "watches": "Watches and bike computers",
+    "cols": { "device": "Device", "protocol": "Protocol", "status": "Status", "note": "Notes" },
+    "reportTitle": "Tell us about yours",
+    "reportText": "Tried a trainer or watch? In the app, use “Report a problem”, or open an issue on GitHub with the model, what worked and what did not. Reports turn “should work” into “reported by users”.",
+    "reportBtn": "Open a report on GitHub",
+    "note": "Tacx FE-C and Wahoo legacy support have been tested only against a simulated trainer. A trainer that accepts only one Bluetooth connection cannot be used by Spindro and another app at the same time."
+  },
+  "legal": { "title": "{title} | Spindro", "draft": "Draft: this text is still being reviewed and has placeholders in square brackets.", "back": "Back to home" },
+  "legalNames": { "privacy": "Privacy", "terms": "Terms", "account-deletion": "Delete account", "licenses": "Licenses", "trademarks": "Trademarks" },
+  "footer": {
+    "legal": "Legal",
+    "project": "Project",
+    "trademark": "Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel, Decathlon and YouTube are trademarks of their respective owners. Spindro is not affiliated with these companies.",
+    "madeBy": "Free and open source. Made by a cyclist with a cheap trainer.",
+    "source": "Source code",
+    "issues": "Report an issue"
+  },
+  "og": { "alt": "Spindro: free, open-source smart trainer app" },
+  "notFound": { "title": "Page not found", "text": "This page does not exist.", "home": "Go to the home page" }
+}

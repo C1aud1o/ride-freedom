@@ -1,0 +1,159 @@
+{
+  "_doc": "Stati: verified = provato su hardware vero; expected = dovrebbe funzionare (protocollo supportato dal codice, mai provato su quel modello); reported = segnalato dagli utenti. Solo il Van Rysel D100 è verificato. Per aggiungere un modello segnalato: status 'reported' e 'reports' con il numero di segnalazioni.",
+  "trainers": [
+    {
+      "name": "Van Rysel D100",
+      "brand": "Decathlon",
+      "protocol": "FTMS",
+      "status": "verified",
+      "note": {
+        "en": "Tested by the author: connection, virtual gears, ERG, grade (up to about 6%).",
+        "it": "Provato dall'autore: connessione, cambio virtuale, ERG, pendenza (fino a circa il 6%)."
+      }
+    },
+    {
+      "name": "Van Rysel D500",
+      "brand": "Decathlon",
+      "protocol": "FTMS",
+      "status": "expected",
+      "note": {
+        "en": "Same protocol as the D100. Not tested yet.",
+        "it": "Stesso protocollo del D100. Non ancora provato."
+      }
+    },
+    {
+      "name": "Suito, Direto, Justo",
+      "brand": "Elite",
+      "protocol": "FTMS",
+      "status": "expected",
+      "note": {
+        "en": "Standard FTMS trainers. Not tested yet.",
+        "it": "Rulli FTMS standard. Non ancora provati."
+      }
+    },
+    {
+      "name": "KICKR, KICKR CORE (recent firmware)",
+      "brand": "Wahoo",
+      "protocol": "FTMS",
+      "status": "expected",
+      "note": {
+        "en": "With recent firmware they speak FTMS. Not tested yet.",
+        "it": "Con firmware recente parlano FTMS. Non ancora provati."
+      }
+    },
+    {
+      "name": "Zwift Hub",
+      "brand": "Zwift",
+      "protocol": "FTMS",
+      "status": "expected",
+      "note": {
+        "en": "Bluetooth FTMS. Not tested yet.",
+        "it": "FTMS via Bluetooth. Non ancora provato."
+      }
+    },
+    {
+      "name": "H3, H4",
+      "brand": "Saris",
+      "protocol": "FTMS",
+      "status": "expected",
+      "note": {
+        "en": "Standard FTMS trainers. Not tested yet.",
+        "it": "Rulli FTMS standard. Non ancora provati."
+      }
+    },
+    {
+      "name": "Other FTMS trainers (Magene, Thinkrider, JetBlack…)",
+      "brand": "",
+      "protocol": "FTMS",
+      "status": "expected",
+      "note": {
+        "en": "Any trainer that advertises the Bluetooth FTMS service should connect. Reports welcome.",
+        "it": "Qualsiasi rullo che espone il servizio Bluetooth FTMS dovrebbe collegarsi. Le segnalazioni sono benvenute."
+      }
+    },
+    {
+      "name": "Flux, Vortex, Bushido, Genius, Neo, Flow smart",
+      "brand": "Tacx",
+      "protocol": "Tacx FE-C over BLE",
+      "status": "expected",
+      "note": {
+        "en": "Also works on models without FTMS. Written and tested only against a simulated trainer, not yet on a real Tacx.",
+        "it": "Funziona anche sui modelli senza FTMS. Scritto e provato solo con un rullo simulato, non ancora su un Tacx vero."
+      }
+    },
+    {
+      "name": "KICKR, SNAP, CORE (older firmware)",
+      "brand": "Wahoo",
+      "protocol": "Wahoo legacy",
+      "status": "expected",
+      "note": {
+        "en": "Wahoo's older control protocol. Tested only against a simulated trainer, not yet on a real Wahoo.",
+        "it": "Il vecchio protocollo di controllo Wahoo. Provato solo con un rullo simulato, non ancora su un Wahoo vero."
+      }
+    },
+    {
+      "name": "Trainers with a power meter or speed/cadence sensor",
+      "brand": "",
+      "protocol": "Cycling Power / Speed & Cadence",
+      "status": "expected",
+      "note": {
+        "en": "Read-only: Spindro shows power, speed and cadence but cannot change the resistance.",
+        "it": "Sola lettura: Spindro mostra potenza, velocità e cadenza ma non può cambiare la resistenza."
+      }
+    }
+  ],
+  "controllers": [
+    {
+      "name": "Zwift Click",
+      "brand": "Zwift",
+      "protocol": "Zwift BLE",
+      "status": "expected",
+      "note": {
+        "en": "Used as a Bluetooth shifter (+ / −). Experimental: built from open-source projects, not yet checked on every firmware.",
+        "it": "Usato come comando del cambio (+ / −) via Bluetooth. Sperimentale: costruito da progetti open source, non ancora verificato su ogni firmware."
+      }
+    },
+    {
+      "name": "Zwift Play, Zwift Ride",
+      "brand": "Zwift",
+      "protocol": "Zwift BLE",
+      "status": "expected",
+      "note": {
+        "en": "Experimental. Some firmware versions encrypt the buttons, which is not implemented yet; use the on-screen buttons if nothing happens.",
+        "it": "Sperimentale. Alcuni firmware cifrano i tasti, cosa non ancora implementata; se non succede nulla usa i pulsanti a schermo."
+      }
+    },
+    {
+      "name": "Heart rate straps and watches in “broadcast heart rate” mode",
+      "brand": "",
+      "protocol": "Heart Rate (BLE)",
+      "status": "expected",
+      "note": {
+        "en": "Standard Bluetooth heart rate service.",
+        "it": "Servizio Bluetooth standard per la frequenza cardiaca."
+      }
+    }
+  ],
+  "watches": [
+    {
+      "name": "Garmin (Forerunner, Fenix, Edge, Venu…)",
+      "brand": "Garmin",
+      "protocol": "BLE sensor bridge (Android app)",
+      "status": "expected",
+      "note": {
+        "en": "The phone appears as a power / cadence / speed sensor. If the watch is already linked to the phone it may need the steps in the app's help. Android app only.",
+        "it": "Il telefono appare come sensore di potenza / cadenza / velocità. Se l'orologio è già collegato al telefono possono servire i passi della guida nell'app. Solo app Android."
+      }
+    },
+    {
+      "name": "Wahoo ELEMNT, Coros, Suunto, Polar",
+      "brand": "",
+      "protocol": "BLE sensor bridge (Android app)",
+      "status": "expected",
+      "note": {
+        "en": "In theory any device that accepts Bluetooth power sensors. Not tested yet. Android app only.",
+        "it": "In teoria qualsiasi dispositivo che accetta sensori di potenza Bluetooth. Non ancora provati. Solo app Android."
+      }
+    }
+  ]
+}

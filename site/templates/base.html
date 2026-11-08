@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="{{htmlLang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="robots" content="{{robots}}">
+<meta name="theme-color" content="#0f0f0d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f7f5ee" media="(prefers-color-scheme: light)">
+<link rel="canonical" href="{{canonical}}">
+{{{alternates}}}
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/barlow-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/barlow-condensed-latin-700-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v={{cssVersion}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Spindro">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{ogImage}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ogAlt}}">
+<meta property="og:locale" content="{{ogLocale}}">
+{{{ogLocaleAlt}}}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{title}}">
+<meta name="twitter:description" content="{{description}}">
+<meta name="twitter:image" content="{{ogImage}}">
+<meta name="twitter:image:alt" content="{{ogAlt}}">
+{{{jsonld}}}
+</head>
+<body>
+<a class="skip" href="#main">{{nav.skip}}</a>
+<div class="wrap">
+  <header class="site-head">
+    <a class="wordmark" href="{{homeUrl}}" aria-label="Spindro"><img src="/assets/favicon.svg" alt="" width="32" height="32">Spin<b>dro</b></a>
+    <nav class="nav" aria-label="Main">
+      <span class="nav-links">
+        <a href="{{homeUrl}}#features">{{nav.features}}</a>
+        <a href="{{homeUrl}}#watch">{{nav.watch}}</a>
+        <a href="{{homeUrl}}#games">{{nav.games}}</a>
+        <a href="{{compatUrl}}"{{{compatCurrent}}}>{{nav.compat}}</a>
+        <a href="{{homeUrl}}#faq">{{nav.faq}}</a>
+      </span>
+      {{{langLinks}}}
+    </nav>
+  </header>
+</div>
+<main id="main">
+{{{content}}}
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="wordmark" href="{{homeUrl}}" aria-label="Spindro">Spin<b>dro</b></a>
+        <p>{{footer.madeBy}}</p>
+      </div>
+      <div>
+        <h2>{{footer.project}}</h2>
+        <ul>
+          <li><a href="{{appUrl}}">{{cta.app}}</a></li>
+          <li><a href="{{compatUrl}}">{{nav.compat}}</a></li>
+          <li><a href="{{github}}" rel="noopener">{{footer.source}}</a></li>
+          <li><a href="{{issues}}" rel="noopener">{{footer.issues}}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>{{footer.legal}}</h2>
+        <ul>{{{legalLinks}}}</ul>
+      </div>
+    </div>
+    <p class="tm">{{footer.trademark}}</p>
+  </div>
+</footer>
+</body>
+</html>

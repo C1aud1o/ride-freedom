@@ -40,6 +40,30 @@ jobs:
           gh release download app-android -p spindro.apk -D www/app --repo "$GITHUB_REPOSITORY" || echo "APK non ancora disponibile"
           [ -f www/app/spindro.apk ] && cp www/app/spindro.apk www/app/ride-freedom.apk  # vecchi link
           ls -la www/app
+      # ---------------------------------------------------------------------------------------------
+      # DISATTIVATO: pubblicazione del sito vetrina (site/) alla radice e dell'app sotto /app/.
+      # Da attivare a mano dal proprietario quando il dominio (https://spindro.fit) è pronto:
+      #   1. togli il commento ai due passi qui sotto;
+      #   2. nel passo "upload-pages-artifact" qui sotto cambia `path: www` in `path: pub`;
+      #   3. sostituisci il contenuto di CNAME (oggi mta-world.com) con il nuovo dominio;
+      #   4. controlla che l'app funzioni in sottocartella: sw.js, manifest.webmanifest e i percorsi
+      #      in index.html devono essere relativi (nessun "/" iniziale) e lo scope del service worker
+      #      deve essere /app/. L'APK finirebbe in /app/app/spindro.apk: o lo sposti in pub/app/spindro.apk
+      #      (come oggi) o aggiorni i link nel sito (site/config.json, campo "apk").
+      #   5. Strava: aggiungi il nuovo dominio alle origini permesse del Worker (server/strava-worker).
+      # Il costo è zero: site/build.mjs non ha dipendenze, basta Node (già presente sul runner).
+      #
+      # - name: Costruisci il sito vetrina (site/dist)
+      #   run: node site/build.mjs
+      #
+      # - name: Sito alla radice e app sotto /app/
+      #   run: |
+      #     rm -rf pub && mkdir -p pub/app
+      #     cp -r site/dist/. pub/          # vetrina: /, /it/, /compatibility/, sitemap.xml, robots.txt
+      #     cp -r www/. pub/app/            # app: index.html, js/, css/, sw.js, APK
+      #     echo "spindro.fit" > pub/CNAME  # ricrea il file perché `cp site/dist` non lo contiene
+      #     touch pub/.nojekyll
+      # ---------------------------------------------------------------------------------------------
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www
