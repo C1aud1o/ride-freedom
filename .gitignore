@@ -19,3 +19,6 @@ firestore-debug.log
 ui-debug.log
 .firebase/
 functions/lib/
+
+# catture grezze degli store (si rigenerano con scripts/store-shots.mjs)
+store/raw/

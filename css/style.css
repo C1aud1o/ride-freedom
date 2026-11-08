@@ -453,6 +453,7 @@ input[type=number] { -moz-appearance: textfield; }
 .ed-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .ed-f { display: grid; gap: 6px; font-size: var(--fs-caption); color: var(--t3); min-width: 0; }
 .ed-add { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 420px) { .ed-fields { grid-template-columns: 1fr; } } /* con − e + i campi numerici restano leggibili anche sui telefoni stretti */
 .ed-add button { min-height: 44px; }
 .ed-actions .cta { width: 100%; }
 .wk-tools { display: flex; flex-wrap: wrap; gap: 16px; justify-content: flex-end; font-size: var(--fs-caption); padding: 0 4px; }
