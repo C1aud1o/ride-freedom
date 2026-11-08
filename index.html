@@ -35,6 +35,10 @@
       <button id="connectClick" class="sensor"><i></i><span class="s-name">Click</span><span id="clickStatus" class="s-state">—</span></button>
       <button id="connectHr" class="sensor"><i></i><span class="s-name" data-i18n="home.hr"></span><span id="hrStatus" class="s-state">—</span></button>
     </nav>
+    <div id="reportHint" class="hint-box" hidden>
+      <p id="reportHintText"></p>
+      <div class="row2"><button id="reportHintGo" class="ghost" data-i18n="trainerReport.button"></button><button id="reportHintLater" class="ghost" data-i18n="trainerReport.later"></button></div>
+    </div>
     <p id="unsupported" class="warn" hidden data-i18n-html="home.unsupported"></p>
 
     <!-- stato vuoto: benvenuto (utente nuovo) o ultimo allenamento (utente che torna) -->
@@ -201,6 +205,17 @@
     </div>
   </div>
 
+  <!-- Consenso alle statistiche anonime (primo avvio) -->
+  <div id="consentSheet" class="sheet" hidden>
+    <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+      <header class="sheet-head"><h2 id="consentTitle" data-i18n="privacy.title"></h2></header>
+      <p data-i18n="privacy.body"></p>
+      <p class="fine" data-i18n="privacy.errors"></p>
+      <p class="fine" data-i18n="privacy.change"></p>
+      <div class="row2"><button id="consentYes" class="cta" data-i18n="privacy.yes"></button><button id="consentNo" class="ghost" data-i18n="privacy.no"></button></div>
+    </div>
+  </div>
+
   <!-- Impostazioni -->
   <div id="settingsSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -220,6 +235,12 @@
         <label class="switch"><input type="checkbox" id="smooth3"><span data-i18n="settings.smooth3"></span></label>
         <label class="switch"><input type="checkbox" id="coachOn"><span data-i18n="settings.coach"></span></label>
         <button id="fullscreen" class="ghost" data-i18n="settings.fullscreen"></button>
+      </section>
+
+      <section class="group">
+        <h3 data-i18n="privacy.settingsTitle"></h3>
+        <label class="switch"><input type="checkbox" id="analyticsOn"><span data-i18n="privacy.settingsLabel"></span></label>
+        <p class="fine" data-i18n="privacy.errors"></p>
       </section>
 
       <section class="group">
@@ -249,6 +270,14 @@
           <p id="garminHint" class="hint-box" hidden data-i18n-html="garmin.stuck"></p>
         </div>
         <p id="garminWeb" class="fine" data-i18n-html="garmin.webOnly"></p>
+      </section>
+
+      <section class="group">
+        <h3 data-i18n="watch.brand.title"></h3>
+        <label class="lang-pick"><span class="fine" data-i18n="watch.brand.label"></span>
+          <select id="watchBrand" data-i18n-attr="aria-label:watch.brand.label"></select></label>
+        <p class="fine" data-i18n="watch.brand.intro"></p>
+        <div id="watchBrandGuide"></div>
       </section>
 
       <section class="group">
@@ -292,6 +321,8 @@
         <button id="openHistory" class="ghost" data-i18n="history.open"></button>
         <div class="row2 backup-row"><button id="backupOut" class="ghost" data-i18n="backup.export"></button><label class="ghost file-btn"><span data-i18n="backup.import"></span><input id="backupIn" type="file" accept=".json,application/json" hidden></label></div>
         <p class="fine" data-i18n="backup.hint"></p>
+        <button id="reportTrainer" class="ghost" data-i18n="trainerReport.button"></button>
+        <p class="fine" data-i18n="trainerReport.hint"></p>
         <button id="reportIssue" class="ghost" data-i18n="report.button"></button>
         <p class="fine" data-i18n="report.hint"></p>
         <!-- Modalità sviluppatore: testi tecnici in inglese, non tradotti -->

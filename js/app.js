@@ -4,13 +4,15 @@ import { Trainer } from './trainers/index.js';
 import { PowerMeter } from './powermeter.js';
 import { SensorDebug } from './debug.js';
 import { BUILD } from './build.js';
-import { watchGuide, GARMIN_RE } from './watchguide.js';
+import { watchGuide, GARMIN_RE, WATCH_BRANDS, brandGuide } from './watchguide.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
 import { encodeFit, encodeWorkoutFit, encodeZwo } from './fit.js';
 import { Strava } from './strava.js';
 import { STRAVA_PROXY } from './config.js';
+import { initMonitoring, track, consentAsked, consentGiven, setConsent } from './monitor.js';
+import { buildReportUrl } from './report.js';
 import { setupDebug } from './debugview.js';
 import { Strike3D } from './games/strike3d.js';
 import { Racer3D } from './games/racer3d.js';
@@ -83,6 +85,7 @@ if (!('bluetooth' in navigator)) {
 }
 
 // ---------- Connessioni ----------
+let lastTrainer = null; // nome, protocollo, funzioni e servizi del rullo collegato (per "Segnala il tuo rullo")
 $('connectTrainer').addEventListener('click', async () => {
   if (trainer.connected) { trainer.disconnect(); return; }
   try {
@@ -104,6 +107,9 @@ trainer.addEventListener('connected', (e) => {
   if (!trainer.controllable) log('Trainer is read-only (no resistance control).');
   state.lastSent = null;
   applyMode(true);
+  lastTrainer = { name: name || '', protocol: protocol === 'CP/CSC' ? 'CPS' : (protocol || (ftms ? 'FTMS' : '')), features, services: [...trainer.services] };
+  track('trainer', lastTrainer.protocol || 'unknown');
+  offerTrainerReport(lastTrainer.name);
 });
 trainer.addEventListener('disconnected', async () => {
   setStatus('trainerStatus', t('sensor.disconnected'));
@@ -798,6 +804,46 @@ $('reportIssue').addEventListener('click', () => {
   openExternal(url);
 });
 
+// ---------- Monitoraggio e consenso (D1) ----------
+initMonitoring({ release: BUILD, environment: isNative ? 'android' : 'web', lang: getLang() });
+$('analyticsOn').checked = consentGiven();
+$('analyticsOn').addEventListener('change', (e) => { setConsent(e.target.checked); if (e.target.checked) { track('app-open'); track('lang', getLang()); } });
+function answerConsent(yes) {
+  setConsent(yes); $('analyticsOn').checked = yes; closeSheet('consentSheet');
+  if (yes) { track('app-open'); track('lang', getLang()); }
+}
+$('consentYes').addEventListener('click', () => answerConsent(true));
+$('consentNo').addEventListener('click', () => answerConsent(false));
+if (!consentAsked()) openSheet('consentSheet');
+
+// ---------- Segnala il tuo rullo (issue GitHub precompilata, senza dati personali) ----------
+function trainerReportUrl() {
+  return buildReportUrl({ ...(lastTrainer && trainer.connected ? lastTrainer : {}), native: isNative, android: /Android/i.test(navigator.userAgent), version: BUILD, lang: getLang() });
+}
+$('reportTrainer').addEventListener('click', () => openExternal(trainerReportUrl()));
+function offerTrainerReport(name) { // la prima volta che si collega un rullo con questo nome
+  let seen = [];
+  try { seen = JSON.parse(localStorage.getItem('seenTrainers') || '[]'); } catch { /* vuoto */ }
+  if (!name || seen.includes(name)) return;
+  try { localStorage.setItem('seenTrainers', JSON.stringify([...seen, name].slice(-20))); } catch { /* storage non disponibile */ }
+  $('reportHintText').textContent = t('trainerReport.first', { name });
+  $('reportHint').hidden = false;
+}
+$('reportHintGo').addEventListener('click', () => { $('reportHint').hidden = true; openExternal(trainerReportUrl()); });
+$('reportHintLater').addEventListener('click', () => { $('reportHint').hidden = true; });
+trainer.addEventListener('disconnected', () => { $('reportHint').hidden = true; });
+
+// ---------- Guide per marca di orologio (B6) ----------
+function renderWatchBrand() {
+  const sel = $('watchBrand'); const cur = sel.value || localStorage.getItem('watchBrand') || 'garmin';
+  sel.innerHTML = WATCH_BRANDS.map((b) => `<option value="${b}">${t(`watch.brand.${b}`)}</option>`).join('');
+  sel.value = WATCH_BRANDS.includes(cur) ? cur : 'garmin';
+  $('watchBrandGuide').innerHTML = brandGuide(sel.value);
+}
+$('watchBrand').addEventListener('change', (e) => { try { localStorage.setItem('watchBrand', e.target.value); } catch { /* */ } $('watchBrandGuide').innerHTML = brandGuide(e.target.value); });
+window.addEventListener('langchange', renderWatchBrand);
+renderWatchBrand();
+
 // ---------- Misuratore di potenza esterno ----------
 state.usePm = localStorage.getItem('usePm') !== '0';
 $('usePm').checked = state.usePm;
@@ -968,6 +1014,7 @@ function openGame() {
 }
 function startGame(kind) {
   const g = games[kind];
+  track('game', kind);
   gameAudio.ensure(); // l'audio va sbloccato da un tocco dell'utente
   gradeBeforeGame = state.grade;
   // il gioco controlla la pendenza: serve la modalità Cambio o Pendenza
@@ -1104,6 +1151,7 @@ $('finishRide').addEventListener('click', () => {
   if (gl && goalBefore && goalBefore.done < gl.goal && gl.done >= gl.goal) medals.unshift({ ico: '🏁', title: t('finish.goalTitle'), sub: t('finish.goalSub', { done: gl.done, goal: gl.goal }) });
   badges($('finishBadges'), medals.slice(0, 4));
   openSheet('finishSheet');
+  if (r.elapsed >= 60) track('ride-complete');
   if (r.elapsed >= 60) { party($('finishSheet'), { records: medals.length }); if (medals.length) gameAudio.jingle('win', 0.6); }
   if (strava.connected && strava.cfg.auto && !r.stravaUrl) uploadToStrava();
 });
