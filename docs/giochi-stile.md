@@ -76,3 +76,19 @@ Si può fissare in *Giochi → Qualità grafica*.
 - Personaggi: `assets/3d/quaternius/cyclist.glb` (scheletro vero) e `fan.glb` (versione leggera per il pubblico).
   Le pose si calcolano sulle ossa (IK delle gambe sui pedali), le maglie si colorano per vertice.
 - Peso dei nuovi asset dei giochi: tenere ogni aggiunta sotto i 6 MB.
+
+## 10. Misure di Turbo Pedali (2026-11-08)
+`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node scripts/game-shots.mjs --fps`: tappa 2, in salita fra il pubblico, CPU rallentata 4x.
+Nel cloud non c'è GPU (SwiftShader disegna nella CPU), quindi gli fps del browser di prova (0,4–3) non dicono nulla del telefono.
+Si misura il costo CPU per fotogramma (logica, pose delle ossa, preparazione del disegno, HUD) e il carico per la GPU.
+
+| Schermo | Qualità | CPU ms/fotogramma (4x) | fps massimi dalla CPU | Draw call | Triangoli |
+|---|---|---|---|---|---|
+| 390×844 | alta | 22,9 | ~44 | 117 | 318k |
+| 390×844 | media | 19,6 | ~51 | 102 | 240k |
+| 390×844 | bassa | 11,8 | 60 | 66 | 139k |
+| 1280×720 | media | 23,2 | ~43 | 102 | 240k |
+| 1280×720 | bassa | 17,9 | ~56 | 70 | 141k |
+
+Draw call sempre sotto 150. Il frame rate vero va verificato su un Android medio: la qualità automatica scende da sola
+se nei primi secondi si va sotto 48 fps.
