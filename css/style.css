@@ -540,3 +540,8 @@ body:not(.dev) .dev-only { display: none !important; }
 .bd-rank { color: var(--t3); font-variant-numeric: tabular-nums; }
 .bd-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bd-me { margin: 4px 0 0; font-weight: 700; }
+.game-menu.loading { opacity: .5; pointer-events: none; }
+.connect-help { display: grid; gap: 8px; }
+.connect-help b { color: var(--t1); }
+.connect-help ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.welcome .cta { font-size: 24px; letter-spacing: .05em; padding: 0 12px; }

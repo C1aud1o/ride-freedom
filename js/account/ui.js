@@ -7,6 +7,8 @@ import { loadSdk } from './sdk.js';
 
 const COUNTRIES = 'AD AE AF AG AI AL AM AO AR AT AU AW AZ BA BB BD BE BF BG BH BI BJ BM BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CN CO CR CU CV CY CZ DE DJ DK DM DO DZ EC EE EG ER ES ET FI FJ FR GA GB GD GE GH GM GN GQ GR GT GW GY HK HN HR HT HU ID IE IL IN IQ IR IS IT JM JO JP KE KG KH KR KW KZ LA LB LI LK LR LS LT LU LV LY MA MC MD ME MG MK ML MM MN MO MR MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NZ OM PA PE PG PH PK PL PT PY QA RO RS RU RW SA SB SC SD SE SG SI SK SL SM SN SO SR SV SY SZ TD TG TH TJ TM TN TO TR TT TW TZ UA UG US UY UZ VA VE VN VU WS YE ZA ZM ZW'.split(' ');
 const NAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,23}$/u;
+// Google blocca il login Google nelle WebView: nell'app Android si entra solo con email (Google nativo: compito futuro, vedi docs/account-architettura.md §10)
+const inNativeApp = () => isNative || !!window.Capacitor?.isNativePlatform?.();
 const SESSION_FLAG = 'account:session';
 
 const st = { view: 'out', user: null, profile: null, busy: false, err: '', info: '', sdk: null, sync: null, email: '', needTerms: false, form: {} };
@@ -207,7 +209,7 @@ const VIEWS = {
   loading: () => `<p class="fine">${esc(t('account.loading'))}</p>`,
   out: () => `
     <p class="fine">${esc(t('account.intro'))}</p>
-    ${isNative ? '' : `<button class="ghost" data-act="google">${esc(t('account.google'))}</button>`}
+    ${inNativeApp() ? `<p class="fine" data-testid="google-later">${esc(t('account.googleLater'))}</p>` : `<button class="ghost" data-act="google">${esc(t('account.google'))}</button>`}
     <div class="fields acc-fields">
       <label>${esc(t('account.email'))}<input id="accEmail" type="email" autocomplete="email" value="${esc(st.email)}"></label>
       <label>${esc(t('account.password'))}<input id="accPass" type="password" autocomplete="current-password" minlength="8"></label>

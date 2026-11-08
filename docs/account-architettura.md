@@ -304,7 +304,7 @@ La build `foss` non ha App Check e non ne ha bisogno: non parla con Firebase.
 
 ## 10. Login (E3, per riferimento)
 
-- **Google**: sul web `signInWithPopup`. Nell'app Android il popup non funziona (Google blocca gli accessi da WebView): serve il Google Sign-In nativo (Credential Manager) nel source set `play`, che restituisce un ID token; il JS fa `signInWithCredential(GoogleAuthProvider.credential(idToken))`.
+- **Google**: sul web `signInWithPopup`. **Decisione (Q1): nell'app Android il pulsante Google è nascosto** (si riconosce con `window.Capacitor?.isNativePlatform?.()`), perché Google blocca il login Google nelle WebView; resta l'accesso con email e password, con una riga che spiega che Google arriverà in seguito. **Login Google nativo = compito futuro**: Credential Manager nel source set `play`, che restituisce un ID token; il JS farà `signInWithCredential(GoogleAuthProvider.credential(idToken))`.
 - **Email e password**: SDK JS, con email di verifica obbligatoria prima di creare il profilo (lo chiedono le regole).
 - Dopo il primo accesso: schermata profilo (soprannome, Paese facoltativo, "ho almeno 14 anni", accetto i Termini, ho letto l'Informativa, e a parte, spenta, "Salva anche il battito nel cloud"). Solo dopo si crea `users/{uid}`.
 - Uscire dall'account non cancella i dati locali.

@@ -14,19 +14,11 @@ import { STRAVA_PROXY } from './config.js';
 import { initMonitoring, track, consentAsked, consentGiven, setConsent } from './monitor.js';
 import { buildReportUrl } from './report.js';
 import { setupDebug } from './debugview.js';
-import { Strike3D } from './games/strike3d.js';
-import { Racer3D } from './games/racer3d.js';
-import { Horde } from './games/horde.js';
-import { Gruppetto } from './games/gruppetto.js';
-import { Mattoni } from './games/mattoni.js';
-import { Planata } from './games/planata.js';
-import { VideoRide } from './videoride.js';
 import { rideStats, renderHistory } from './history.js';
-import { shareCard } from './sharecard.js';
-import { WorkoutEditor } from './editor.js';
+// glowSetting vive qui (stessa chiave di games/kit3d.js) per non caricare three.js all'avvio
+const glowSetting = { get on() { return localStorage.getItem('gameGlow') !== '0'; }, set on(v) { localStorage.setItem('gameGlow', v ? '1' : '0'); } };
 import './ui.js';
 import { coach, spokenTime } from './coach.js';
-import { glowSetting } from './games/kit3d.js';
 import { party, badges } from './celebrate.js';
 import { initAccount, dataChanged, accountsAvailable, submitGameScore, renderBoards } from './account/index.js';
 import * as challenges from './challenges.js';
@@ -96,6 +88,7 @@ $('connectTrainer').addEventListener('click', async () => {
     log(`Connected to ${name}`);
   } catch (err) {
     setStatus('trainerStatus', t('sensor.notConnected'));
+    $('connectHelp').hidden = false; // nessun rullo scelto o collegamento fallito: soluzioni concrete
     log(`Trainer error: ${err.message}`);
     trainer.dbg.log(`Error: ${err.message}`);
   }
@@ -103,6 +96,7 @@ $('connectTrainer').addEventListener('click', async () => {
 
 trainer.addEventListener('connected', (e) => {
   const { name, ftms, protocol, features } = e.detail;
+  $('connectHelp').hidden = true;
   const proto = protocol && protocol !== 'CP/CSC' ? protocol : ftms ? 'FTMS' : '';
   setStatus('trainerStatus', `${name || t('home.trainer')}${proto ? ` · ${proto}` : ''}`, true);
   log(`Features: ERG ${features.power ? '✓' : '✗'} · Grade ${features.simulation ? '✓' : '✗'} · Resistance ${features.resistance ? '✓' : '✗'}`);
@@ -337,6 +331,7 @@ function describeTarget(k) {
 $('startStop').addEventListener('click', () => {
   const r = state.ride;
   r.running = !r.running;
+  if (r.running) $('reportHint').hidden = true; // niente inviti mentre si pedala
   if (r.running) { r.start = performance.now() - r.elapsed * 1000; requestWakeLock(); }
   $('startStop').textContent = r.running ? t('home.pause') : t('home.start');
   $('startStop').classList.toggle('running', r.running);
@@ -845,6 +840,8 @@ function offerTrainerReport(name) { // la prima volta che si collega un rullo co
   $('reportHintText').textContent = t('trainerReport.first', { name });
   $('reportHint').hidden = false;
 }
+$('connectHelpRetry').addEventListener('click', () => { $('connectHelp').hidden = true; $('connectTrainer').click(); });
+$('connectHelpReport').addEventListener('click', () => openExternal(trainerReportUrl()));
 $('reportHintGo').addEventListener('click', () => { $('reportHint').hidden = true; openExternal(trainerReportUrl()); });
 $('reportHintLater').addEventListener('click', () => { $('reportHint').hidden = true; });
 trainer.addEventListener('disconnected', () => { $('reportHint').hidden = true; });
@@ -1023,15 +1020,24 @@ document.querySelectorAll('#audioMode button').forEach((b) => b.addEventListener
   toast(b.dataset.m === 'auto' ? 'Audio: auto' : b.dataset.m === 'web' ? 'Audio: Web Audio' : 'Audio: system player');
 }));
 renderAudioMode();
-const games = {
-  horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: 'games.horde.name', help: 'games.horde.help' },
-  racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'games.racer.name', help: 'games.racer.help' },
-  shooter: { game: new Strike3D($('gameCanvas'), gameHooks, gameAudio), title: 'games.shooter.title', help: 'games.shooter.help' },
-  gruppetto: { game: new Gruppetto($('gameCanvas'), gameHooks, gameAudio), title: 'games.gruppetto.name', help: 'games.gruppetto.help' },
-  mattoni: { game: new Mattoni($('gameCanvas'), gameHooks, gameAudio), title: 'games.mattoni.name', help: 'games.mattoni.help' },
-  planata: { game: new Planata($('gameCanvas'), gameHooks, gameAudio), title: 'games.planata.name', help: 'games.planata.help' },
-  video: { game: new VideoRide($('gameCanvas'), gameHooks), title: 'games.video.title', help: 'games.video.help', noAudio: true },
+// I giochi (e three.js) si scaricano solo alla prima apertura: l'avvio dell'app resta leggero.
+const GAME_DEFS = {
+  horde: { load: () => import('./games/horde.js').then((m) => m.Horde), title: 'games.horde.name', help: 'games.horde.help' },
+  racer: { load: () => import('./games/racer3d.js').then((m) => m.Racer3D), title: 'games.racer.name', help: 'games.racer.help' },
+  shooter: { load: () => import('./games/strike3d.js').then((m) => m.Strike3D), title: 'games.shooter.title', help: 'games.shooter.help' },
+  gruppetto: { load: () => import('./games/gruppetto.js').then((m) => m.Gruppetto), title: 'games.gruppetto.name', help: 'games.gruppetto.help' },
+  mattoni: { load: () => import('./games/mattoni.js').then((m) => m.Mattoni), title: 'games.mattoni.name', help: 'games.mattoni.help' },
+  planata: { load: () => import('./games/planata.js').then((m) => m.Planata), title: 'games.planata.name', help: 'games.planata.help' },
+  video: { load: () => import('./videoride.js').then((m) => m.VideoRide), title: 'games.video.title', help: 'games.video.help', noAudio: true },
 };
+const games = {}; // istanze create alla prima apertura
+async function loadGame(kind) {
+  if (games[kind]) return games[kind];
+  const d = GAME_DEFS[kind];
+  const Cls = await d.load();
+  games[kind] = { ...d, game: d.noAudio ? new Cls($('gameCanvas'), gameHooks) : new Cls($('gameCanvas'), gameHooks, gameAudio) };
+  return games[kind];
+}
 let activeGame = null; let activeKind = null;
 
 function openGame() {
@@ -1043,8 +1049,13 @@ function openGame() {
   $('gameHelp').textContent = '';
   document.body.classList.add('game-open');
 }
-function startGame(kind) {
-  const g = games[kind];
+let gameLoading = false;
+async function startGame(kind) {
+  if (gameLoading) return;
+  gameLoading = true;
+  let g;
+  try { $('gameMenu').classList.add('loading'); g = await loadGame(kind); } catch { toast(t('games.loadError')); return; } finally { gameLoading = false; $('gameMenu').classList.remove('loading'); }
+  if ($('gamePanel').hidden) return; // chiuso mentre si scaricava
   track('game', kind);
   gameAudio.ensure(); // l'audio va sbloccato da un tocco dell'utente
   gradeBeforeGame = state.grade;
@@ -1251,6 +1262,7 @@ $('shareImg').addEventListener('click', async () => {
   const stats = [[t('share.avgPower'), avgW, 'W'], [t('home.time'), fmtTime(r.elapsed), ''], [t('share.distance'), fmtDec(r.distance / 1000, 1), 'km'], [t('share.energy'), Math.round(r.energy), 'kJ']];
   if (st.np) stats.push([t('share.normalized'), st.np, 'W']);
   if (st.best[1200]) stats.push([t('share.best20'), st.best[1200], 'W']); else if (st.best[60]) stats.push([t('share.best1'), st.best[60], 'W']);
+  const { shareCard } = await import('./sharecard.js');
   const res = await shareCard({
     title: $('finishTitle').textContent || t('share.title', { mins }),
     date: fmtDate(new Date()),
@@ -1308,16 +1320,20 @@ document.querySelectorAll('#goalChips button').forEach((b) => b.addEventListener
 renderGoalChips();
 
 // ---------- Editor allenamenti ed esportazione ----------
-const editor = new WorkoutEditor($('editorBody'), {
-  ftp: state.ftp,
-  onSave: (w) => {
-    const list = customWorkouts().filter((x) => x.id !== w.id);
-    localStorage.setItem('customWorkouts', JSON.stringify([w, ...list].slice(0, 30))); dataChanged('workouts', w.id);
-    closeSheet('editorSheet'); toast(t('editor.saved', { name: w.name }));
-    renderWorkoutList(); openSheet('workoutSheet');
-  },
-});
-function openEditor(w) {
+let editor = null;
+async function openEditor(w) {
+  if (!editor) {
+    const { WorkoutEditor } = await import('./editor.js');
+    editor = new WorkoutEditor($('editorBody'), {
+      ftp: state.ftp,
+      onSave: (w) => {
+        const list = customWorkouts().filter((x) => x.id !== w.id);
+        localStorage.setItem('customWorkouts', JSON.stringify([w, ...list].slice(0, 30))); dataChanged('workouts', w.id);
+        closeSheet('editorSheet'); toast(t('editor.saved', { name: w.name }));
+        renderWorkoutList(); openSheet('workoutSheet');
+      },
+    });
+  }
   editor.ftp = state.ftp; editor.open(w);
   $('editorTitle').textContent = w?.custom ? t('editor.edit') : t('editor.create');
   closeSheet('workoutSheet'); openSheet('editorSheet');
@@ -1418,7 +1434,7 @@ window.rfShared = (text) => {
   if (!/youtu\.?be/.test(url)) { toast(t('share.notYoutube')); return; }
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) closeSheet(sh.id);
   if (activeGame) closeGame();
-  openGame(); startGame('video'); games.video.game.openUrl(url);
+  openGame(); startGame('video').then(() => games.video?.game.openUrl(url));
   toast(t('share.received'));
 };
 if (window.rfPendingShare) { window.rfShared(window.rfPendingShare); window.rfPendingShare = null; }
@@ -1442,7 +1458,7 @@ window.addEventListener('langchange', () => {
   if (!$('workoutSheet').hidden) { renderWorkoutList(); renderRoutePick(); }
   if (!$('historySheet').hidden) openHistory();
   if (!$('gamePanel').hidden) {
-    if (activeGame) { $('gameTitle').textContent = t(games[activeKind].title); $('gameHelp').textContent = t(games[activeKind].help); }
+    if (activeGame) { $('gameTitle').textContent = t(GAME_DEFS[activeKind].title); $('gameHelp').textContent = t(GAME_DEFS[activeKind].help); }
     else { $('gameTitle').textContent = t('games.title'); progress.renderMenu($('progressPanel')); }
   }
 });

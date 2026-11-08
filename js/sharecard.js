@@ -14,8 +14,8 @@ export async function shareCard({ title, date, stats, series, ftp, route }) {
   const cond = (size, w = 800) => `italic ${w} ${size}px "Barlow Condensed", "Arial Narrow", sans-serif`;
   const ui = (size, w = 500) => `${w} ${size}px Barlow, Arial, sans-serif`;
   // marchio
-  g.font = cond(56); g.fillStyle = '#f2f0e6'; g.fillText('RIDE', 72, 120);
-  const rw = g.measureText('RIDE').width; g.fillStyle = '#d9ff3d'; g.fillText('FREEDOM', 72 + rw, 120);
+  g.font = cond(56); g.fillStyle = '#f2f0e6'; g.fillText('SPIN', 72, 120);
+  const rw = g.measureText('SPIN').width; g.fillStyle = '#d9ff3d'; g.fillText('DRO', 72 + rw, 120);
   g.font = ui(30); g.fillStyle = 'rgba(242,240,230,.6)'; g.fillText(date, 72, 172);
   // titolo
   g.font = cond(110); g.fillStyle = '#f2f0e6'; wrap(g, title.toUpperCase(), 72, 320, W - 144, 110);
