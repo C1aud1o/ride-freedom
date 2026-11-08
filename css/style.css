@@ -52,12 +52,14 @@ main { display: grid; gap: 16px; }
 .icon-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: var(--r-btn); background: var(--surface); box-shadow: var(--shadow); }
 
 /* ---------- sensori ---------- */
-.sensors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sensors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .sensor { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; min-height: 52px; padding: 8px 12px; text-align: left; border: 1px solid transparent; border-radius: var(--r-btn); background: var(--surface); min-width: 0; }
 .sensor i { width: 8px; height: 8px; border-radius: 50%; background: var(--t4); grid-row: span 2; }
 .sensor.on { border-color: var(--accent-line); background: linear-gradient(var(--accent-5), var(--accent-5)), var(--surface); }
 .sensor.on i { background: var(--accent); box-shadow: 0 0 8px rgba(217, 255, 61, .7); }
 .s-name { font: 700 var(--fs-body)/1.2 var(--font-num); letter-spacing: .04em; text-transform: uppercase; }
+.s-name { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+@media (max-width: 420px) { .s-name { font-size: 13px; letter-spacing: .01em; } .metrics dt { letter-spacing: .03em; overflow-wrap: anywhere; hyphens: auto; } } /* parole lunghe (es. tedesco) non devono allargare la pagina */
 .s-state { font-size: var(--fs-caption); color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sensor.on .s-state { color: var(--t2); }
 .warn { margin: 0; color: var(--warn); font-size: var(--fs-caption); }
@@ -84,7 +86,7 @@ main { display: grid; gap: 16px; }
   background: linear-gradient(90deg, var(--z1) 0 14%, var(--z2) 14% 28%, var(--z3) 28% 42%, var(--z4) 42% 57%, var(--z5) 57% 71%, var(--z6) 71% 85%, var(--z7) 85%); }
 .zonebar::after { content: ""; position: absolute; inset: 0; border-radius: 4px; background: rgba(15, 15, 13, .55); }
 .zonebar i { position: absolute; z-index: 1; top: -4px; width: 4px; height: 16px; border-radius: 2px; background: var(--t1); left: 0; transition: left .3s; box-shadow: 0 0 8px rgba(255, 255, 255, .6); }
-.metrics { display: grid; grid-template-columns: repeat(3, 1fr); margin: 24px 0 0; }
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 24px 0 0; }
 .metrics div + div { padding-left: 16px; border-left: 1px solid var(--t4); }
 .metrics dd { margin: 8px 0 0; font: 700 var(--fs-title)/1 var(--font-num); font-variant-numeric: tabular-nums; }
 .metrics dd small, .dial-target, .note { font: 500 var(--fs-caption)/1.4 var(--font-ui); color: var(--t3); }

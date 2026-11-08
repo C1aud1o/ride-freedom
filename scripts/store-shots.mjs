@@ -231,9 +231,9 @@ const SHOTS = {
   async 1(ctx, lang) {
     const page = await newPage(ctx, lang, { 'ride-freedom-session': JSON.stringify(buildLiveSession()) });
     await connect(page);
-    await page.click('[data-preset="grade"][data-v="2"]');
-    await page.click('#startStop');
-    for (let i = 0; i < 2; i++) { await page.click('#up'); await sleep(120); }
+    await page.evaluate(() => document.querySelector('[data-preset="grade"][data-v="2"]').click());
+    await page.evaluate(() => document.getElementById('startStop').click());
+    for (let i = 0; i < 2; i++) { await page.evaluate(() => document.getElementById('up').click()); await sleep(120); }
     await setRide(page, 214, 88, 31.4);
     await sleep(3200); // lascia sparire il messaggio a comparsa
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -267,7 +267,7 @@ const SHOTS = {
   async 4(ctx, lang) {
     const page = await newPage(ctx, lang);
     await connect(page);
-    for (let i = 0; i < 9; i++) await page.click('#up'); // marcia più lunga: in Cambio la velocità in gioco dipende da marcia e cadenza
+    for (let i = 0; i < 9; i++) await page.evaluate(() => document.getElementById('up').click()); // marcia più lunga: in Cambio la velocità in gioco dipende da marcia e cadenza
     await setRide(page, 250, 90, 34);
     await page.evaluate(() => document.getElementById('openGame').click());
     await sleep(500);
