@@ -3,7 +3,7 @@ import { cpSync, rmSync, mkdirSync, existsSync, writeFileSync } from 'node:fs';
 const out = 'www';
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out);
-for (const p of ['index.html', 'manifest.webmanifest', 'css', 'js', 'icons', 'assets', 'vendor']) {
+for (const p of ['index.html', 'manifest.webmanifest', 'css', 'js', 'icons', 'assets', 'vendor', 'locales']) {
   if (existsSync(p)) cpSync(p, `${out}/${p}`, { recursive: true });
 }
 // numero di build (su GitHub = numero della compilazione), mostrato nelle impostazioni

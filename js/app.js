@@ -1,4 +1,5 @@
-import { isNative, GarminBridge } from './native.js'; // per primo: nell'app installa il Bluetooth nativo
+import { t, LANGS, setLang, getLang, fmtDate, fmtDec, fmtNum } from './i18n.js'; // per primo: carica le traduzioni prima del render
+import { isNative, GarminBridge } from './native.js'; // nell'app installa il Bluetooth nativo
 import { Trainer } from './trainers/index.js';
 import { PowerMeter } from './powermeter.js';
 import { SensorDebug } from './debug.js';
@@ -27,14 +28,14 @@ import { glowSetting } from './games/kit3d.js';
 import { party, badges } from './celebrate.js';
 import { createClickNav } from './clicknav.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
-import { WORKOUTS, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
+import { workouts, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
 import { GameAudio } from './games/audio.js';
 import { Progress } from './games/progress.js';
 
 const $ = (id) => document.getElementById(id);
 const trainer = new Trainer();
 const pm = new PowerMeter();
-const garminDbg = { dbg: new SensorDebug('garmin', 'Ponte Garmin') };
+const garminDbg = { dbg: new SensorDebug('garmin', 'Garmin bridge') };
 const click = new ZwiftClick();
 const hrm = new HeartRate();
 
@@ -85,28 +86,28 @@ if (!('bluetooth' in navigator)) {
 $('connectTrainer').addEventListener('click', async () => {
   if (trainer.connected) { trainer.disconnect(); return; }
   try {
-    setStatus('trainerStatus', 'Connessione…');
+    setStatus('trainerStatus', t('status.connecting'));
     const name = await trainer.connect();
-    log(`Connesso a ${name}`);
+    log(`Connected to ${name}`);
   } catch (err) {
-    setStatus('trainerStatus', 'Non connesso');
-    log(`Errore rullo: ${err.message}`);
-    trainer.dbg.log(`Errore: ${err.message}`);
+    setStatus('trainerStatus', t('sensor.notConnected'));
+    log(`Trainer error: ${err.message}`);
+    trainer.dbg.log(`Error: ${err.message}`);
   }
 });
 
 trainer.addEventListener('connected', (e) => {
   const { name, ftms, protocol, features } = e.detail;
   const proto = protocol && protocol !== 'CP/CSC' ? protocol : ftms ? 'FTMS' : '';
-  setStatus('trainerStatus', `${name || 'Rullo'}${proto ? ` · ${proto}` : ''}`, true);
-  log(`Funzioni: ERG ${features.power ? '✓' : '✗'} · Pendenza ${features.simulation ? '✓' : '✗'} · Resistenza ${features.resistance ? '✓' : '✗'}`);
-  if (!trainer.controllable) log('Il rullo è in sola lettura (nessun controllo resistenza).');
+  setStatus('trainerStatus', `${name || t('home.trainer')}${proto ? ` · ${proto}` : ''}`, true);
+  log(`Features: ERG ${features.power ? '✓' : '✗'} · Grade ${features.simulation ? '✓' : '✗'} · Resistance ${features.resistance ? '✓' : '✗'}`);
+  if (!trainer.controllable) log('Trainer is read-only (no resistance control).');
   state.lastSent = null;
   applyMode(true);
 });
 trainer.addEventListener('disconnected', async () => {
-  setStatus('trainerStatus', 'Disconnesso');
-  log('Rullo disconnesso');
+  setStatus('trainerStatus', t('sensor.disconnected'));
+  log('Trainer disconnected');
 });
 trainer.addEventListener('log', (e) => log(e.detail));
 trainer.addEventListener('data', (e) => {
@@ -120,21 +121,21 @@ trainer.addEventListener('data', (e) => {
 $('connectClick').addEventListener('click', async () => {
   if (click.connected) {
     // Zwift Play = due controller: dal primo si può collegare anche il secondo
-    if (!(click.canAddSecond && confirm('Collegare anche il secondo controller Zwift Play? (Annulla = scollega)'))) { click.disconnect(); return; }
+    if (!(click.canAddSecond && confirm(t('click.addSecond')))) { click.disconnect(); return; }
   }
   try {
-    setStatus('clickStatus', 'Connessione…');
+    setStatus('clickStatus', t('status.connecting'));
     const name = await click.connect();
-    setStatus('clickStatus', `Collegato: ${name}`, true);
-    log(`Connesso a ${name} (sperimentale)`);
+    setStatus('clickStatus', t('sensor.connected', { name }), true);
+    log(`Connected to ${name} (experimental)`);
   } catch (err) {
-    setStatus('clickStatus', click.connected ? `Collegato: ${click.label}` : 'Non connesso', click.connected);
-    log(`Errore Click: ${err.message}`);
-    click.dbg.log(`Errore: ${err.message}`);
+    setStatus('clickStatus', click.connected ? t('sensor.connected', { name: click.label }) : t('sensor.notConnected'), click.connected);
+    log(`Click error: ${err.message}`);
+    click.dbg.log(`Error: ${err.message}`);
   }
 });
 click.addEventListener('disconnected', () => {
-  if (click.connected) setStatus('clickStatus', `Collegato: ${click.label}`, true); else setStatus('clickStatus', 'Non connesso');
+  if (click.connected) setStatus('clickStatus', t('sensor.connected', { name: click.label }), true); else setStatus('clickStatus', t('sensor.notConnected'));
 });
 click.addEventListener('shift', (e) => { if (clickNav.active) return; if (activeGame?.active) activeGame.input(e.detail); else step(e.detail); });
 click.addEventListener('combo', () => { clearTimeout(mediaTimer); clickNav.toggle(); });
@@ -147,7 +148,7 @@ click.addEventListener('hold', (e) => {
   if (d && GarminBridge && $('musicOn').checked && !(activeGame?.active && activeGame.hold)) {
     mediaTimer = setTimeout(() => {
       if (activeGame?.active) activeGame.input(-d); else step(-d);
-      GarminBridge.mediaKey({ key: d > 0 ? 'next' : 'playpause' }).then(() => toast(d > 0 ? 'Brano successivo' : 'Play / pausa')).catch((err) => log(`Musica: ${err.message}`));
+      GarminBridge.mediaKey({ key: d > 0 ? 'next' : 'playpause' }).then(() => toast(d > 0 ? t('music.next') : t('music.playPause'))).catch((err) => log(`Music: ${err.message}`));
     }, 800);
   }
 });
@@ -161,22 +162,22 @@ if (GarminBridge) {
 $('connectHr').addEventListener('click', async () => {
   if (hrm.connected) { hrm.disconnect(); return; }
   try {
-    setStatus('hrStatus', 'Connessione…');
+    setStatus('hrStatus', t('status.connecting'));
     const name = await hrm.connect();
     state.hrFromSensor = true;
     setStatus('hrStatus', name, true);
-    log(`Cardio connesso: ${name}`);
+    log(`Heart rate connected: ${name}`);
   } catch (err) {
-    setStatus('hrStatus', 'Non connesso');
-    log(`Errore cardio: ${err.message}`);
-    hrm.dbg.log(`Errore: ${err.message}`);
+    setStatus('hrStatus', t('sensor.notConnected'));
+    log(`Heart rate error: ${err.message}`);
+    hrm.dbg.log(`Error: ${err.message}`);
   }
 });
 hrm.addEventListener('hr', (e) => { state.data.hr = e.detail; render(); });
 hrm.addEventListener('disconnected', () => {
   state.hrFromSensor = false;
   state.data.hr = null;
-  setStatus('hrStatus', 'Non connesso');
+  setStatus('hrStatus', t('sensor.notConnected'));
 });
 
 // ---------- Modalità e comandi ----------
@@ -199,7 +200,7 @@ function shift(dir) {
 function step(dir) {
   if (workout && !workout.w.test) { // durante un allenamento + / − regolano l'intensità
     workout.bias = Math.min(1.5, Math.max(0.5, +(workout.bias + dir * 0.05).toFixed(2)));
-    toast(`Intensità ${Math.round(workout.bias * 100)}%`); tickWorkout(0); return;
+    toast(t('workout.intensity', { pct: Math.round(workout.bias * 100) })); tickWorkout(0); return;
   }
   if (state.mode === 'gears') return shift(dir);
   if (state.mode === 'erg') state.erg = Math.min(MAX_W, Math.max(0, state.erg + dir * 5));
@@ -329,16 +330,16 @@ $('startStop').addEventListener('click', () => {
   const r = state.ride;
   r.running = !r.running;
   if (r.running) { r.start = performance.now() - r.elapsed * 1000; requestWakeLock(); }
-  $('startStop').textContent = r.running ? 'Pausa' : 'Avvia';
+  $('startStop').textContent = r.running ? t('home.pause') : t('home.start');
   $('startStop').classList.toggle('running', r.running);
 });
 $('reset').addEventListener('click', () => {
-  if (!state.ride.saved && !confirm('Azzerare la sessione? I dati non salvati in .FIT andranno persi.')) return;
+  if (!state.ride.saved && !confirm(t('finish.confirmReset'))) return;
   Object.assign(state.ride, { running: false, elapsed: 0, distance: 0, energy: 0, powerSum: 0, samples: 0, log: [], saved: true, stravaUrl: null, historySaved: false });
   renderWelcome();
   stravaMsg('');
   persist();
-  $('startStop').textContent = 'Avvia';
+  $('startStop').textContent = t('home.start');
   $('startStop').classList.remove('running');
   closeSheet('finishSheet');
   render();
@@ -374,9 +375,9 @@ setInterval(() => {
     if (r.log.length % 10 === 0) persist();
     // piccoli picchi: traguardi durante la pedalata
     const m = Math.floor(r.elapsed / 600);
-    if (m > (r.lastMilestone || 0)) { r.lastMilestone = m; toast(`${m * 10} minuti! Continua così`); if (!workout) coach.say(`${m * 10} minuti. Continua così!`); }
+    if (m > (r.lastMilestone || 0)) { r.lastMilestone = m; toast(t('ride.minutes', { n: m * 10 })); if (!workout) coach.say(t('coach.minutes', { n: m * 10 })); }
     const k5 = Math.floor(r.distance / 5000);
-    if (k5 > (r.lastKm || 0)) { r.lastKm = k5; toast(`${k5 * 5} km percorsi`); }
+    if (k5 > (r.lastKm || 0)) { r.lastKm = k5; toast(t('ride.km', { n: k5 * 5 })); }
   }
   if (state.mode === 'gears') applyMode();
   if (workout && r.running) tickWorkout(1);
@@ -393,39 +394,39 @@ function setMode(m) {
   state.mode = m; document.body.dataset.mode = m; state.lastSent = null;
 }
 function customWorkouts() { try { return JSON.parse(localStorage.getItem('customWorkouts') || '[]'); } catch { return []; } }
-function allWorkouts() { return [...customWorkouts(), ...WORKOUTS]; }
+function allWorkouts() { return [...customWorkouts(), ...workouts()]; }
 const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function renderWorkoutList() {
   $('wkFtp').textContent = state.ftp;
-  $('workoutList').innerHTML = `<div class="row2 wk-top"><button class="cta-sm" id="wkNew">Crea allenamento</button><label class="ghost file-btn">Importa .zwo<input id="zwoFile" type="file" accept=".zwo,application/xml,text/xml" hidden></label></div>` + allWorkouts().map((w) => `<div class="wk-wrap"><button class="wk-item" data-wk="${w.id}">
-    <span class="row"><b>${escHtml(w.name)}</b><small>${escHtml(w.tag)}${tss(w) ? ` · carico ${tss(w)}` : ''}</small></span>
+  $('workoutList').innerHTML = `<div class="row2 wk-top"><button class="cta-sm" id="wkNew">${t('editor.create')}</button><label class="ghost file-btn"><span>${t('workouts.importZwo')}</span><input id="zwoFile" type="file" accept=".zwo,application/xml,text/xml" hidden></label></div>` + allWorkouts().map((w) => `<div class="wk-wrap"><button class="wk-item" data-wk="${w.id}">
+    <span class="row"><b>${escHtml(w.name)}</b><small>${escHtml(w.tag)}${tss(w) ? ` · ${t('workouts.load', { n: tss(w) })}` : ''}</small></span>
     <canvas data-prof="${w.id}"></canvas><small>${escHtml(w.desc)}</small></button>
-    <span class="wk-tools">${w.test ? '' : `<button class="link" data-edit="${w.id}">${w.custom ? 'Modifica' : 'Copia e modifica'}</button><button class="link" data-fit="${w.id}">Garmin (.FIT)</button><button class="link" data-zwo="${w.id}">.zwo</button>`}${w.custom ? `<button class="link" data-del="${w.id}">Elimina</button>` : ''}</span></div>`).join('');
+    <span class="wk-tools">${w.test ? '' : `<button class="link" data-edit="${w.id}">${w.custom ? t('ui.edit') : t('workouts.copyEdit')}</button><button class="link" data-fit="${w.id}">Garmin (.FIT)</button><button class="link" data-zwo="${w.id}">.zwo</button>`}${w.custom ? `<button class="link" data-del="${w.id}">${t('ui.delete')}</button>` : ''}</span></div>`).join('');
   const all = allWorkouts();
   requestAnimationFrame(() => document.querySelectorAll('[data-prof]').forEach((c) => drawProfile(c, all.find((w) => w.id === c.dataset.prof), state.ftp)));
   document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(all.find((w) => w.id === b.dataset.wk))));
   document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
-    if (!confirm('Eliminare questo allenamento importato?')) return;
+    if (!confirm(t('workouts.confirmDelete'))) return;
     localStorage.setItem('customWorkouts', JSON.stringify(customWorkouts().filter((w) => w.id !== b.dataset.del))); renderWorkoutList();
   }));
   $('wkNew').addEventListener('click', () => openEditor(null));
   document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openEditor(all.find((w) => w.id === b.dataset.edit))));
-  const safeName = (w) => w.name.replace(/[^\w\-àèéìòù ]+/gi, '').trim().replace(/\s+/g, '-') || 'allenamento';
+  const safeName = (w) => w.name.replace(/[^\w\-àèéìòù ]+/gi, '').trim().replace(/\s+/g, '-') || t('workouts.fileName');
   document.querySelectorAll('[data-fit]').forEach((b) => b.addEventListener('click', () => {
     const w = all.find((x) => x.id === b.dataset.fit);
-    offerFile(new File([encodeWorkoutFit(w.name, w.steps, state.ftp)], `${safeName(w)}.fit`, { type: 'application/vnd.ant.fit' }), 'Copialo sull\'orologio in GARMIN/NewFiles (USB) oppure importalo su intervals.icu');
+    offerFile(new File([encodeWorkoutFit(w.name, w.steps, state.ftp)], `${safeName(w)}.fit`, { type: 'application/vnd.ant.fit' }), t('workouts.fitHint'));
   }));
   document.querySelectorAll('[data-zwo]').forEach((b) => b.addEventListener('click', () => {
     const w = all.find((x) => x.id === b.dataset.zwo);
-    offerFile(new File([encodeZwo(w.name, w.steps, state.ftp, w.desc)], `${safeName(w)}.zwo`, { type: 'application/xml' }), 'Importalo su intervals.icu, TrainingPeaks o Zwift');
+    offerFile(new File([encodeZwo(w.name, w.steps, state.ftp, w.desc)], `${safeName(w)}.zwo`, { type: 'application/xml' }), t('workouts.zwoHint'));
   }));
   $('zwoFile').addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try {
       const w = parseZwo(await f.text(), f.name);
       localStorage.setItem('customWorkouts', JSON.stringify([w, ...customWorkouts()].slice(0, 30)));
-      toast(`Importato: ${w.name}`); renderWorkoutList();
-    } catch (err) { toast(`Import non riuscito: ${err.message}`); }
+      toast(t('workouts.imported', { name: w.name })); renderWorkoutList();
+    } catch (err) { toast(t('workouts.importFailed', { error: err.message })); }
   });
 }
 $('openWorkouts').addEventListener('click', () => { renderWorkoutList(); renderRoutePick(); openSheet('workoutSheet'); });
@@ -439,7 +440,7 @@ function ghostTimeAt(dist) { // secondi impiegati dal record per arrivare a quel
   return (i - 1 + (dist - g[i - 1]) / Math.max(0.1, g[i] - g[i - 1])) * 5;
 } let routeRealism = Number(localStorage.getItem('routeRealism')) || 0.5;
 function renderRoutePick() {
-  $('routeSamples').innerHTML = ROUTES.map((r) => `<button class="wk-item" data-route="${r.id}"><span class="row"><b>${r.name}</b><small>prova</small></span><small>${r.desc}</small></button>`).join('');
+  $('routeSamples').innerHTML = ROUTES.map((r) => `<button class="wk-item" data-route="${r.id}"><span class="row"><b>${escHtml(r.name)}</b><small>${t('routes.sample')}</small></span><small>${escHtml(r.desc)}</small></button>`).join('');
   document.querySelectorAll('[data-route]').forEach((b) => b.addEventListener('click', () => startRoute(ROUTES.find((r) => r.id === b.dataset.route).make())));
   document.querySelectorAll('#routeReal button').forEach((b) => b.classList.toggle('on', +b.dataset.r === routeRealism));
 }
@@ -459,7 +460,7 @@ function startRoute(rt) {
   closeSheet('workoutSheet');
   document.body.classList.add('in-route');
   $('routeCard').hidden = false; $('rtName').textContent = rt.name;
-  if (!rt.hasEle) toast('Il GPX non ha le quote: percorso in piano');
+  if (!rt.hasEle) toast(t('route.noElevation'));
   if (!state.ride.running) $('startStop').click();
   tickRoute(0, null);
 }
@@ -471,37 +472,37 @@ function tickRoute(dm, sample) {
   const g = Math.round(c.grade * routeRealism * 2) / 2;
   if (dm) { // annuncia la prossima salita vera (una volta per salita)
     const ahead = routeAt(route, routeDist + 300);
-    if (ahead.grade >= 4 && c.grade < 3 && routeDist - (route.lastClimbSaid ?? -1e9) > 800) { route.lastClimbSaid = routeDist; coach.say(`Salita in arrivo: ${Math.round(ahead.grade)} per cento tra 300 metri.`); }
+    if (ahead.grade >= 4 && c.grade < 3 && routeDist - (route.lastClimbSaid ?? -1e9) > 800) { route.lastClimbSaid = routeDist; coach.say(t('coach.climbAhead', { grade: Math.round(ahead.grade) })); }
   }
   if (g !== state.grade) { state.grade = g; syncInputs(); applyMode(true); }
   $('rtGrade').textContent = c.grade.toFixed(1);
-  $('rtKm').textContent = `${(routeDist / 1000).toFixed(2)} / ${(route.total / 1000).toFixed(1)} km`;
+  $('rtKm').textContent = `${fmtDec(routeDist / 1000, 2)} / ${fmtDec(route.total / 1000, 1)} km`;
   const gt = ghostTimeAt(routeDist);
   const vs = gt != null && routeT > 10 ? routeT - gt : null;
   $('rtInfo').innerHTML = vs != null
-    ? `Contro il tuo record: <b class="${vs <= 0 ? 'ahead' : 'behind'}">${vs <= 0 ? '−' : '+'}${fmtClock(Math.abs(vs))}</b> · quota ${Math.round(c.ele)} m`
-    : `${route.gain} m di dislivello · quota ${Math.round(c.ele)} m${routeRealism < 1 ? ` · pendenza al ${routeRealism * 100}%` : ''}${routeGhost ? ' · record da battere' : ''}`;
+    ? t('route.vsRecord', { delta: `<b class="${vs <= 0 ? 'ahead' : 'behind'}">${vs <= 0 ? '−' : '+'}${fmtClock(Math.abs(vs))}</b>`, ele: Math.round(c.ele) })
+    : `${t('route.info', { gain: route.gain, ele: Math.round(c.ele) })}${routeRealism < 1 ? ` · ${t('route.realism', { pct: routeRealism * 100 })}` : ''}${routeGhost ? ` · ${t('route.beatRecord')}` : ''}`;
   drawElevation($('rtProfile'), route, routeDist); drawMap($('rtMap'), route, routeDist);
   if (routeDist >= route.total) {
-    coach.say(`Arrivo! ${route.name} completato in ${spokenTime(routeT)}.`);
+    coach.say(t('coach.routeDone', { name: route.name, time: spokenTime(routeT) }));
     routeTrace.push(Math.round(route.total));
     const prevT = routeGhost ? (routeGhost.length - 1) * 5 : Infinity;
-    if (routeT < prevT) { try { localStorage.setItem(ghostKey(route), JSON.stringify(routeTrace)); } catch { /* pieno */ } toast(routeGhost ? `Nuovo record: ${fmtClock(routeT)} (−${fmtClock(prevT - routeT)})` : `Tempo: ${fmtClock(routeT)}. La prossima volta sfidi questo record!`); }
-    else toast(`Arrivo in ${fmtClock(routeT)}: record ${fmtClock(prevT)}`); gameAudio.sfx('win'); progress.event('routes', 1, 60); stopRoute(); }
+    if (routeT < prevT) { try { localStorage.setItem(ghostKey(route), JSON.stringify(routeTrace)); } catch { /* pieno */ } toast(routeGhost ? t('route.newRecord', { time: fmtClock(routeT), delta: fmtClock(prevT - routeT) }) : t('route.firstTime', { time: fmtClock(routeT) })); }
+    else toast(t('route.noRecord', { time: fmtClock(routeT), record: fmtClock(prevT) })); gameAudio.sfx('win'); progress.event('routes', 1, 60); stopRoute(); }
 }
 let lastRouteName = null;
 function stopRoute() { lastRouteName = route?.name || lastRouteName; route = null; $('routeCard').hidden = true; document.body.classList.remove('in-route'); state.grade = 0; syncInputs(); applyMode(true); }
-$('rtStop').addEventListener('click', () => { if (confirm('Terminare il percorso?')) stopRoute(); });
+$('rtStop').addEventListener('click', () => { if (confirm(t('route.confirmStop'))) stopRoute(); });
 function startWorkout(w) {
   if (route) stopRoute();
-  if (workout && !confirm(`Interrompere "${workout.w.name}"?`)) return;
+  if (workout && !confirm(t('workout.confirmInterrupt', { name: workout.w.name }))) return;
   workout = new WorkoutRunner(w, state.ftp); wkLast = null; wkPower = []; wkLowCad = 0;
   setMode('erg');
   closeSheet('workoutSheet');
   document.body.classList.add('in-workout');
   $('workoutCard').hidden = false; $('wkName').textContent = w.name; $('wkTotal').textContent = fmtClock(duration(w));
   if (!state.ride.running) $('startStop').click();
-  if (!trainer.connected) toast('Collega il rullo: l\'allenamento parte comunque');
+  if (!trainer.connected) toast(t('workout.connectHint'));
   tickWorkout(0);
 }
 function tickWorkout(dt) {
@@ -510,16 +511,16 @@ function tickWorkout(dt) {
   if (!st) return finishWorkout(true);
   if (state.erg !== st.target) { state.erg = Math.min(MAX_W, st.target); syncInputs(); render(); applyMode(true); }
   if (wkLast !== st.i) {
-    coach.say(`${st.x.label.replace(/(\d+)\/(\d+)/, '$1 di $2')}. ${st.target} watt per ${spokenTime(st.x.d)}.`);
+    coach.say(t('coach.step', { label: st.x.label.replace(/(\d+)\/(\d+)/, `$1 ${t('coach.of')} $2`), watts: st.target, time: spokenTime(st.x.d) }));
   }
-  if (dt && st.next && Math.round(st.left) === 10 && st.x.d >= 40) coach.say(`Ultimi dieci secondi. Poi ${st.nextW} watt.`);
-  if (wkLast !== null && wkLast !== st.i) { toast(`${st.x.label}: ${st.target} W`); gameAudio.sfx('go'); if (navigator.vibrate) navigator.vibrate([60, 60, 60]); }
+  if (dt && st.next && Math.round(st.left) === 10 && st.x.d >= 40) coach.say(t('coach.last10', { watts: st.nextW }));
+  if (wkLast !== null && wkLast !== st.i) { toast(t('workout.stepToast', { label: st.x.label, watts: st.target })); gameAudio.sfx('go'); if (navigator.vibrate) navigator.vibrate([60, 60, 60]); }
   if (dt && st.next && st.left <= 3.5 && st.left > 0.5) gameAudio.sfx('beep');
   wkLast = st.i;
   $('wkStep').textContent = st.x.label; $('wkTarget').textContent = st.target; $('wkLeft').textContent = fmtClock(st.left);
-  $('wkNext').textContent = st.next ? `Poi: ${st.next.label} a ${st.nextW} W` : 'Ultimo tratto!';
+  $('wkNext').textContent = st.next ? t('workout.next', { label: st.next.label, watts: st.nextW }) : t('workout.lastStep');
   $('wkTotal').textContent = `${fmtClock(workout.t)} / ${fmtClock(workout.total)}`;
-  $('wkBias').textContent = workout.w.test ? 'Test: vai fino al limite' : workout.bias !== 1 ? `intensità ${Math.round(workout.bias * 100)}%` : '+ / − regolano l\'intensità';
+  $('wkBias').textContent = workout.w.test ? t('workout.testHint') : workout.bias !== 1 ? t('workout.bias', { pct: Math.round(workout.bias * 100) }) : t('workout.biasHint');
   drawProfile($('wkProfile'), workout.w, state.ftp, workout.t);
   // test a rampa: finisce quando non riesci più a tenere il ritmo
   if (workout.w.test && dt) {
@@ -536,23 +537,23 @@ function finishWorkout(completed) {
     for (let i = 60; i <= wkPower.length; i++) best = Math.max(best, wkPower.slice(i - 60, i).reduce((a, b) => a + b, 0) / 60);
     if (best > 80) {
       const ftp = Math.round(best * 0.75);
-      if (confirm(`Miglior minuto: ${Math.round(best)} W. La tua FTP stimata è ${ftp} W (prima ${state.ftp} W). Salvarla?`)) {
-        state.ftp = ftp; $('ftp').value = ftp; localStorage.setItem('ftp', ftp); toast(`FTP aggiornata: ${ftp} W`);
+      if (confirm(t('workout.ftpFound', { best: Math.round(best), ftp, old: state.ftp }))) {
+        state.ftp = ftp; $('ftp').value = ftp; localStorage.setItem('ftp', ftp); toast(t('workout.ftpUpdated', { ftp }));
       }
-    } else toast('Test troppo breve per stimare la FTP');
+    } else toast(t('workout.testTooShort'));
     state.erg = Math.round(state.ftp * 0.5); syncInputs(); applyMode(true);
     return;
   }
-  if (completed) { coach.say(`${w.name} completato. Grande lavoro!`); toast(`${w.name} completato!`); gameAudio.sfx('win'); progress.event('workouts', 1, 50); }
+  if (completed) { coach.say(t('coach.workoutDone', { name: w.name })); toast(t('workout.done', { name: w.name })); gameAudio.sfx('win'); progress.event('workouts', 1, 50); }
 }
 $('wkSkip').addEventListener('click', () => { workout?.skip(); tickWorkout(0); });
-$('wkStop').addEventListener('click', () => { if (workout?.w.test) finishWorkout(true); else if (confirm('Terminare l\'allenamento?')) finishWorkout(false); });
+$('wkStop').addEventListener('click', () => { if (workout?.w.test) finishWorkout(true); else if (confirm(t('workout.confirmEnd'))) finishWorkout(false); });
 
 // ---------- Render ----------
 const ZONES = [
-  { id: 'Z1', name: 'Recupero', max: 0.55 }, { id: 'Z2', name: 'Fondo', max: 0.75 }, { id: 'Z3', name: 'Tempo', max: 0.9 },
-  { id: 'Z4', name: 'Soglia', max: 1.05 }, { id: 'Z5', name: 'VO2max', max: 1.2 }, { id: 'Z6', name: 'Anaerobico', max: 1.5 },
-  { id: 'Z7', name: 'Sprint', max: Infinity },
+  { id: 'Z1', max: 0.55 }, { id: 'Z2', max: 0.75 }, { id: 'Z3', max: 0.9 },
+  { id: 'Z4', max: 1.05 }, { id: 'Z5', max: 1.2 }, { id: 'Z6', max: 1.5 },
+  { id: 'Z7', max: Infinity },
 ];
 const cassetteEls = GEARS.map((_, i) => {
   const el = document.createElement('i');
@@ -573,12 +574,12 @@ function render() {
   $('power').textContent = Math.round($('smooth3').checked && powerBuf.length ? powerBuf.reduce((a, b) => a + b, 0) / powerBuf.length : d.power || 0);
   $('cadence').textContent = hasRealCadence() ? Math.round(d.cadence || 0) : trainer.connected ? `~${Math.round(currentCadence())}` : '0';
   const speed = state.mode === 'gears' ? currentVirtualSpeed() * 3.6 : d.speed || 0;
-  $('speed').textContent = speed.toFixed(1);
+  $('speed').textContent = fmtDec(speed, 1);
   $('hr').textContent = d.hr ? d.hr : '--';
   const hz = d.hr ? hrZone(d.hr) : null;
   $('hrZone').textContent = hz ? `Z${hz.z} ${hz.name}` : ''; $('hrZone').style.color = hz?.color || '';
   $('time').textContent = fmtTime(r.elapsed);
-  $('distance').textContent = (r.distance / 1000).toFixed(2);
+  $('distance').textContent = fmtDec(r.distance / 1000, 2);
   $('avgPower').textContent = r.samples ? Math.round(r.powerSum / r.samples) : 0;
   $('kj').textContent = Math.round(r.energy);
   $('saveFit').disabled = !r.log.length;
@@ -589,23 +590,23 @@ function render() {
   $('uploadStrava').disabled = !r.log.length || stravaBusy;
 
   $('gearNum').textContent = state.gear + 1;
-  $('gearRatio').textContent = GEARS[state.gear].toFixed(2);
+  $('gearRatio').textContent = fmtDec(GEARS[state.gear], 2);
   // cassetta: il pignone acceso è la marcia attuale
   cassetteEls.forEach((el, i) => { el.className = i === state.gear ? 'on' : i < state.gear ? 'past' : ''; });
   // zone di potenza sulla FTP
   const pct = (d.power || 0) / state.ftp;
   const z = ZONES.findIndex((zz) => pct < zz.max);
   const zone = ZONES[z < 0 ? ZONES.length - 1 : z];
-  $('zone').textContent = d.power ? `${zone.id} ${zone.name}` : '—';
+  $('zone').textContent = d.power ? `${zone.id} ${t(`zone.power.${zone.id}`)}` : '—';
   document.documentElement.style.setProperty('--zone', d.power ? `var(--${zone.id.toLowerCase()})` : 'var(--z1)');
   $('zoneFill').style.left = `${Math.min(100, (pct / 1.7) * 100)}%`;
-  $('gradeVal').textContent = `${state.grade.toFixed(1)} %`;
+  $('gradeVal').textContent = `${fmtDec(state.grade, 1)} %`;
   $('ergVal').textContent = `${state.erg} W`;
   $('resVal').textContent = `${state.resistance} %`;
   document.querySelectorAll('[data-preset]').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === Number(state[b.dataset.preset])));
 
-  const big = { gears: state.gear + 1, erg: `${state.erg}`, sim: state.grade.toFixed(1), resistance: state.resistance };
-  const unit = { gears: `rapporto ${GEARS[state.gear].toFixed(2)}`, erg: 'W target', sim: '% pendenza', resistance: '% resistenza' };
+  const big = { gears: state.gear + 1, erg: `${state.erg}`, sim: fmtDec(state.grade, 1), resistance: state.resistance };
+  const unit = { gears: t('ctl.gears', { ratio: fmtDec(GEARS[state.gear], 2) }), erg: t('ctl.erg'), sim: t('ctl.sim'), resistance: t('ctl.resistance') };
   $('controlValue').textContent = big[state.mode];
   $('controlUnit').textContent = unit[state.mode];
 }
@@ -624,7 +625,7 @@ function restore() {
     const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
     if (saved?.log?.length) {
       Object.assign(state.ride, saved, { running: false });
-      log(`Sessione precedente ripristinata (${fmtTime(saved.elapsed)}). Premi Avvia per continuare o salvala in .FIT.`);
+      log(`Previous session restored (${fmtTime(saved.elapsed)}). Press Start to continue or save it as .FIT.`);
     }
   } catch { /* ignora */ }
 }
@@ -643,7 +644,7 @@ async function saveFile(file) {
   if (GarminBridge) try {
     const res = await GarminBridge.saveDownload({ name: file.name, mime: file.type || 'application/octet-stream', data: await fileB64(file) });
     return res.path;
-  } catch (err) { log(`Salvataggio nativo non riuscito (${err.message}), provo il download`); }
+  } catch (err) { log(`Native save failed (${err.message}), trying a download`); }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(file); a.download = file.name;
   document.body.append(a); a.click(); a.remove();
@@ -660,8 +661,8 @@ $('saveFit').addEventListener('click', async () => {
     const file = fitFile();
     const where = await saveFile(file);
     state.ride.saved = true; persist();
-    log(`Salvato ${where}`); toast(`Salvato in ${where}`);
-  } catch (err) { log(`Errore salvataggio: ${err.message || err}`); }
+    log(`Saved ${where}`); toast(t('ride.savedTo', { where }));
+  } catch (err) { log(`Save error: ${err.message || err}`); }
 });
 
 // Garmin non permette ad altre app di caricare su Connect: salviamo il file e apriamo la pagina "Importa"
@@ -671,9 +672,9 @@ $('garminUp').addEventListener('click', async () => {
     const file = fitFile();
     const where = await saveFile(file);
     state.ride.saved = true; persist();
-    $('stravaMsg').innerHTML = `File salvato in <b>${where}</b>. Su Garmin Connect premi <b>Sfoglia</b> e scegli <b>${file.name}</b>, poi <b>Importa dati</b>.`;
+    $('stravaMsg').innerHTML = t('finish.garminSaved', { where, file: file.name });
     setTimeout(() => openExternal(GARMIN_IMPORT), 700);
-  } catch (err) { log(`Errore Garmin: ${err.message || err}`); }
+  } catch (err) { log(`Garmin error: ${err.message || err}`); }
 });
 
 async function fileB64(file) {
@@ -690,12 +691,12 @@ $('shareFit').addEventListener('click', async () => {
   try {
     const file = fitFile();
     if (GarminBridge) { await nativeShare(file, 'send'); return; }
-    await navigator.share({ files: [file], title: 'Allenamento Spindro' });
+    await navigator.share({ files: [file], title: t('share.fileTitle') });
     state.ride.saved = true; persist();
-  } catch (err) { if (err.name !== 'AbortError') log(`Errore condivisione: ${err.message}`); }
+  } catch (err) { if (err.name !== 'AbortError') log(`Share error: ${err.message}`); }
 });
 $('openFit').addEventListener('click', async () => {
-  try { await nativeShare(fitFile(), 'view'); } catch (err) { log(`Apri con: ${err.message}`); toast('Nessuna app apre i file .FIT: usa Condividi'); }
+  try { await nativeShare(fitFile(), 'view'); } catch (err) { log(`Open with: ${err.message}`); toast(t('finish.noOpenApp')); }
 });
 try {
   $('shareFit').hidden = !GarminBridge && !navigator.canShare?.({ files: [new File([new Uint8Array(1)], 'x.fit', { type: 'application/vnd.ant.fit' })] });
@@ -727,7 +728,7 @@ function saveHistory(h) {
 }
 function openHistory() {
   renderHistory($('historyBody'), history(), state.ftp);
-  $('hsUseFtp')?.addEventListener('click', (e) => { state.ftp = +e.target.dataset.ftp; $('ftp').value = state.ftp; localStorage.setItem('ftp', state.ftp); toast(`FTP: ${state.ftp} W`); openHistory(); });
+  $('hsUseFtp')?.addEventListener('click', (e) => { state.ftp = +e.target.dataset.ftp; $('ftp').value = state.ftp; localStorage.setItem('ftp', state.ftp); toast(t('history.ftpSet', { ftp: state.ftp })); openHistory(); });
   for (const id of ['settingsSheet', 'finishSheet']) closeSheet(id);
   openSheet('historySheet');
 }
@@ -738,22 +739,22 @@ function renderWelcome() {
   if (riding) { el.hidden = true; return; }
   el.hidden = false;
   if (!hist.length) {
-    el.innerHTML = `<h2>Pronto a pedalare?</h2>
-      <p>Tre passi e sei in sella.</p>
-      <ol><li>Collega il rullo dalla spia "Rullo" qui sopra</li><li>Scegli la modalità: con Cambio usi le marce virtuali</li><li>Premi Avvia e pedala: − e + cambiano marcia</li></ol>
-      <button class="cta" id="welcomeConnect">Collega il rullo</button>`;
+    el.innerHTML = `<h2>${t('welcome.title')}</h2>
+      <p>${t('welcome.subtitle')}</p>
+      <ol><li>${t('welcome.step1')}</li><li>${t('welcome.step2')}</li><li>${t('welcome.step3')}</li></ol>
+      <button class="cta" id="welcomeConnect">${t('welcome.connect')}</button>`;
   } else {
     const last = hist[hist.length - 1];
     const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5);
     const days = Math.floor((Date.now() - last.t) / 864e5);
-    const when = days === 0 ? 'oggi' : days === 1 ? 'ieri' : `${days} giorni fa`;
-    el.innerHTML = `<h2>Bentornato</h2>
-      <p>Ultimo allenamento ${when}.</p>
-      <dl class="stats"><div><dt>Minuti</dt><dd>${Math.round(last.dur / 60)}</dd></div><div><dt>W medi</dt><dd>${last.avgW}</dd></div><div><dt>km</dt><dd>${last.km}</dd></div></dl>
+    const when = days === 0 ? t('time.today') : days === 1 ? t('time.yesterday') : t('time.daysAgo', { count: days });
+    el.innerHTML = `<h2>${t('welcome.back')}</h2>
+      <p>${t('welcome.last', { when })}</p>
+      <dl class="stats"><div><dt>${t('welcome.minutes')}</dt><dd>${Math.round(last.dur / 60)}</dd></div><div><dt>${t('home.avgPower')}</dt><dd>${last.avgW}</dd></div><div><dt>km</dt><dd>${fmtNum(last.km)}</dd></div></dl>
       ${goalHtml(hist)}
-      ${week.length ? `<span class="streak">● ${week.length} ${week.length === 1 ? 'allenamento' : 'allenamenti'} negli ultimi 7 giorni</span>` : ''}
-      <button class="cta" id="welcomeConnect">Collega il rullo</button>
-      <button class="ghost" id="welcomeHistory">Storico e record</button>`;
+      ${week.length ? `<span class="streak">● ${t('welcome.streak', { count: week.length })}</span>` : ''}
+      <button class="cta" id="welcomeConnect">${t('welcome.connect')}</button>
+      <button class="ghost" id="welcomeHistory">${t('history.open')}</button>`;
   }
   $('welcomeConnect')?.addEventListener('click', () => $('connectTrainer').click());
   $('welcomeHistory')?.addEventListener('click', openHistory);
@@ -762,7 +763,8 @@ trainer.addEventListener('connected', () => renderWelcome());
 trainer.addEventListener('disconnected', () => renderWelcome());
 
 setupDebug({ trainer, click, hrm, extra: [pm, garminDbg], appLog: () => $('log').textContent });
-$('appVersion').textContent = `${isNative ? 'App Android' : 'Web'} · versione ${BUILD}`;
+const showVersion = () => { $('appVersion').textContent = t('about.version', { platform: isNative ? t('about.android') : 'Web', build: BUILD }); };
+showVersion();
 
 // ---------- Modalità sviluppatore (7 tocchi sul numero di versione) ----------
 const DEV_TAPS = 7;
@@ -770,29 +772,29 @@ const devOn = () => localStorage.getItem('devMode') === '1';
 function applyDevMode() { document.body.classList.toggle('dev', devOn()); $('devModeOff').checked = devOn(); }
 let devTaps = 0; let devTapTimer = null;
 function tapVersion() {
-  if (devOn()) { toast('Modalità sviluppatore già attiva'); return; }
+  if (devOn()) { toast(t('dev.alreadyOn')); return; }
   devTaps++; clearTimeout(devTapTimer); devTapTimer = setTimeout(() => { devTaps = 0; }, 3000);
   if (devTaps >= DEV_TAPS) {
-    devTaps = 0; localStorage.setItem('devMode', '1'); applyDevMode(); toast('Modalità sviluppatore attiva');
-  } else if (devTaps >= 3) toast(DEV_TAPS - devTaps === 1 ? "Manca 1 tocco" : `Mancano ${DEV_TAPS - devTaps} tocchi`);
+    devTaps = 0; localStorage.setItem('devMode', '1'); applyDevMode(); toast(t('dev.on'));
+  } else if (devTaps >= 3) toast(t('dev.tapsLeft', { count: DEV_TAPS - devTaps }));
 }
 $('appVersion').addEventListener('click', tapVersion);
 $('appVersion').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapVersion(); } });
 $('devModeOff').addEventListener('change', (e) => {
   if (e.target.checked) return;
-  localStorage.removeItem('devMode'); applyDevMode(); closeDebugPanel(); toast('Modalità sviluppatore disattivata');
+  localStorage.removeItem('devMode'); applyDevMode(); closeDebugPanel(); toast(t('dev.off'));
 });
 function closeDebugPanel() { if (!$('debugPanel').hidden) $('closeDebug').click(); }
 applyDevMode();
 
 // ---------- Segnala un problema (issue GitHub precompilata, senza dati personali) ----------
 $('reportIssue').addEventListener('click', () => {
-  const dev = [trainer, click, hrm].filter((x) => x?.connected).map((x) => x.device?.name).filter(Boolean).join(', ') || 'nessuno';
+  const dev = [trainer, click, hrm].filter((x) => x?.connected).map((x) => x.device?.name).filter(Boolean).join(', ') || 'none';
   const body = [
-    '**Cosa è successo?**', '', '', '**Cosa ti aspettavi?**', '', '', '---',
-    `Versione app: ${BUILD}`, `Piattaforma: ${isNative ? 'App Android' : 'Web'}`, `Browser: ${navigator.userAgent}`, `Dispositivo collegato: ${dev}`,
+    '**What happened?**', '', '', '**What did you expect?**', '', '', '---',
+    `App version: ${BUILD}`, `Platform: ${isNative ? 'Android app' : 'Web'}`, `Browser: ${navigator.userAgent}`, `Connected device: ${dev}`, `Language: ${getLang()}`,
   ].join('\n');
-  const url = `https://github.com/c1aud1o/ride-freedom/issues/new?title=${encodeURIComponent('Segnalazione da Spindro')}&body=${encodeURIComponent(body)}`;
+  const url = `https://github.com/c1aud1o/ride-freedom/issues/new?title=${encodeURIComponent('Report from Spindro')}&body=${encodeURIComponent(body)}`;
   openExternal(url);
 });
 
@@ -803,12 +805,12 @@ $('usePm').addEventListener('change', (e) => { state.usePm = e.target.checked; l
 $('connectPm').addEventListener('click', async () => {
   if (pm.connected) { pm.disconnect(); return; }
   try {
-    setStatus('pmStatus', 'connessione…');
+    setStatus('pmStatus', t('status.connecting'));
     const name = await pm.connect();
     setStatus('pmStatus', name, true);
-    $('connectPm').textContent = 'Scollega';
-    log(`Misuratore di potenza: ${name}`);
-  } catch (err) { setStatus('pmStatus', 'non collegato'); log(`Errore misuratore: ${err.message}`); pm.dbg.log(`Errore: ${err.message}`); }
+    $('connectPm').textContent = t('ui.disconnect');
+    log(`Power meter: ${name}`);
+  } catch (err) { setStatus('pmStatus', t('status.notConnected')); log(`Power meter error: ${err.message}`); pm.dbg.log(`Error: ${err.message}`); }
 });
 pm.addEventListener('data', (e) => {
   if (!state.usePm) return;
@@ -817,7 +819,7 @@ pm.addEventListener('data', (e) => {
   if (d.cadence != null) { state.data.cadence = d.cadence; state.pmCadence = true; }
   render();
 });
-pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('pmStatus', 'non collegato'); $('connectPm').textContent = 'Collega misuratore'; });
+pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('pmStatus', t('status.notConnected')); $('connectPm').textContent = t('pm.connect'); });
 
 // ---------- Ponte verso Garmin (solo app Android) ----------
 $('garminNative').hidden = !isNative;
@@ -836,8 +838,8 @@ async function checkGarminConflict() {
   if (show) {
     const name = linked[0];
     const html = watchGuide(name);
-    $('garminConflict').innerHTML = `<b>${name} è collegato al telefono con Garmin Connect.</b> Per usarlo come sensore scollegalo per un momento:${html}`;
-    $('garminBanner').innerHTML = `<h2>Scollega ${name} dal telefono</h2><p>È collegato tramite Garmin Connect, quindi non riesce ad agganciare il sensore "Spindro".</p>${html}`;
+    $('garminConflict').innerHTML = `${t('garmin.linked', { name })}${html}`;
+    $('garminBanner').innerHTML = `<h2>${t('garmin.unlinkTitle', { name })}</h2><p>${t('garmin.unlinkBody')}</p>${html}`;
   }
   $('garminConflict').hidden = !show;
   $('garminBanner').hidden = !show;
@@ -855,20 +857,20 @@ async function setGarmin(on) {
   if (on) {
     try {
       await GarminBridge.start({ name: 'Spindro' });
-      setStatus('garminStatus', 'in attesa del Garmin…');
+      setStatus('garminStatus', t('garmin.waiting'));
       garminTimer = setInterval(pushGarmin, 500);
-      garminDbg.dbg.setStatus('In attesa');
+      garminDbg.dbg.setStatus('Waiting');
       clearInterval(conflictTimer); conflictTimer = setInterval(checkGarminConflict, 5000); setTimeout(checkGarminConflict, 1500);
       // se dopo un minuto nessuno usa il sensore, suggerisci la causa più probabile
       clearTimeout(garminHintTimer);
       garminHintTimer = setTimeout(() => { $('garminHint').hidden = false; }, 60000);
-      log('Ponte Garmin attivo: il telefono è visibile come sensore di potenza "Spindro"');
+      log('Garmin bridge on: the phone is visible as the "Spindro" power sensor');
     } catch (err) {
-      setStatus('garminStatus', 'errore'); $('garminOn').checked = false; log(`Garmin: ${err.message}`);
+      setStatus('garminStatus', t('garmin.error')); $('garminOn').checked = false; log(`Garmin: ${err.message}`);
     }
   } else {
     await GarminBridge.stop().catch(() => {});
-    setStatus('garminStatus', 'spento');
+    setStatus('garminStatus', t('status.off'));
     clearInterval(conflictTimer); checkGarminConflict();
   }
 }
@@ -878,11 +880,11 @@ if (GarminBridge) {
     // "connesso" non basta: il Garmin di solito è già connesso al telefono per Garmin Connect.
     // Il sensore è in uso solo quando un dispositivo si iscrive ai dati di potenza o velocità/cadenza.
     const inUse = (st.usersCount || 0) > 0;
-    garminDbg.dbg.status = inUse ? 'Connesso (in uso)' : st.advertising ? 'In attesa' : st.running ? 'Avvio' : 'Spento';
-    garminDbg.dbg.setValues({ visibile: !!st.advertising, connessi: st.connected || 0, dispositivi: st.devices || '-', inUso: st.users || '-' });
+    garminDbg.dbg.status = inUse ? 'Connected (in use)' : st.advertising ? 'Waiting' : st.running ? 'Starting' : 'Off';
+    garminDbg.dbg.setValues({ visible: !!st.advertising, connected: st.connected || 0, devices: st.devices || '-', inUse: st.users || '-' });
     if (inUse) { clearTimeout(garminHintTimer); $('garminHint').hidden = true; }
     lastGarminStatus = st; checkGarminConflict();
-    setStatus('garminStatus', inUse ? `in uso: ${st.users}` : st.advertising ? 'in attesa del Garmin…' : st.running ? 'avvio…' : 'spento', inUse);
+    setStatus('garminStatus', inUse ? t('garmin.inUse', { users: st.users }) : st.advertising ? t('garmin.waiting') : st.running ? t('garmin.starting') : t('status.off'), inUse);
   });
   GarminBridge.addListener('error', (ev) => log(`Garmin: ${ev.message}`));
   GarminBridge.addListener('log', (ev) => { log(`Garmin · ${ev.message}`); garminDbg.dbg.log(ev.message); });
@@ -919,48 +921,48 @@ async function audioTest(mode) {
   const out = []; const prev = localStorage.getItem('audioMode');
   try {
     localStorage.setItem('audioMode', mode);
-    if (gameAudio.muted) out.push('ATTENZIONE: audio dei giochi disattivato (pulsante Audio nei giochi): lo riattivo');
+    if (gameAudio.muted) out.push('WARNING: game audio was muted (Audio button in games): turning it back on');
     if (gameAudio.muted) gameAudio.toggleMute();
     if (mode === 'web') {
-      const c = gameAudio.ensure(); if (!c) throw new Error('Web Audio non disponibile');
+      const c = gameAudio.ensure(); if (!c) throw new Error('Web Audio not available');
       if (c.state !== 'running') await c.resume().catch(() => {});
       out.push(`A · Web Audio: ${c.state}, ${c.sampleRate} Hz`);
       gameAudio.sfx('pickup'); setTimeout(() => gameAudio.jingle('win'), 450);
     } else {
       await gameAudio.playElementSfxPrepare('pickup');
-      out.push(gameAudio.sfxUrls?.pickup ? 'B · Lettore: suono preparato' : 'B · Lettore: impossibile preparare il suono');
+      out.push(gameAudio.sfxUrls?.pickup ? 'B · Player: sound prepared' : 'B · Player: could not prepare the sound');
       gameAudio.sfx('pickup'); setTimeout(() => gameAudio.jingle('win'), 450);
     }
-    out.push('Hai sentito le note e poi il jingle? Se sì, scegli questo metodo qui sotto.');
-  } catch (err) { out.push(`errore: ${err.message}`); }
+    out.push('Did you hear the notes and then the jingle? If so, pick this method below.');
+  } catch (err) { out.push(`error: ${err.message}`); }
   setTimeout(() => { if (prev) localStorage.setItem('audioMode', prev); else localStorage.removeItem('audioMode'); }, 1200);
   $('audioResult').textContent = out.join(' · ');
-  log(`Test audio ${mode}: ${out.join(' | ')}`);
+  log(`Audio test ${mode}: ${out.join(' | ')}`);
 }
 $('audioTestA').addEventListener('click', () => audioTest('web'));
 $('audioTestB').addEventListener('click', () => audioTest('element'));
 function renderAudioMode() { const m = localStorage.getItem('audioMode') || 'auto'; document.querySelectorAll('#audioMode button').forEach((b) => b.classList.toggle('on', b.dataset.m === m)); }
 document.querySelectorAll('#audioMode button').forEach((b) => b.addEventListener('click', () => {
   localStorage.setItem('audioMode', b.dataset.m); gameAudio.stopSong(); gameAudio.warmed = false; gameAudio.warmUp(); renderAudioMode();
-  toast(b.dataset.m === 'auto' ? 'Audio automatico' : b.dataset.m === 'web' ? 'Audio: Web Audio' : 'Audio: lettore di sistema');
+  toast(b.dataset.m === 'auto' ? 'Audio: auto' : b.dataset.m === 'web' ? 'Audio: Web Audio' : 'Audio: system player');
 }));
 renderAudioMode();
 const games = {
-  horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: "L'Orda", help: 'tieni + / − per sterzare · watt = colpi · sprint = overdrive' },
-  racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'Turbo Pedali 3D', help: '+ destra · − sinistra · sprint = oggetto' },
-  shooter: { game: new Strike3D($('gameCanvas'), gameHooks, gameAudio), title: 'Pedal Strike', help: '+ salta · − bomba · sprint = OVERDRIVE' },
-  gruppetto: { game: new Gruppetto($('gameCanvas'), gameHooks, gameAudio), title: 'Gruppetto', help: '+ destra · − sinistra · tieni premuto per curvare' },
-  mattoni: { game: new Mattoni($('gameCanvas'), gameHooks, gameAudio), title: 'Mattoni', help: 'tieni + / − per muoverti · cadenza = velocità palla' },
-  planata: { game: new Planata($('gameCanvas'), gameHooks, gameAudio), title: 'Planata', help: 'watt = quota · tieni + / − per spostarti' },
-  video: { game: new VideoRide($('gameCanvas'), gameHooks), title: 'Video', help: '+ / − cambiano marcia · il video segue la tua velocità', noAudio: true },
+  horde: { game: new Horde($('gameCanvas'), gameHooks, gameAudio), title: 'games.horde.name', help: 'games.horde.help' },
+  racer: { game: new Racer3D($('gameCanvas'), gameHooks, gameAudio), title: 'games.racer.name', help: 'games.racer.help' },
+  shooter: { game: new Strike3D($('gameCanvas'), gameHooks, gameAudio), title: 'games.shooter.title', help: 'games.shooter.help' },
+  gruppetto: { game: new Gruppetto($('gameCanvas'), gameHooks, gameAudio), title: 'games.gruppetto.name', help: 'games.gruppetto.help' },
+  mattoni: { game: new Mattoni($('gameCanvas'), gameHooks, gameAudio), title: 'games.mattoni.name', help: 'games.mattoni.help' },
+  planata: { game: new Planata($('gameCanvas'), gameHooks, gameAudio), title: 'games.planata.name', help: 'games.planata.help' },
+  video: { game: new VideoRide($('gameCanvas'), gameHooks), title: 'games.video.title', help: 'games.video.help', noAudio: true },
 };
-let activeGame = null;
+let activeGame = null; let activeKind = null;
 
 function openGame() {
   $('gamePanel').hidden = false;
   $('gameMenu').hidden = false;
   progress.renderMenu($('progressPanel'));
-  $('gameTitle').textContent = 'Giochi';
+  $('gameTitle').textContent = t('games.title');
   $('gameHelp').textContent = '';
   document.body.classList.add('game-open');
 }
@@ -975,8 +977,9 @@ function startGame(kind) {
   }
   if (trainer.connected && !state.ride.running) $('startStop').click();
   $('gameMenu').hidden = true;
-  $('gameTitle').textContent = g.title;
-  $('gameHelp').textContent = g.help;
+  activeKind = kind;
+  $('gameTitle').textContent = t(g.title);
+  $('gameHelp').textContent = t(g.help);
   requestWakeLock();
   if (kind !== 'video') clickNav.stop(); // nel gioco + e − tornano al gioco
   activeGame = g.game; window.__game = g.game; // accesso per la diagnostica e i test automatici
@@ -985,7 +988,7 @@ function startGame(kind) {
 function closeGame() {
   if (activeGame) { // dal gioco si torna al menu, dal menu si esce
     activeGame.stop();
-    activeGame = null;
+    activeGame = null; activeKind = null;
     openGame();
     return;
   }
@@ -995,8 +998,9 @@ function closeGame() {
 document.querySelectorAll('.game-card').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.game)));
 $('openGame').addEventListener('click', openGame);
 $('closeGame').addEventListener('click', closeGame);
-$('muteGame').textContent = gameAudio.muted ? 'Audio no' : 'Audio sì';
-$('muteGame').addEventListener('click', () => { $('muteGame').textContent = gameAudio.toggleMute() ? 'Audio no' : 'Audio sì'; });
+const showMute = () => { $('muteGame').textContent = gameAudio.muted ? t('games.audioOff') : t('games.audioOn'); };
+showMute();
+$('muteGame').addEventListener('click', () => { gameAudio.toggleMute(); showMute(); });
 $('gameCanvas').addEventListener('pointerdown', (e) => {
   if (!activeGame?.active) return;
   const r = e.currentTarget.getBoundingClientRect();
@@ -1018,42 +1022,42 @@ function renderStrava() {
   $('stravaLinked').hidden = !strava.connected;
   $('stravaAuto').checked = !!strava.cfg.auto;
   $('uploadStrava').hidden = !strava.connected;
-  setStatus('stravaStatus', strava.connected ? `collegato${strava.athlete ? ` · ${strava.athlete}` : ''}` : 'non collegato', strava.connected);
+  setStatus('stravaStatus', strava.connected ? (strava.athlete ? t('strava.linkedAs', { athlete: strava.athlete }) : t('strava.linked')) : t('status.notConnected'), strava.connected);
 }
 $('stravaConnect').addEventListener('click', () => {
   const id = $('stravaId').value.trim(); const secret = $('stravaSecret').value.trim();
-  if (!/^\d+$/.test(id) || secret.length < 20) { stravaMsg('Controlla Client ID (solo numeri) e Client Secret (stringa lunga).'); return; }
+  if (!/^\d+$/.test(id) || secret.length < 20) { stravaMsg(t('strava.badCreds')); return; }
   strava.setCredentials(id, secret);
   persist();
-  strava.authorize().catch((err) => stravaMsg(`Errore: ${err.message}`));
+  strava.authorize().catch((err) => stravaMsg(t('ui.error', { error: err.message })));
 });
 $('stravaPublicConnect').addEventListener('click', async () => {
   persist();
-  try { await strava.authorize(); } catch (err) { stravaMsg(`Errore: ${err.message}`); }
+  try { await strava.authorize(); } catch (err) { stravaMsg(t('ui.error', { error: err.message })); }
 });
-$('stravaDisconnect').addEventListener('click', () => { strava.disconnect(); renderStrava(); stravaMsg('Strava scollegato.'); });
+$('stravaDisconnect').addEventListener('click', () => { strava.disconnect(); renderStrava(); stravaMsg(t('strava.disconnected')); });
 $('stravaAuto').addEventListener('change', (e) => { strava.cfg.auto = e.target.checked; strava.save(); });
 
 async function uploadToStrava() {
   const r = state.ride;
   if (!r.log.length || stravaBusy) return;
-  if (r.stravaUrl) { stravaMsg(`Già caricato: <a href="${r.stravaUrl}" target="_blank" rel="noopener">apri su Strava</a>`, true); return; }
+  if (r.stravaUrl) { stravaMsg(t('strava.already', { url: r.stravaUrl }), true); return; }
   stravaBusy = true; render();
   try {
     const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
     const res = await strava.upload(fitFile(), {
-      name: `Rullo · ${fmtTime(r.elapsed)} · ${avgW} W`,
-      description: `Allenamento sul rullo con Spindro. Potenza media ${avgW} W, ${Math.round(r.energy)} kJ, ${(r.distance / 1000).toFixed(1)} km.`,
+      name: t('strava.activityName', { time: fmtTime(r.elapsed), watts: avgW }),
+      description: t('strava.activityDesc', { watts: avgW, kj: Math.round(r.energy), km: (r.distance / 1000).toFixed(1) }),
       externalId: `spindro-${r.log[0].t}`,
     }, (m) => stravaMsg(m));
     r.saved = true;
-    if (res.url) { r.stravaUrl = res.url; stravaMsg(`${res.message} <a href="${res.url}" target="_blank" rel="noopener">Apri l'attività</a>`, true); }
+    if (res.url) { r.stravaUrl = res.url; stravaMsg(`${res.message} ${t('strava.openActivity', { url: res.url })}`, true); }
     else stravaMsg(res.message);
     persist();
     log(res.message);
   } catch (err) {
-    stravaMsg(`Errore Strava: ${err.message}. Il file .FIT resta disponibile con "Salva .FIT".`);
-    log(`Errore Strava: ${err.message}`);
+    stravaMsg(t('strava.uploadFailed', { error: err.message }));
+    log(`Strava error: ${err.message}`);
   } finally { stravaBusy = false; render(); }
 }
 $('uploadStrava').addEventListener('click', uploadToStrava);
@@ -1061,7 +1065,7 @@ $('finishRide').addEventListener('click', () => {
   const r = state.ride;
   if (r.running) $('startStop').click(); // pausa
   const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
-  $('finishSummary').innerHTML = [['Tempo', fmtTime(r.elapsed)], ['km', (r.distance / 1000).toFixed(2)], ['W medi', avgW], ['kJ', Math.round(r.energy)]]
+  $('finishSummary').innerHTML = [[t('home.time'), fmtTime(r.elapsed)], ['km', fmtDec(r.distance / 1000, 2)], [t('home.avgPower'), avgW], ['kJ', Math.round(r.energy)]]
     .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
   // il "picco" e la "fine": celebrare, confrontare, invitare a tornare
   const hist = history();
@@ -1071,16 +1075,17 @@ $('finishRide').addEventListener('click', () => {
   const goalBefore = goalState(hist);
   if (r.elapsed >= 60) {
     const st = rideStats(r.log);
-    for (const [d, l] of [[5, '5 secondi'], [60, '1 minuto'], [300, '5 minuti'], [1200, '20 minuti']]) {
+    for (const d of [5, 60, 300, 1200]) {
+      const l = t(`finish.dur.${d}`);
       const old = Math.max(0, ...hist.map((h) => h.best?.[d] || 0));
-      if (st.best[d] && old && st.best[d] > old) medals.push({ ico: '⚡', title: `Record ${l}: ${st.best[d]} W`, sub: `+${st.best[d] - old} W sul precedente` });
+      if (st.best[d] && old && st.best[d] > old) medals.push({ ico: '⚡', title: t('finish.record', { dur: l, w: st.best[d] }), sub: t('finish.recordSub', { delta: st.best[d] - old }) });
     }
     const longest = Math.max(0, ...hist.map((h) => h.dur));
-    if (hist.length && r.elapsed > longest + 30) medals.push({ ico: '⏱', title: 'Uscita più lunga di sempre', sub: `${Math.round(r.elapsed / 60)} minuti` });
+    if (hist.length && r.elapsed > longest + 30) medals.push({ ico: '⏱', title: t('finish.longest'), sub: t('time.minutes', { count: Math.round(r.elapsed / 60) }) });
     const days = new Set([...hist.map((h) => new Date(h.t).toDateString()), new Date().toDateString()]);
     let streak = 0; for (let d = new Date(); days.has(d.toDateString()); d.setDate(d.getDate() - 1)) streak++;
-    if (streak >= 2) medals.push({ ico: '🔥', title: `${streak} giorni di fila`, sub: 'La costanza fa la differenza' });
-    if (!hist.length) medals.push({ ico: '★', title: 'Primo allenamento!', sub: 'Il primo passo è il più importante' });
+    if (streak >= 2) medals.push({ ico: '🔥', title: t('finish.streak', { n: streak }), sub: t('finish.streakSub') });
+    if (!hist.length) medals.push({ ico: '★', title: t('finish.first'), sub: t('finish.firstSub') });
   }
   if (!r.historySaved && r.elapsed >= 60) {
     hist.push({ t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy), ...rideStats(r.log) });
@@ -1088,15 +1093,15 @@ $('finishRide').addEventListener('click', () => {
   }
   const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5).length;
   const mins = Math.round(r.elapsed / 60);
-  $('finishTitle').textContent = mins >= 60 ? 'Che giro!' : mins >= 30 ? 'Ottimo lavoro!' : r.elapsed >= 60 ? 'Fatto!' : 'Allenamento finito';
-  $('finishPraise').textContent = r.elapsed >= 60 ? `${mins} minuti in sella, ${Math.round(r.energy)} kJ di lavoro. ${week > 1 ? `È il tuo ${week}° allenamento questa settimana.` : 'Ottimo inizio di settimana.'}` : '';
-  $('finishCompare').textContent = prev && r.elapsed >= 60 && prev.avgW ? (avgW > prev.avgW ? `+${avgW - prev.avgW} W medi rispetto all'ultima volta` : avgW === prev.avgW ? 'Stessa potenza media dell\'ultima volta: costanza!' : '') : '';
+  $('finishTitle').textContent = mins >= 60 ? t('finish.titleLong') : mins >= 30 ? t('finish.titleMid') : r.elapsed >= 60 ? t('finish.titleShort') : t('finish.titleTiny');
+  $('finishPraise').textContent = r.elapsed >= 60 ? `${t('finish.praise', { mins, kj: Math.round(r.energy) })} ${week > 1 ? t('finish.praiseWeek', { n: week }) : t('finish.praiseStart')}` : '';
+  $('finishCompare').textContent = prev && r.elapsed >= 60 && prev.avgW ? (avgW > prev.avgW ? t('finish.compareMore', { delta: avgW - prev.avgW }) : avgW === prev.avgW ? t('finish.compareSame') : '') : '';
   const gl = goalState(hist);
-  $('finishNudge').textContent = gl ? (gl.done >= gl.goal ? `Obiettivo della settimana raggiunto: ${gl.done}/${gl.goal} minuti!` : `Settimana: ${gl.done}/${gl.goal} minuti. Ne mancano ${gl.goal - gl.done}.`) : 'Domani ti aspettano nuove sfide nei giochi. Ci vediamo in sella.';
+  $('finishNudge').textContent = gl ? (gl.done >= gl.goal ? t('finish.goalDone', { done: gl.done, goal: gl.goal }) : t('finish.goalLeft', { done: gl.done, goal: gl.goal, left: gl.goal - gl.done })) : t('finish.nudge');
   $('stravaMsg').innerHTML = r.stravaUrl
-    ? `Già su Strava. <a href="${r.stravaUrl}" target="_blank" rel="noopener">Apri l'attività</a>`
-    : strava.connected ? '' : 'Collega Strava dalle impostazioni per caricare in automatico.';
-  if (gl && goalBefore && goalBefore.done < gl.goal && gl.done >= gl.goal) medals.unshift({ ico: '🏁', title: 'Obiettivo settimanale raggiunto', sub: `${gl.done} minuti su ${gl.goal}` });
+    ? t('strava.alreadyOn', { url: r.stravaUrl })
+    : strava.connected ? '' : t('strava.connectHint');
+  if (gl && goalBefore && goalBefore.done < gl.goal && gl.done >= gl.goal) medals.unshift({ ico: '🏁', title: t('finish.goalTitle'), sub: t('finish.goalSub', { done: gl.done, goal: gl.goal }) });
   badges($('finishBadges'), medals.slice(0, 4));
   openSheet('finishSheet');
   if (r.elapsed >= 60) { party($('finishSheet'), { records: medals.length }); if (medals.length) gameAudio.jingle('win', 0.6); }
@@ -1105,7 +1110,7 @@ $('finishRide').addEventListener('click', () => {
 strava.handleRedirect().then((res) => {
   if (res) { stravaMsg(res.message); log(res.message); openSheet('settingsSheet'); }
   renderStrava();
-}).catch((err) => { stravaMsg(`Errore collegamento Strava: ${err.message}`); renderStrava(); });
+}).catch((err) => { stravaMsg(t('strava.linkError', { error: err.message })); renderStrava(); });
 renderStrava();
 
 restore();
@@ -1130,39 +1135,39 @@ function autoPauseCheck() {
   const moving = (state.data.power || 0) > 5 || (state.data.speed || 0) > 2;
   const r = state.ride;
   if (r.running && !moving) {
-    if (++idleSec >= 5 && !activeGame?.active) { $('startStop').click(); autoPaused = true; toast('In pausa: riparte quando pedali'); }
+    if (++idleSec >= 5 && !activeGame?.active) { $('startStop').click(); autoPaused = true; toast(t('auto.paused')); }
   } else idleSec = 0;
-  if (autoPaused && !r.running && moving) { autoPaused = false; $('startStop').click(); toast('Si riparte!'); }
+  if (autoPaused && !r.running && moving) { autoPaused = false; $('startStop').click(); toast(t('auto.resumed')); }
   // partenza automatica: sessione nuova e pedali da 3 secondi
-  if (!r.running && !autoPaused && r.elapsed === 0 && moving) { if (++moveSec >= 3) { $('startStop').click(); toast('Registrazione avviata'); } } else moveSec = 0;
+  if (!r.running && !autoPaused && r.elapsed === 0 && moving) { if (++moveSec >= 3) { $('startStop').click(); toast(t('auto.started')); } } else moveSec = 0;
   if (r.running) autoPaused = autoPaused && !r.running;
 }
 $('startStop').addEventListener('click', () => { if (state.ride.running) idleSec = 0; });
 $('fullscreen').addEventListener('click', () => {
   closeSheet('settingsSheet');
-  if (document.fullscreenElement) document.exitFullscreen?.(); else document.documentElement.requestFullscreen?.().catch(() => toast('Schermo intero non disponibile qui'));
+  if (document.fullscreenElement) document.exitFullscreen?.(); else document.documentElement.requestFullscreen?.().catch(() => toast(t('settings.fullscreenNA')));
 });
 if (!document.documentElement.requestFullscreen) $('fullscreen').hidden = true;
 
 $('shareImg').addEventListener('click', async () => {
-  const r = state.ride; if (!r.log.length) { toast('Nessun dato da condividere'); return; }
+  const r = state.ride; if (!r.log.length) { toast(t('share.noData')); return; }
   const st = rideStats(r.log); const avgW = r.samples ? Math.round(r.powerSum / r.samples) : 0;
   const mins = Math.round(r.elapsed / 60);
-  const stats = [['Potenza media', avgW, 'W'], ['Tempo', fmtTime(r.elapsed), ''], ['Distanza', (r.distance / 1000).toFixed(1), 'km'], ['Energia', Math.round(r.energy), 'kJ']];
-  if (st.np) stats.push(['Normalizzata', st.np, 'W']);
-  if (st.best[1200]) stats.push(['Migliori 20 min', st.best[1200], 'W']); else if (st.best[60]) stats.push(['Miglior minuto', st.best[60], 'W']);
+  const stats = [[t('share.avgPower'), avgW, 'W'], [t('home.time'), fmtTime(r.elapsed), ''], [t('share.distance'), fmtDec(r.distance / 1000, 1), 'km'], [t('share.energy'), Math.round(r.energy), 'kJ']];
+  if (st.np) stats.push([t('share.normalized'), st.np, 'W']);
+  if (st.best[1200]) stats.push([t('share.best20'), st.best[1200], 'W']); else if (st.best[60]) stats.push([t('share.best1'), st.best[60], 'W']);
   const res = await shareCard({
-    title: $('finishTitle').textContent || `${mins} minuti in sella`,
-    date: new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }),
+    title: $('finishTitle').textContent || t('share.title', { mins }),
+    date: fmtDate(new Date()),
     stats, series: st.series, ftp: state.ftp, route: route?.name || lastRouteName,
   });
-  if (res === 'saved') toast('Immagine salvata');
+  if (res === 'saved') toast(t('share.saved'));
 });
 
 // ---------- Zone di frequenza cardiaca (in % del battito massimo) ----------
-const HR_ZONES = [[0.6, 'Recupero', '#8a8f98'], [0.7, 'Fondo', '#4d8dff'], [0.8, 'Tempo', '#2fbf71'], [0.9, 'Soglia', '#f2c230'], [Infinity, 'Massimale', '#ff4d4d']];
+const HR_ZONES = [[0.6, '#8a8f98'], [0.7, '#4d8dff'], [0.8, '#2fbf71'], [0.9, '#f2c230'], [Infinity, '#ff4d4d']];
 function hrMax() { return Number(localStorage.getItem('hrMax')) || Math.max(170, ...history().map((h) => h.maxHr || 0)) || 185; }
-function hrZone(hr) { const k = hr / hrMax(); const i = HR_ZONES.findIndex(([m]) => k < m); return { z: i + 1, name: HR_ZONES[i][1], color: HR_ZONES[i][2] }; }
+function hrZone(hr) { const k = hr / hrMax(); const i = HR_ZONES.findIndex(([m]) => k < m); return { z: i + 1, name: t(`zone.hr.z${i + 1}`), color: HR_ZONES[i][1] }; }
 $('hrMax').value = localStorage.getItem('hrMax') || '';
 $('hrMax').addEventListener('change', (e) => { const v = Math.round(+e.target.value); if (v >= 120 && v <= 220) localStorage.setItem('hrMax', v); else { localStorage.removeItem('hrMax'); e.target.value = ''; } render(); });
 
@@ -1172,23 +1177,23 @@ $('backupOut').addEventListener('click', () => {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!NO_BACKUP.test(k)) data[k] = localStorage.getItem(k); }
   const blob = new Blob([JSON.stringify({ app: 'spindro', version: 1, date: new Date().toISOString(), data })], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `spindro-dati-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `spindro-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast('Dati esportati');
+  toast(t('backup.exported'));
 });
 $('backupIn').addEventListener('change', async (e) => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
     const j = JSON.parse(await f.text());
-    if (j.app !== 'spindro' && j.app !== 'ride-freedom' || typeof j.data !== 'object') throw new Error('Non è un file di Spindro');
+    if (j.app !== 'spindro' && j.app !== 'ride-freedom' || typeof j.data !== 'object') throw new Error(t('backup.notSpindro'));
     // lo storico si unisce (niente doppioni), il resto si sovrascrive
     const mine = history(); const theirs = JSON.parse(j.data.rideHistory || '[]');
     const merged = [...new Map([...mine, ...theirs].map((h) => [h.t, h])).values()].sort((a, b) => a.t - b.t);
-    if (!confirm(`Importare ${theirs.length} uscite e le impostazioni del file? Lo storico verrà unito (${merged.length} uscite in totale).`)) return;
+    if (!confirm(t('backup.confirm', { count: theirs.length, total: merged.length }))) return;
     for (const [k, v] of Object.entries(j.data)) if (!NO_BACKUP.test(k) && k !== 'rideHistory') localStorage.setItem(k, v);
     saveHistory(merged.slice(-200));
-    toast('Dati importati: ricarico…'); setTimeout(() => location.reload(), 900);
-  } catch (err) { toast(`Importazione non riuscita: ${err.message}`); }
+    toast(t('backup.imported')); setTimeout(() => location.reload(), 900);
+  } catch (err) { toast(t('backup.failed', { error: err.message })); }
 });
 
 // ---------- Obiettivo settimanale ----------
@@ -1201,7 +1206,7 @@ function goalState(hist) {
 function goalHtml(hist) {
   const g = goalState(hist); if (!g) return '';
   const pct = Math.min(100, Math.round((g.done / g.goal) * 100));
-  return `<div class="goal"><span class="goal-txt"><b>${g.done}</b> / ${g.goal} min questa settimana${pct >= 100 ? ' · raggiunto!' : ''}</span><span class="goal-bar"><i style="width:${pct}%"></i></span></div>`;
+  return `<div class="goal"><span class="goal-txt">${t('goal.progress', { done: g.done, goal: g.goal })}${pct >= 100 ? ` · ${t('goal.reached')}` : ''}</span><span class="goal-bar"><i style="width:${pct}%"></i></span></div>`;
 }
 function renderGoalChips() { const g = Number(localStorage.getItem('weekGoal')) || 0; document.querySelectorAll('#goalChips button').forEach((b) => b.classList.toggle('on', +b.dataset.g === g)); }
 document.querySelectorAll('#goalChips button').forEach((b) => b.addEventListener('click', () => { localStorage.setItem('weekGoal', b.dataset.g); renderGoalChips(); renderWelcome(); }));
@@ -1213,13 +1218,13 @@ const editor = new WorkoutEditor($('editorBody'), {
   onSave: (w) => {
     const list = customWorkouts().filter((x) => x.id !== w.id);
     localStorage.setItem('customWorkouts', JSON.stringify([w, ...list].slice(0, 30)));
-    closeSheet('editorSheet'); toast(`Salvato: ${w.name}`);
+    closeSheet('editorSheet'); toast(t('editor.saved', { name: w.name }));
     renderWorkoutList(); openSheet('workoutSheet');
   },
 });
 function openEditor(w) {
   editor.ftp = state.ftp; editor.open(w);
-  $('editorTitle').textContent = w?.custom ? 'Modifica allenamento' : 'Crea allenamento';
+  $('editorTitle').textContent = w?.custom ? t('editor.edit') : t('editor.create');
   closeSheet('workoutSheet'); openSheet('editorSheet');
 }
 // file da salvare: sul telefono si apre la condivisione (Drive, email, Garmin…), sul PC si scarica
@@ -1229,7 +1234,7 @@ async function offerFile(file, hint) {
   } catch (err) { if (err.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast(`Scaricato ${file.name}. ${hint}`);
+  toast(t('workouts.downloaded', { file: file.name, hint }));
 }
 
 // ---------- Cambio automatico (tiene la cadenza scelta) e coach vocale ----------
@@ -1250,11 +1255,11 @@ function renderAutoShift() {
   $('autoShift').checked = on; $('cadChips').hidden = !on;
   document.querySelectorAll('#cadChips button').forEach((b) => b.classList.toggle('on', +b.dataset.c === c));
 }
-$('autoShift').addEventListener('change', () => { localStorage.setItem('autoShift', $('autoShift').checked ? '1' : '0'); renderAutoShift(); if ($('autoShift').checked) toast('Il cambio segue la tua cadenza: + e − restano attivi'); });
+$('autoShift').addEventListener('change', () => { localStorage.setItem('autoShift', $('autoShift').checked ? '1' : '0'); renderAutoShift(); if ($('autoShift').checked) toast(t('auto.shiftOn')); });
 document.querySelectorAll('#cadChips button').forEach((b) => b.addEventListener('click', () => { localStorage.setItem('autoCad', b.dataset.c); renderAutoShift(); }));
 renderAutoShift();
 $('coachOn').checked = coach.on;
-$('coachOn').addEventListener('change', () => { coach.on = $('coachOn').checked; if (coach.on) coach.say('Ciao! Sono il tuo coach. Ti avviso a ogni cambio di ritmo.', { force: true }); });
+$('coachOn').addEventListener('change', () => { coach.on = $('coachOn').checked; if (coach.on) coach.say(t('coach.hello'), { force: true }); });
 
 $('gameGlow').checked = glowSetting.on;
 $('gameGlow').addEventListener('change', () => { glowSetting.on = $('gameGlow').checked; });
@@ -1266,26 +1271,26 @@ const clickNav = createClickNav({
   isIdle: () => !click.pressed?.size,
   onChange: (on) => document.body.classList.toggle('click-nav', on),
   menuItems: () => {
-    const rec = { label: state.ride.running ? '⏸ Pausa registrazione' : '▶ Avvia registrazione', run: () => $('startStop').click() };
+    const rec = { label: state.ride.running ? t('clickmenu.pause') : t('clickmenu.start'), run: () => $('startStop').click() };
     if (inGame()) {
       return [
-        { label: '▶ Riprendi il gioco', run: () => clickNav.stop() },
-        { label: '✕ Esci dal gioco', run: () => closeGame() },
-        { label: gameAudio.muted ? '🔊 Attiva audio' : '🔇 Disattiva audio', run: () => $('muteGame').click() },
+        { label: t('clickmenu.resumeGame'), run: () => clickNav.stop() },
+        { label: t('clickmenu.exitGame'), run: () => closeGame() },
+        { label: gameAudio.muted ? t('clickmenu.audioOn') : t('clickmenu.audioOff'), run: () => $('muteGame').click() },
         rec,
       ];
     }
     return [
       rec,
-      ...(state.ride.log.length ? [{ label: '🏁 Termina allenamento', run: () => $('finishRide').click() }] : []),
-      ...(isNative && !trainer.connected ? [{ label: '🔗 Collega il rullo', run: () => $('connectTrainer').click() }] : []),
-      { label: '📊 Allenamenti e percorsi', run: () => $('openWorkouts').click() },
-      { label: '🎮 Giochi', run: () => openGame() },
-      { label: '▶ Pedala su un video', run: () => { openGame(); startGame('video'); } },
-      { label: '📈 Storico e record', run: () => openHistory() },
-      { label: '⚙ Impostazioni', run: () => $('openSettings').click() },
-      { label: '☰ Esplora questa schermata', run: () => {} },
-      { label: '✕ Chiudi il menu Click', run: () => clickNav.stop() },
+      ...(state.ride.log.length ? [{ label: t('clickmenu.finish'), run: () => $('finishRide').click() }] : []),
+      ...(isNative && !trainer.connected ? [{ label: t('clickmenu.connect'), run: () => $('connectTrainer').click() }] : []),
+      { label: t('clickmenu.workouts'), run: () => $('openWorkouts').click() },
+      { label: t('clickmenu.games'), run: () => openGame() },
+      { label: t('clickmenu.video'), run: () => { openGame(); startGame('video'); } },
+      { label: t('clickmenu.history'), run: () => openHistory() },
+      { label: t('clickmenu.settings'), run: () => $('openSettings').click() },
+      { label: t('clickmenu.explore'), run: () => {} },
+      { label: t('clickmenu.close'), run: () => clickNav.stop() },
     ];
   },
 });
@@ -1303,7 +1308,7 @@ window.rfBack = () => {
   if (clickNav.active) { clickNav.stop(); return 'ok'; }
   if (Date.now() - backArmed < 2500) return state.ride.running ? 'background' : 'exit';
   backArmed = Date.now();
-  toast(state.ride.running ? 'Premi ancora indietro: l\'app va in sottofondo e continua a registrare' : 'Premi ancora indietro per uscire');
+  toast(state.ride.running ? t('back.background') : t('back.exit'));
   return 'ok';
 };
 if (!isNative) {
@@ -1315,10 +1320,34 @@ if (!isNative) {
 // link condiviso da YouTube (Condividi → Spindro): apre "Pedala su un video" con quel video
 window.rfShared = (text) => {
   const m = String(text).match(/https?:\/\/\S+/); const url = m ? m[0] : String(text).trim();
-  if (!/youtu\.?be/.test(url)) { toast('Il link condiviso non è un video YouTube'); return; }
+  if (!/youtu\.?be/.test(url)) { toast(t('share.notYoutube')); return; }
   for (const sh of document.querySelectorAll('.sheet')) if (!sh.hidden) closeSheet(sh.id);
   if (activeGame) closeGame();
   openGame(); startGame('video'); games.video.game.openUrl(url);
-  toast('Video ricevuto: pedala per farlo scorrere');
+  toast(t('share.received'));
 };
 if (window.rfPendingShare) { window.rfShared(window.rfPendingShare); window.rfPendingShare = null; }
+
+// ---------- Lingua: selettore nelle Impostazioni e aggiornamento al volo ----------
+const langSelect = $('langSelect');
+for (const [code, name] of Object.entries(LANGS)) langSelect.add(new Option(name, code));
+langSelect.value = getLang();
+langSelect.addEventListener('change', () => setLang(langSelect.value));
+// ciò che il codice scrive da solo (stati, elenchi, pannelli aperti) va rifatto; l'HTML statico lo rifà applyI18n
+window.addEventListener('langchange', () => {
+  langSelect.value = getLang();
+  $('startStop').textContent = state.ride.running ? t('home.pause') : t('home.start');
+  if (!trainer.connected) setStatus('trainerStatus', t('home.status.connect'));
+  if (click.connected) setStatus('clickStatus', t('sensor.connected', { name: click.label }), true); else if ($('clickStatus').textContent !== '—') setStatus('clickStatus', t('sensor.notConnected'));
+  if (!hrm.connected && $('hrStatus').textContent !== '—') setStatus('hrStatus', t('sensor.notConnected'));
+  if (!pm.connected) { setStatus('pmStatus', t('status.notConnected')); $('connectPm').textContent = t('pm.connect'); } else $('connectPm').textContent = t('ui.disconnect');
+  if (!$('garminOn').checked) setStatus('garminStatus', t('status.off'));
+  showVersion(); showMute(); renderStrava(); renderWelcome(); render(); checkGarminConflict();
+  $('wkFtp').textContent = state.ftp;
+  if (!$('workoutSheet').hidden) { renderWorkoutList(); renderRoutePick(); }
+  if (!$('historySheet').hidden) openHistory();
+  if (!$('gamePanel').hidden) {
+    if (activeGame) { $('gameTitle').textContent = t(games[activeKind].title); $('gameHelp').textContent = t(games[activeKind].help); }
+    else { $('gameTitle').textContent = t('games.title'); progress.renderMenu($('progressPanel')); }
+  }
+});

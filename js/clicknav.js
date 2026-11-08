@@ -2,15 +2,16 @@
 //   + e − insieme   → apre/chiude il menu Click
 //   + / −           → elemento successivo / precedente
 //   tieni premuto + → sceglie   ·   tieni premuto − → indietro
+import { t } from './i18n.js';
 const LONG = 650;
 const FOCUSABLE = 'button:not([disabled]), a[href], input:not([type=hidden]):not([disabled]), summary, label.switch, label.file-btn';
 
 export function createClickNav({ menuItems, back, onChange, isIdle = () => true }) {
   const menu = document.createElement('div'); menu.id = 'clickMenu'; menu.className = 'click-menu'; menu.hidden = true;
-  menu.innerHTML = '<div class="cm-box"><p class="cm-title">Menu Click</p><div class="cm-list"></div></div>';
+  menu.innerHTML = `<div class="cm-box"><p class="cm-title">${t('clicknav.title')}</p><div class="cm-list"></div></div>`;
   document.body.appendChild(menu);
   const bar = document.createElement('div'); bar.className = 'click-bar'; bar.hidden = true;
-  bar.innerHTML = '<b>Click</b> + avanti · − indietro · <b>tieni +</b> scegli · <b>tieni −</b> torna · <b>+ e −</b> esci';
+  bar.innerHTML = t('clicknav.bar');
   document.body.appendChild(bar);
 
   const nav = { active: false, idx: 0, items: [], timer: null, fired: false, dir: 0, idleT: null };

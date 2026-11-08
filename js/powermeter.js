@@ -1,23 +1,24 @@
 // Misuratore di potenza esterno (Bluetooth Cycling Power): pedali Garmin Rally/Vector, Favero,
 // guarniture, ecc. Se attivato, i suoi watt (e la cadenza, se la trasmette) sostituiscono quelli del rullo.
 import { SensorDebug } from './debug.js';
+import { t } from './i18n.js';
 
 export class PowerMeter extends EventTarget {
-  constructor() { super(); this.device = null; this.dbg = new SensorDebug('pm', 'Misuratore di potenza'); this.prev = null; }
+  constructor() { super(); this.device = null; this.dbg = new SensorDebug('pm', 'Power meter'); this.prev = null; }
   get connected() { return !!this.device?.gatt?.connected; }
 
   async connect() {
     this.device = await navigator.bluetooth.requestDevice({ filters: [{ services: [0x1818] }], optionalServices: [0x1818, 0x180f] });
-    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.dispatchEvent(new Event('disconnected')); });
-    this.dbg.setStatus('Connessione…');
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnected'); this.dispatchEvent(new Event('disconnected')); });
+    this.dbg.setStatus('Connecting…');
     const server = await this.device.gatt.connect();
     await this.dbg.describe(this.device, server);
     const svc = await server.getPrimaryService(0x1818);
     const c = await svc.getCharacteristic(0x2a63);
     c.addEventListener('characteristicvaluechanged', (e) => this.onData(e.target.value));
     await c.startNotifications();
-    this.dbg.setStatus('Connesso');
-    return this.device.name || 'Misuratore';
+    this.dbg.setStatus('Connected');
+    return this.device.name || t('pm.title');
   }
 
   disconnect() { if (this.connected) this.device.gatt.disconnect(); }

@@ -1,6 +1,8 @@
 // Storico: statistiche di ogni uscita (potenza normalizzata, migliori potenze, serie per il grafico)
 // e pannello con settimane, record e lista delle uscite. Tutto resta solo su questo dispositivo.
 
+import { t, fmtDate as fmtD, fmtDec } from './i18n.js';
+
 const BESTS = [[5, '5 s'], [60, '1 min'], [300, '5 min'], [1200, '20 min']];
 
 // statistiche dal registro a 1 Hz della sessione
@@ -27,12 +29,12 @@ export function rideStats(log) {
   return { np, maxW: Math.round(Math.max(0, ...p)), best, maxHr: hrs.length ? Math.max(...hrs) : null, avgHr: hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null, series: series.slice(0, 720) };
 }
 
-const fmtDate = (t) => new Date(t).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtDate = (ms) => fmtD(new Date(ms), { weekday: 'short', day: 'numeric', month: 'short' });
 const weekStart = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
 
 export function renderHistory(el, hist, ftp) {
   if (!hist.length) {
-    el.innerHTML = '<p class="fine hs-empty">Ancora nessuna uscita salvata. Finisci un allenamento di almeno un minuto e lo trovi qui, con grafici e record.</p>';
+    el.innerHTML = `<p class="fine hs-empty">${t('history.empty')}</p>`;
     return;
   }
   // settimane (ultime 8)
@@ -50,35 +52,35 @@ export function renderHistory(el, hist, ftp) {
   el.innerHTML = `
     <section class="hs-block">
       <div class="hs-kpis">
-        <div><b>${thisWeek.min}</b><small>minuti questa settimana</small></div>
-        <div><b>${thisWeek.n}</b><small>uscite</small></div>
-        <div><b>${Math.round(totKm)}</b><small>km totali</small></div>
-        <div><b>${totH.toFixed(1)}</b><small>ore totali</small></div>
+        <div><b>${thisWeek.min}</b><small>${t('history.kpi.minutes')}</small></div>
+        <div><b>${thisWeek.n}</b><small>${t('history.kpi.rides')}</small></div>
+        <div><b>${Math.round(totKm)}</b><small>${t('history.kpi.km')}</small></div>
+        <div><b>${fmtDec(totH, 1)}</b><small>${t('history.kpi.hours')}</small></div>
       </div>
       <canvas id="hsWeeks" class="hs-weeks"></canvas>
-      <p class="fine">Minuti pedalati nelle ultime 8 settimane.</p>
+      <p class="fine">${t('history.weeksNote')}</p>
     </section>
     <section class="hs-block">
-      <h3>I tuoi record</h3>
-      <div class="hs-bests">${BESTS.map(([d, l]) => `<div><small>${l}</small><b>${all[d] || '–'}</b><span>${recent[d] ? `${recent[d]} W negli ultimi 30 gg` : '—'}</span></div>`).join('')}</div>
-      ${ftpGuess ? `<p class="fine">Dai tuoi 20 minuti migliori la FTP stimata è <b>${ftpGuess} W</b> (impostata: ${ftp} W).${Math.abs(ftpGuess - ftp) > 5 ? ` <button class="link" id="hsUseFtp" data-ftp="${ftpGuess}">Usa ${ftpGuess} W</button>` : ''}</p>` : '<p class="fine">Fai almeno 20 minuti a ritmo costante (o il test FTP negli Allenamenti) per una stima della FTP.</p>'}
+      <h3>${t('history.records')}</h3>
+      <div class="hs-bests">${BESTS.map(([d, l]) => `<div><small>${l}</small><b>${all[d] || '–'}</b><span>${recent[d] ? t('history.last30', { w: recent[d] }) : '—'}</span></div>`).join('')}</div>
+      ${ftpGuess ? `<p class="fine">${t('history.ftpGuess', { ftp: ftpGuess, current: ftp })}${Math.abs(ftpGuess - ftp) > 5 ? ` <button class="link" id="hsUseFtp" data-ftp="${ftpGuess}">${t('history.useFtp', { ftp: ftpGuess })}</button>` : ''}</p>` : `<p class="fine">${t('history.ftpHelp')}</p>`}
     </section>
     <section class="hs-block">
-      <h3>Uscite</h3>
+      <h3>${t('history.rides')}</h3>
       <div class="hs-list">${[...hist].reverse().map((h, i) => `<details class="hs-ride">
-        <summary><span><b>${fmtDate(h.t)}</b><small>${Math.round(h.dur / 60)} min · ${h.km} km · ${h.avgW} W medi${h.np ? ` · NP ${h.np}` : ''}</small></span>${h.series ? `<canvas data-spark="${hist.length - 1 - i}" class="hs-spark"></canvas>` : ''}</summary>
+        <summary><span><b>${fmtDate(h.t)}</b><small>${t('history.rideLine', { min: Math.round(h.dur / 60), km: h.km, w: h.avgW })}${h.np ? ` · NP ${h.np}` : ''}</small></span>${h.series ? `<canvas data-spark="${hist.length - 1 - i}" class="hs-spark"></canvas>` : ''}</summary>
         ${h.series ? `<canvas data-big="${hist.length - 1 - i}" class="hs-big"></canvas>` : ''}
         <dl class="hs-dl">
-          <div><dt>Energia</dt><dd>${h.kj} kJ</dd></div>
-          ${h.maxW ? `<div><dt>Picco</dt><dd>${h.maxW} W</dd></div>` : ''}
-          ${h.avgHr ? `<div><dt>Battito medio</dt><dd>${h.avgHr}</dd></div>` : ''}
-          ${h.np ? `<div><dt>Intensità</dt><dd>${Math.round((h.np / ftp) * 100)}%</dd></div>` : ''}
-          ${h.best?.[60] ? `<div><dt>Miglior minuto</dt><dd>${h.best[60]} W</dd></div>` : ''}
-          ${h.best?.[1200] ? `<div><dt>Migliori 20 min</dt><dd>${h.best[1200]} W</dd></div>` : ''}
+          <div><dt>${t('history.energy')}</dt><dd>${h.kj} kJ</dd></div>
+          ${h.maxW ? `<div><dt>${t('history.peak')}</dt><dd>${h.maxW} W</dd></div>` : ''}
+          ${h.avgHr ? `<div><dt>${t('history.avgHr')}</dt><dd>${h.avgHr}</dd></div>` : ''}
+          ${h.np ? `<div><dt>${t('history.intensity')}</dt><dd>${Math.round((h.np / ftp) * 100)}%</dd></div>` : ''}
+          ${h.best?.[60] ? `<div><dt>${t('history.bestMinute')}</dt><dd>${h.best[60]} W</dd></div>` : ''}
+          ${h.best?.[1200] ? `<div><dt>${t('history.best20')}</dt><dd>${h.best[1200]} W</dd></div>` : ''}
         </dl></details>`).join('')}</div>
     </section>`;
   requestAnimationFrame(() => {
-    bars(el.querySelector('#hsWeeks'), weeks.map((w) => w.min), weeks.map((w) => new Date(w.ws).toLocaleDateString('it-IT', { day: 'numeric', month: 'numeric' })));
+    bars(el.querySelector('#hsWeeks'), weeks.map((w) => w.min), weeks.map((w) => fmtD(new Date(w.ws), { day: 'numeric', month: 'numeric' })));
     el.querySelectorAll('[data-spark]').forEach((c) => line(c, hist[c.dataset.spark].series, ftp, false));
     el.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => { const c = d.querySelector('[data-big]'); if (d.open && c) line(c, hist[c.dataset.big].series, ftp, true); }));
   });

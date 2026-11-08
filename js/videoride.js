@@ -1,9 +1,10 @@
 // PEDALA SU UN VIDEO — un video di un percorso (YouTube o un file del telefono/PC) che scorre
 // alla tua velocità: ti fermi e si ferma, acceleri e accelera. + / − restano il cambio.
 import { hudText } from './games/engine.js';
+import { t, fmtDec } from './i18n.js';
 
 const YT_RE = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/;
-const REF_KMH = [{ v: 15, t: 'Corsa a piedi / salita' }, { v: 25, t: 'Bici tranquilla' }, { v: 32, t: 'Bici veloce' }];
+const REF_KMH = [{ v: 15, key: 'video.ref.run' }, { v: 25, key: 'video.ref.easy' }, { v: 32, key: 'video.ref.fast' }];
 
 export class VideoRide {
   constructor(hudCanvas, hooks) {
@@ -20,25 +21,25 @@ export class VideoRide {
     this.ui = document.createElement('div'); this.ui.className = 'video-pick';
     const last = localStorage.getItem('videoLast') || '';
     this.ui.innerHTML = `
-      <h2>Pedala su un video</h2>
-      <p>Incolla il link di un video YouTube di un percorso in bici (cerca per esempio "cycling 4K" o "virtual ride"), oppure scegli un video dal dispositivo. Il video scorre alla tua velocità.</p>
-      <label class="field"><span>Link YouTube</span><input id="vrUrl" type="url" inputmode="url" placeholder="https://youtu.be/…" value="${last.replace(/"/g, '')}"></label>
-      <div class="row2"><button id="vrGo" class="cta-sm">Guarda</button><button id="vrPaste" class="ghost">Incolla link</button></div>
-      <a class="ghost vr-search" href="https://www.youtube.com/results?search_query=virtual+cycling+4k" target="_blank" rel="noopener">Cerca su YouTube</a>
+      <h2>${t('games.video.name')}</h2>
+      <p>${t('video.intro')}</p>
+      <label class="field"><span>${t('video.link')}</span><input id="vrUrl" type="url" inputmode="url" placeholder="https://youtu.be/…" value="${last.replace(/"/g, '')}"></label>
+      <div class="row2"><button id="vrGo" class="cta-sm">${t('video.watch')}</button><button id="vrPaste" class="ghost">${t('video.paste')}</button></div>
+      <a class="ghost vr-search" href="https://www.youtube.com/results?search_query=virtual+cycling+4k" target="_blank" rel="noopener">${t('video.search')}</a>
       <p class="fine vr-how">${window.Capacitor?.isNativePlatform?.()
-    ? '<b>Dall\'app YouTube:</b> apri il video, premi <b>Condividi</b> e scegli <b>Spindro</b>: torni qui e il video parte da solo.'
-    : '<b>Da YouTube:</b> apri il video, premi <b>Condividi → Copia link</b>, torna qui e premi <b>Incolla link</b>.'}</p>
-      <label class="ghost file-btn">Video dal dispositivo<input id="vrFile" type="file" accept="video/*" hidden></label>
-      <p class="fine">Velocità a cui è stato girato il video:</p>
-      <div class="chips" id="vrRef">${REF_KMH.map((r) => `<button data-v="${r.v}" class="${r.v === this.ref ? 'on' : ''}">${r.v} km/h<small>${r.t}</small></button>`).join('')}</div>
-      <p class="fine">Netflix, Prime Video e simili non si possono mettere dentro un'altra app (protezione dei contenuti): usa lo schermo diviso del telefono e la musica si comanda dal Click (Impostazioni → Musica).</p>`;
+    ? t('video.howApp')
+    : t('video.howWeb')}</p>
+      <label class="ghost file-btn"><span>${t('video.fromDevice')}</span><input id="vrFile" type="file" accept="video/*" hidden></label>
+      <p class="fine">${t('video.refSpeed')}</p>
+      <div class="chips" id="vrRef">${REF_KMH.map((r) => `<button data-v="${r.v}" class="${r.v === this.ref ? 'on' : ''}">${r.v} km/h<small>${t(r.key)}</small></button>`).join('')}</div>
+      <p class="fine">${t('video.drm')}</p>`;
     panel.appendChild(this.ui);
     this.ui.querySelector('#vrGo').addEventListener('click', () => this.openUrl(this.ui.querySelector('#vrUrl').value));
     this.ui.querySelector('#vrPaste').addEventListener('click', async () => {
       try {
-        const t = await navigator.clipboard.readText();
-        this.ui.querySelector('#vrUrl').value = t.trim();
-        if (YT_RE.test(t)) this.openUrl(t.trim());
+        const clip = await navigator.clipboard.readText();
+        this.ui.querySelector('#vrUrl').value = clip.trim();
+        if (YT_RE.test(clip)) this.openUrl(clip.trim());
       } catch { this.ui.querySelector('#vrUrl').focus(); }
     });
     this.ui.querySelector('#vrFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) this.openFile(f); });
@@ -73,7 +74,7 @@ export class VideoRide {
 
   openUrl(url) {
     const id = (url.match(YT_RE) || [])[1] || (/^[\w-]{11}$/.test(url.trim()) ? url.trim() : null);
-    if (!id) { this.ui.querySelector('#vrUrl').setCustomValidity('Link YouTube non valido'); this.ui.querySelector('#vrUrl').reportValidity(); return; }
+    if (!id) { this.ui.querySelector('#vrUrl').setCustomValidity(t('video.badLink')); this.ui.querySelector('#vrUrl').reportValidity(); return; }
     localStorage.setItem('videoLast', url);
     this.ui.hidden = true; this.kind = 'yt';
     this.box.innerHTML = '<div id="vrYt"></div>';
@@ -84,10 +85,10 @@ export class VideoRide {
         playerVars: { origin: location.origin, playsinline: 1, controls: 0, rel: 0, modestbranding: 1, disablekb: 1, fs: 0, iv_load_policy: 3 },
         events: {
           onReady: () => { this.yt.mute(); this.yt.playVideo(); this.ready = true; },
-          onError: (e) => { this.error = `YouTube non permette di mostrare questo video qui (errore ${e.data}). Provane un altro.`; },
+          onError: (e) => { this.error = t('video.ytError', { code: e.data }); },
         },
       });
-    }).catch(() => { this.error = 'Impossibile caricare YouTube (serve internet).'; });
+    }).catch(() => { this.error = t('video.ytOffline'); });
   }
 
   openFile(file) {
@@ -131,14 +132,14 @@ export class VideoRide {
       const st = this.hooks.stats();
       const kmh = this.hooks.connected() ? this.hooks.speedKmh() : 0;
       ctx.fillStyle = 'rgba(10,10,10,.55)'; ctx.fillRect(12, H - 92, W - 24, 70);
-      const cells = [[`${Math.round(st.power)}`, 'W'], [`${Math.round(st.cadence)}`, 'rpm'], [kmh.toFixed(1), 'km/h'], [st.gear ? `${st.gear}` : '–', 'marcia']];
+      const cells = [[`${Math.round(st.power)}`, 'W'], [`${Math.round(st.cadence)}`, 'rpm'], [fmtDec(kmh, 1), 'km/h'], [st.gear ? `${st.gear}` : '–', t('video.gear')]];
       cells.forEach(([v, u], i) => {
         const x = 12 + (W - 24) * (i + 0.5) / 4;
         hudText(ctx, v, x, H - 54, { size: 26, align: 'center', color: i === 0 ? '#d9ff3d' : '#fff' });
         hudText(ctx, u, x, H - 34, { size: 11, align: 'center', color: '#ccc' });
       });
-      hudText(ctx, this.rate ? `video ×${this.rate.toFixed(2)}` : 'video in pausa: pedala!', W - 16, 76, { size: 13, align: 'right', color: this.rate ? '#fff' : '#ffd34d' });
-      if (!this.hooks.connected()) hudText(ctx, 'Rullo non connesso: il video scorre a velocità normale', W / 2, 100, { size: 12, align: 'center', color: '#ffd34d' });
+      hudText(ctx, this.rate ? t('video.speed', { rate: fmtDec(this.rate, 2) }) : t('video.paused'), W - 16, 76, { size: 13, align: 'right', color: this.rate ? '#fff' : '#ffd34d' });
+      if (!this.hooks.connected()) hudText(ctx, t('video.noTrainer'), W / 2, 100, { size: 12, align: 'center', color: '#ffd34d' });
       if (this.error) hudText(ctx, this.error, W / 2, H / 2, { size: 13, align: 'center', color: '#ff6b6b' });
     }
     requestAnimationFrame(this.loop);

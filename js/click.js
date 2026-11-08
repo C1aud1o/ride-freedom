@@ -34,11 +34,11 @@ const KNOWN_RIDE_BITS = 0x37fff;
 
 // Nomi noti dei bit del protocollo "Ride"
 export const RIDE_BITS = {
-  0: 'Sinistra', 1: 'Su', 2: 'Destra', 3: 'Giù', 4: 'A', 5: 'B', 6: 'Y', 7: 'X', 8: 'Click v2 − (Z)',
-  9: 'Cambio su (sx)', 10: 'Cambio giù (sx)', 11: 'Power-up (sx)', 12: 'Click v2 + (On/Off sx)',
-  13: 'Cambio su (dx)', 14: 'Cambio giù (dx)', 16: 'Power-up (dx)', 17: 'On/Off (dx)',
+  0: 'Left', 1: 'Up', 2: 'Right', 3: 'Down', 4: 'A', 5: 'B', 6: 'Y', 7: 'X', 8: 'Click v2 − (Z)',
+  9: 'Shift up (L)', 10: 'Shift down (L)', 11: 'Power-up (L)', 12: 'Click v2 + (On/Off L)',
+  13: 'Shift up (R)', 14: 'Shift down (R)', 16: 'Power-up (R)', 17: 'On/Off (R)',
 };
-const PLAY_FIELDS = { 2: 'Y/Su', 3: 'Z/Sinistra', 4: 'A/Destra', 5: 'B/Giù', 6: 'Tasto Zwift', 7: 'Leva cambio' };
+const PLAY_FIELDS = { 2: 'Y/Up', 3: 'Z/Left', 4: 'A/Right', 5: 'B/Down', 6: 'Zwift button', 7: 'Shift lever' };
 
 // Assegnazione predefinita dei pulsanti alle cambiate (modificabile dalla pagina di debug)
 // Click v2 (verificato su un Click del D100 Zwift Ready): + = bit 12, − = bit 8.
@@ -91,12 +91,12 @@ export class ZwiftClick extends EventTarget {
       filters: [{ namePrefix: 'Zwift' }, { services: [0xfc82] }],
       optionalServices: [...SERVICES, 'battery_service', 'device_information'],
     });
-    if (this.links.some((l) => l.device.id === device.id && l.device.gatt?.connected)) throw new Error('Dispositivo già collegato');
+    if (this.links.some((l) => l.device.id === device.id && l.device.gatt?.connected)) throw new Error('Device already connected');
     const link = { device, rx: null, model: detectModel(device.name), pressed: new Set(), seenHigh: KNOWN_RIDE_BITS, unknown: 0 };
-    this.dbg.setStatus(`Connessione ${device.name || ''}…`);
-    this.dbg.log(`Modello riconosciuto dal nome "${device.name || ''}": ${MODELS[link.model]}`);
+    this.dbg.setStatus(`Connecting ${device.name || ''}…`);
+    this.dbg.log(`Model recognized from name "${device.name || ''}": ${MODELS[link.model]}`);
     device.addEventListener('gattserverdisconnected', () => {
-      this.dbg.setStatus(`Disconnesso ${MODELS[link.model]}`);
+      this.dbg.setStatus(`Disconnected ${MODELS[link.model]}`);
       this.links = this.links.filter((l) => l !== link);
       this.recompute(); // rilascia i tasti di questo dispositivo
       this.emit('disconnected');
@@ -108,18 +108,18 @@ export class ZwiftClick extends EventTarget {
 
       let service = null;
       for (const uuid of SERVICES) {
-        try { service = await server.getPrimaryService(uuid); this.dbg.log(`Servizio Zwift trovato: ${service.uuid}`); break; } catch { /* prova il prossimo */ }
+        try { service = await server.getPrimaryService(uuid); this.dbg.log(`Zwift service found: ${service.uuid}`); break; } catch { /* prova il prossimo */ }
       }
-      if (!service) throw new Error('Servizio Zwift non trovato sul dispositivo');
+      if (!service) throw new Error('Zwift service not found on the device');
 
       for (const uuid of [ASYNC, SYNC_TX]) {
         try {
           const c = await service.getCharacteristic(uuid);
           c.addEventListener('characteristicvaluechanged', (e) => this.onMessage(uuid, e.target.value, link));
           await c.startNotifications();
-          this.dbg.log(`Notifiche attive su ${uuid.slice(0, 8)}`);
+          this.dbg.log(`Notifications on for ${uuid.slice(0, 8)}`);
         } catch (err) {
-          this.dbg.log(`Notifiche NON attive su ${uuid.slice(0, 8)}: ${err.message}`);
+          this.dbg.log(`Notifications NOT on for ${uuid.slice(0, 8)}: ${err.message}`);
         }
       }
       link.rx = await service.getCharacteristic(SYNC_RX);
@@ -129,13 +129,13 @@ export class ZwiftClick extends EventTarget {
       try { device.gatt.disconnect(); } catch { /* già scollegato */ }
       throw err;
     }
-    this.dbg.setStatus(`Connesso ${MODELS[link.model]}, handshake inviato`);
+    this.dbg.setStatus(`Connected ${MODELS[link.model]}, handshake sent`);
     this.dbg.extra.devices = this.links.map((l) => `${MODELS[l.model]} (${l.device.name || '?'})`);
     return this.label || device.name || 'Zwift Click';
   }
 
   async writeLink(link, bytes) {
-    if (!link.rx) throw new Error('Click non connesso');
+    if (!link.rx) throw new Error('Click not connected');
     const data = new Uint8Array(bytes);
     this.dbg.raw('tx', SYNC_RX, data);
     await link.rx.writeValueWithResponse(data);
@@ -144,7 +144,7 @@ export class ZwiftClick extends EventTarget {
   /** Scrive su tutti i dispositivi collegati (usato dalla pagina di debug). */
   async write(bytes) {
     const ls = this.links.filter((l) => l.rx);
-    if (!ls.length) throw new Error('Click non connesso');
+    if (!ls.length) throw new Error('Click not connected');
     for (const l of ls) await this.writeLink(l, bytes);
   }
 
@@ -155,8 +155,8 @@ export class ZwiftClick extends EventTarget {
     if (!link) return;
     const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
     if (bytes.length >= 6 && String.fromCharCode(...bytes.subarray(0, 6)) === 'RideOn') {
-      this.dbg.log(`Risposta handshake "RideOn" (${bytes.length} byte${bytes.length > 6 ? ': richiede probabilmente cifratura → ' + hex(bytes.subarray(6)) : ''})`);
-      this.dbg.extra.handshake = bytes.length > 6 ? 'RideOn + dati' : 'RideOn';
+      this.dbg.log(`RideOn handshake response (${bytes.length} bytes${bytes.length > 6 ? ': probably needs encryption → ' + hex(bytes.subarray(6)) : ''})`);
+      this.dbg.extra.handshake = bytes.length > 6 ? 'RideOn + data' : 'RideOn';
       return;
     }
     const type = bytes[0];
@@ -181,7 +181,7 @@ export class ZwiftClick extends EventTarget {
         this.dbg.extra.mask = `0x${(mask >>> 0).toString(16)} (${(mask >>> 0).toString(2).padStart(18, '0')})`;
       }
     } else if (type === MSG.PLAY) {
-      if (link.model !== 'play') { this.dbg.log(`Messaggio Play (0x07) da "${link.device.name}": modello corretto in Zwift Play`); link.model = 'play'; }
+      if (link.model !== 'play') { this.dbg.log(`Play message (0x07) from "${link.device.name}": model corrected to Zwift Play`); link.model = 'play'; }
       this.dbg.extra.protocol = 'Play (0x07)';
       pressed = new Set();
       // campo 1 = lato del controller (non è un tasto); 8-9 = leve analogiche, ignorate
@@ -191,12 +191,12 @@ export class ZwiftClick extends EventTarget {
     } else if (type === MSG.KEEPALIVE) {
       // nulla da fare
     } else if (type === MSG.INFO || type === MSG.SYSTEM) {
-      this.dbg.log(`Messaggio informativo 0x${type.toString(16)} (ignorato)`);
+      this.dbg.log(`Info message 0x${type.toString(16)} (ignored)`);
       this.dbg.changed();
       return;
     } else {
-      this.dbg.log(`Tipo messaggio sconosciuto 0x${type.toString(16)} campi ${JSON.stringify(fields)}`);
-      if (link.model !== 'click' && ++link.unknown === 3) this.dbg.log(`${label}: molti messaggi non riconosciuti, forse il firmware richiede lo scambio di chiavi cifrato (non ancora supportato, vedi docs/zwift-controller.md)`);
+      this.dbg.log(`Unknown message type 0x${type.toString(16)} fields ${JSON.stringify(fields)}`);
+      if (link.model !== 'click' && ++link.unknown === 3) this.dbg.log(`${label}: many unrecognized messages, the firmware may require an encrypted key exchange (not supported yet, see docs/zwift-controller.md)`);
     }
     if (Object.keys(fields).length) this.dbg.extra.fields = fields;
 
@@ -206,10 +206,10 @@ export class ZwiftClick extends EventTarget {
           this.dbg.extra.lastPressed = id;
           const dir = this.map[id];
           if (DEFAULT_MENU.has(id) && !dir) {
-            this.dbg.log(`Premuto ${buttonLabel(id)} → menu Click`);
+            this.dbg.log(`Pressed ${buttonLabel(id)} → Click menu`);
             this.emit('combo');
           } else {
-            this.dbg.log(`Premuto ${buttonLabel(id)}${dir ? ` → cambiata ${dir > 0 ? '+' : '−'}` : ' (non assegnato)'}`);
+            this.dbg.log(`Pressed ${buttonLabel(id)}${dir ? ` → shifted ${dir > 0 ? '+' : '−'}` : ' (unassigned)'}`);
             if (dir) this.emit('shift', dir);
           }
         }
@@ -242,13 +242,13 @@ export class ZwiftClick extends EventTarget {
     for (const k of Object.keys(this.map)) if (this.map[k] === dir && k.split(':')[0] === id.split(':')[0]) delete this.map[k];
     if (dir) this.map[id] = dir; else delete this.map[id];
     localStorage.setItem('clickMap', JSON.stringify(this.map));
-    this.dbg.log(`${buttonLabel(id)} assegnato a ${dir > 0 ? '+' : dir < 0 ? '−' : 'nessuna azione'}`);
+    this.dbg.log(`${buttonLabel(id)} assigned to ${dir > 0 ? '+' : dir < 0 ? '−' : 'no action'}`);
   }
 
   resetMap() {
     this.map = { ...DEFAULT_MAP };
     localStorage.removeItem('clickMap');
-    this.dbg.log('Assegnazioni pulsanti ripristinate');
+    this.dbg.log('Button assignments reset');
   }
 
   emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }

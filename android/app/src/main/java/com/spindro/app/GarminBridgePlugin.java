@@ -231,16 +231,23 @@ public class GarminBridgePlugin extends Plugin {
 
     @PluginMethod
     public void speak(PluginCall call) {
-        String text = call.getString("text", "");
+        final String text = call.getString("text", "");
+        // lingua della voce: etichetta BCP-47 dall'app ("it-IT", "en-US"…); se manca resta l'italiano
+        final Locale locale = Locale.forLanguageTag(call.getString("lang", "it-IT"));
         if (tts == null) {
             tts = new TextToSpeech(getContext(), status -> {
                 ttsReady = status == TextToSpeech.SUCCESS;
-                if (ttsReady) { tts.setLanguage(Locale.ITALIAN); tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rf"); }
+                if (ttsReady) { tts.setLanguage(locale); tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rf"); }
             });
             call.resolve();
             return;
         }
-        if (ttsReady) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rf");
+        if (ttsReady) {
+            // il cambio lingua dall'app vale subito (se la voce non c'è sul telefono, resta la precedente)
+            Locale cur = tts.getVoice() != null ? tts.getVoice().getLocale() : null;
+            if (cur == null || !cur.getLanguage().equals(locale.getLanguage())) tts.setLanguage(locale);
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rf");
+        }
         call.resolve();
     }
 

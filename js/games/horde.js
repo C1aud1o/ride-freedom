@@ -4,6 +4,7 @@
 // lo sprint scatena l'OVERDRIVE.
 import { THREE, Stage, loadAll, character, rider, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights, tracer, crowd, fxTexture } from './kit3d.js';
 import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
+import { t, fmtDec } from '../i18n.js';
 import { SONGS } from './audio.js';
 
 const A = 'assets/3d';
@@ -21,16 +22,16 @@ const waveHp = (w) => Math.pow(1.2, w - 1);
 const FORMATION = [[-1.3, -1.6], [1.3, -1.6], [0, -2.8], [-2.6, -2.8], [2.6, -2.8], [-1.3, -4], [1.3, -4], [-2.6, -5.2], [2.6, -5.2], [0, -5.2], [-1.3, -6.4], [1.3, -6.4]];
 
 const WEAPONS = [
-  { name: 'PISTOLA', model: 'blaster-a', rate: 2.2, dmg: 1, shots: 1, spread: 0, speed: 38, color: '#fff3a0', xp: 20 },
-  { name: 'REVOLVER', model: 'blaster-k', rate: 2.6, dmg: 1.6, shots: 1, spread: 0, speed: 40, color: '#ffd166', xp: 50 },
-  { name: 'MITRAGLIETTA', model: 'blaster-j', rate: 6, dmg: 1, shots: 1, spread: 0.05, speed: 42, color: '#ffe08a', xp: 135 },
-  { name: 'FUCILE A POMPA', model: 'blaster-c', rate: 1.6, dmg: 1.4, shots: 6, spread: 0.32, speed: 34, color: '#ff9f43', xp: 210 },
-  { name: 'MITRAGLIATRICE', model: 'blaster-n', rate: 9, dmg: 1.4, shots: 1, spread: 0.06, speed: 46, color: '#ffd166', xp: 330 },
-  { name: 'FUCILE D\'ASSALTO', model: 'blaster-g', rate: 7, dmg: 2.4, shots: 2, spread: 0.08, speed: 50, color: '#b8f2ff', xp: 480 },
-  { name: 'LANCIARAZZI', model: 'blaster-h', rate: 1.6, dmg: 10, shots: 1, spread: 0, speed: 26, color: '#ff6b35', splash: 3.2, xp: 690 },
-  { name: 'CANNONE AL PLASMA', model: 'blaster-b', rate: 3.2, dmg: 7, shots: 1, spread: 0, speed: 34, color: '#c77dff', splash: 2.2, pierce: true, xp: 960 },
-  { name: 'MINIGUN', model: 'blaster-p', rate: 18, dmg: 2.2, shots: 1, spread: 0.1, speed: 52, color: '#7dff6a', xp: 1350 },
-  { name: 'LASER', model: 'blaster-l', rate: 10, dmg: 5, shots: 1, spread: 0, speed: 80, color: '#4de3ff', pierce: true, xp: Infinity },
+  { name: 'games.horde.w.pistol', model: 'blaster-a', rate: 2.2, dmg: 1, shots: 1, spread: 0, speed: 38, color: '#fff3a0', xp: 20 },
+  { name: 'games.horde.w.revolver', model: 'blaster-k', rate: 2.6, dmg: 1.6, shots: 1, spread: 0, speed: 40, color: '#ffd166', xp: 50 },
+  { name: 'games.horde.w.smg', model: 'blaster-j', rate: 6, dmg: 1, shots: 1, spread: 0.05, speed: 42, color: '#ffe08a', xp: 135 },
+  { name: 'games.horde.w.pump', model: 'blaster-c', rate: 1.6, dmg: 1.4, shots: 6, spread: 0.32, speed: 34, color: '#ff9f43', xp: 210 },
+  { name: 'games.horde.w.mg', model: 'blaster-n', rate: 9, dmg: 1.4, shots: 1, spread: 0.06, speed: 46, color: '#ffd166', xp: 330 },
+  { name: 'games.horde.w.rifle', model: 'blaster-g', rate: 7, dmg: 2.4, shots: 2, spread: 0.08, speed: 50, color: '#b8f2ff', xp: 480 },
+  { name: 'games.horde.w.rocket', model: 'blaster-h', rate: 1.6, dmg: 10, shots: 1, spread: 0, speed: 26, color: '#ff6b35', splash: 3.2, xp: 690 },
+  { name: 'games.horde.w.plasma', model: 'blaster-b', rate: 3.2, dmg: 7, shots: 1, spread: 0, speed: 34, color: '#c77dff', splash: 2.2, pierce: true, xp: 960 },
+  { name: 'games.horde.w.minigun', model: 'blaster-p', rate: 18, dmg: 2.2, shots: 1, spread: 0.1, speed: 52, color: '#7dff6a', xp: 1350 },
+  { name: 'games.horde.w.laser', model: 'blaster-l', rate: 10, dmg: 5, shots: 1, spread: 0, speed: 80, color: '#4de3ff', pierce: true, xp: Infinity },
 ];
 
 const ENEMIES = {
@@ -42,15 +43,15 @@ const ENEMIES = {
 };
 
 const GATES = [
-  { text: '+1 ALLEATO', good: true, w: 5, apply: (g) => g.addAllies(1) },
-  { text: '+2 ALLEATI', good: true, w: 3, apply: (g) => g.addAllies(2) },
-  { text: '×2 ALLEATI', good: true, w: 1, apply: (g) => g.addAllies(Math.max(1, g.allies.length)) },
-  { text: 'CADENZA +30%', good: true, w: 4, apply: (g) => { g.rateMul *= 1.3; } },
-  { text: 'DANNO +40%', good: true, w: 4, apply: (g) => { g.dmgMul *= 1.4; } },
-  { text: '+1 VITA', good: true, w: 2, apply: (g) => { g.hp = Math.min(g.maxHp, g.hp + 1); } },
-  { text: 'ARMA ▲', good: true, w: 2, apply: (g) => g.evolve() },
-  { text: '−1 ALLEATO', good: false, w: 3, apply: (g) => g.loseAlly() },
-  { text: 'CADENZA −20%', good: false, w: 2, apply: (g) => { g.rateMul *= 0.8; } },
+  { text: 'games.horde.gate.ally1', good: true, w: 5, apply: (g) => g.addAllies(1) },
+  { text: 'games.horde.gate.ally2', good: true, w: 3, apply: (g) => g.addAllies(2) },
+  { text: 'games.horde.gate.allyx2', good: true, w: 1, apply: (g) => g.addAllies(Math.max(1, g.allies.length)) },
+  { text: 'games.horde.gate.rateUp', good: true, w: 4, apply: (g) => { g.rateMul *= 1.3; } },
+  { text: 'games.horde.gate.dmgUp', good: true, w: 4, apply: (g) => { g.dmgMul *= 1.4; } },
+  { text: 'games.horde.gate.life', good: true, w: 2, apply: (g) => { g.hp = Math.min(g.maxHp, g.hp + 1); } },
+  { text: 'games.horde.gate.weapon', good: true, w: 2, apply: (g) => g.evolve() },
+  { text: 'games.horde.gate.allyDown', good: false, w: 3, apply: (g) => g.loseAlly() },
+  { text: 'games.horde.gate.rateDown', good: false, w: 2, apply: (g) => { g.rateMul *= 0.8; } },
 ];
 
 export class Horde {
@@ -184,7 +185,7 @@ export class Horde {
   begin() {
     this.state = 'play'; this.stateT = 0;
     this.audio.playSong(SONGS.factory); this.audio.sfx('go');
-    this.say('ONDATA 1', '#d9ff3d', 2, true);
+    this.say(t('games.horde.wave', { n: 1 }), '#d9ff3d', 2, true);
   }
 
   // testo che sale dal giocatore (feedback immediato di cosa hai preso)
@@ -203,7 +204,7 @@ export class Horde {
       this.allies.push(a);
       this.fx.spawn(a.x, 1, a.z, { tex: 'green', size: 2.5, life: 0.5 });
     }
-    this.say(`ALLEATI: ${this.allies.length}`, '#06d6a0', 1.4);
+    this.say(t('games.horde.alliesSay', { n: this.allies.length }), '#06d6a0', 1.4);
   }
 
   loseAlly() {
@@ -218,7 +219,7 @@ export class Horde {
     const w = WEAPONS[this.weapon];
     this.player.setGun(this.m[w.model]);
     for (const a of this.allies) a.r.setGun(this.m[w.model]);
-    this.say(`NUOVA ARMA: ${w.name}!`, w.color, 2.4, true);
+    this.say(t('games.horde.newWeapon', { name: t(w.name) }), w.color, 2.4, true);
     this.audio.sfx('overdrive'); this.shake = 0.3;
     this.fx.spawn(this.x, 1.4, this.z, { tex: 'spark', size: 4, life: 0.6 });
   }
@@ -269,7 +270,7 @@ export class Horde {
     if (this.overdrive > 0) { this.overdrive -= dt; if (this.overdrive <= 0) this.audio.transpose = 0; }
     else {
       this.odMeter = clamp(this.odMeter + (this.sprinting ? dt / 3 : -dt / 25), 0, 1);
-      if (this.odMeter >= 1) { this.overdrive = 7; this.odMeter = 0; this.audio.transpose = 2; this.audio.sfx('overdrive'); this.say('OVERDRIVE!', '#4de3ff', 2, true); this.prog('overdrives', 1, 15); }
+      if (this.odMeter >= 1) { this.overdrive = 7; this.odMeter = 0; this.audio.transpose = 2; this.audio.sfx('overdrive'); this.say(t('games.horde.overdrive'), '#4de3ff', 2, true); this.prog('overdrives', 1, 15); }
     }
 
     // ondate
@@ -278,8 +279,8 @@ export class Horde {
     if (this.waveKills >= 12 + this.wave * 10 || this.waveT > 45) {
       this.waveT = 0; this.wave++; this.waveKills = 0;
       this.hooks.progress?.setMax('hordeWave', this.wave);
-      if (this.wave % 5 === 0) { this.spawnEnemy('keeper', 0, this.z + 70); this.bossAlive = true; this.audio.sfx('alarm'); this.say(`ONDATA ${this.wave}: IL CUSTODE!`, '#ff4d4d', 3, true); }
-      else this.say(`ONDATA ${this.wave}`, '#d9ff3d', 2, true);
+      if (this.wave % 5 === 0) { this.spawnEnemy('keeper', 0, this.z + 70); this.bossAlive = true; this.audio.sfx('alarm'); this.say(t('games.horde.waveBoss', { n: this.wave }), '#ff4d4d', 3, true); }
+      else this.say(t('games.horde.wave', { n: this.wave }), '#d9ff3d', 2, true);
     }
     // regista: i nemici arrivano a gocce e poi a fiumi; si adatta a come stai andando
     this.calmT += dt;
@@ -323,7 +324,7 @@ export class Horde {
       const col = def.good ? '#2b8cff' : '#ff3b3b';
       const panel = new THREE.Mesh(new THREE.PlaneGeometry(ROAD - 0.3, 2.8), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false }));
       panel.position.y = 1.5; group.add(panel);
-      const label = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.4), new THREE.MeshBasicMaterial({ map: labelTexture(def.text, null, '#ffffff'), transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+      const label = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.4), new THREE.MeshBasicMaterial({ map: labelTexture(t(def.text), null, '#ffffff'), transparent: true, side: THREE.DoubleSide, depthWrite: false }));
       label.position.set(0, 1.6, -0.02); label.rotation.y = Math.PI; group.add(label);
       const postMat = new THREE.MeshLambertMaterial({ color: def.good ? '#9cd2ff' : '#ff9c9c', emissive: col, emissiveIntensity: 0.4 });
       for (const px of [-(ROAD / 2 - 0.1), ROAD / 2 - 0.1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3, 0.18), postMat); post.position.set(px, 1.5, 0); group.add(post); }
@@ -340,7 +341,7 @@ export class Horde {
       // passa dal portale della propria metà strada (la corsia centrale passa in mezzo)
       if (Math.abs(this.x - g.x) < ROAD / 2 + 0.2) {
         g.def.apply(this);
-        this.say(g.def.text, g.def.good ? '#4de3ff' : '#ff6b6b', 1.6, true);
+        this.say(t(g.def.text), g.def.good ? '#4de3ff' : '#ff6b6b', 1.6, true);
         this.audio.sfx(g.def.good ? 'rescue' : 'hurt');
         this.fx.spawn(g.x, 1.5, g.z, { tex: g.def.good ? 'blue' : 'red', size: 6, life: 0.5 });
         g.group.visible = false;
@@ -424,7 +425,7 @@ export class Horde {
     if (Math.random() < 0.3 || e.def.boss) this.dropGem(e.x, e.z, e.def.boss ? 12 : e.def.xp > 2 ? 3 : 1);
     if (e.def.boss) {
       this.bossAlive = false; this.fx.explode(e.x, 2.5, e.z, 2.5); this.shake = 0.8;
-      this.audio.sfx('win'); this.say('IL CUSTODE È CADUTO!', '#d9ff3d', 2.6, true); this.prog('bosses', 1, 150);
+      this.audio.sfx('win'); this.say(t('games.horde.bossDown'), '#d9ff3d', 2.6, true); this.prog('bosses', 1, 150);
       this.addAllies(2);
     }
   }
@@ -561,31 +562,31 @@ export class Horde {
   drawHud(dt) {
     const { ctx, W, H } = this.stage;
     ctx.clearRect(0, 0, W, H);
-    if (this.state === 'loading') { ctx.fillStyle = '#0f0e0c'; ctx.fillRect(0, 0, W, H); hudText(ctx, 'CARICAMENTO…', W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' }); hudText(ctx, `${Math.round((this.loadPct || 0) * 100)}%`, W / 2, H / 2 + 28, { size: 14, align: 'center' }); return; }
-    if (this.state === 'error') { hudText(ctx, `Errore: ${this.error}`, W / 2, H / 2, { size: 14, align: 'center', color: '#ff6b6b' }); return; }
+    if (this.state === 'loading') { ctx.fillStyle = '#0f0e0c'; ctx.fillRect(0, 0, W, H); hudText(ctx, t('games.common.loading'), W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' }); hudText(ctx, `${Math.round((this.loadPct || 0) * 100)}%`, W / 2, H / 2 + 28, { size: 14, align: 'center' }); return; }
+    if (this.state === 'error') { hudText(ctx, t('ui.error', { error: this.error }), W / 2, H / 2, { size: 14, align: 'center', color: '#ff6b6b' }); return; }
     if (this.state === 'menu') {
       const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(10,6,20,.85)'); g.addColorStop(0.45, 'rgba(10,6,20,.2)'); g.addColorStop(1, 'rgba(10,6,20,.9)');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      hudText(ctx, "L'ORDA", W / 2, 120, { size: 56, align: 'center', color: '#d9ff3d' });
-      hudText(ctx, 'Pedala. Spara. Sopravvivi.', W / 2, 150, { size: 15, align: 'center' });
-      const lines = ['Parti con una pistola: le ondate crescono sempre', 'Ogni uccisione fa evolvere l\'arma (10 armi)', 'Portali blu: alleati e potenziamenti. Rossi: evitali', 'Tieni premuto + / − per sterzare · più watt = più colpi', 'Passa vicino alle gemme verdi per raccoglierle', 'Sprint sopra soglia = OVERDRIVE', 'Ogni 5 ondate arriva il Custode'];
+      hudText(ctx, t('games.horde.hud.title'), W / 2, 120, { size: 56, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, t('games.horde.hud.tagline'), W / 2, 150, { size: 15, align: 'center' });
+      const lines = [1, 2, 3, 4, 5, 6, 7].map((i) => t(`games.horde.rule${i}`));
       lines.forEach((l, i) => hudText(ctx, '· ' + l, W / 2, H * 0.62 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
-      hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.62 + lines.length * 20 + 14, { size: 12, align: 'center', color: '#bbb' });
-      hudText(ctx, '+  INIZIA', W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, t('games.common.best', { n: this.best }), W / 2, H * 0.62 + lines.length * 20 + 14, { size: 12, align: 'center', color: '#bbb' });
+      hudText(ctx, t('games.common.start'), W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
       this.hooks.progress?.drawToasts(ctx, W, dt);
       return;
     }
     const top = 56; const w = WEAPONS[this.weapon];
     hudText(ctx, String(this.score).padStart(6, '0'), 14, top + 24, { size: 24 });
-    hudText(ctx, `ONDATA ${this.wave}`, W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
-    hudText(ctx, `${this.kills} abbattuti · ${Math.round(this.z)} m`, W - 14, top + 40, { size: 12, align: 'right', color: '#e8e8e8' });
+    hudText(ctx, t('games.horde.wave', { n: this.wave }), W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
+    hudText(ctx, t('games.horde.hudStats', { kills: this.kills, m: Math.round(this.z) }), W - 14, top + 40, { size: 12, align: 'right', color: '#e8e8e8' });
     let hx = 14; for (let i = 0; i < this.maxHp; i++) { hudText(ctx, i < this.hp ? '♥' : '♡', hx, top + 48, { size: 18, color: i < this.hp ? '#ff4d6d' : '#666' }); hx += 17; }
-    hudText(ctx, `ALLEATI ${this.allies.length}`, hx + 10, top + 47, { size: 13, color: '#06d6a0' });
+    hudText(ctx, t('games.horde.alliesHud', { n: this.allies.length }), hx + 10, top + 47, { size: 13, color: '#06d6a0' });
     // arma e barra evoluzione
     const by = top + 62;
     ctx.fillStyle = 'rgba(10,8,16,.6)'; ctx.fillRect(14, by, W - 28, 30);
-    hudText(ctx, w.name, 22, by + 13, { size: 13, color: w.color });
-    hudText(ctx, `${(this.fireRate || 0).toFixed(1)} colpi/s`, W - 22, by + 13, { size: 11, align: 'right', color: '#fff3a0' });
+    hudText(ctx, t(w.name), 22, by + 13, { size: 13, color: w.color });
+    hudText(ctx, t('games.horde.fireRate', { n: fmtDec(this.fireRate || 0, 1) }), W - 22, by + 13, { size: 11, align: 'right', color: '#fff3a0' });
     ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(22, by + 19, W - 44, 6);
     ctx.fillStyle = w.color; ctx.fillRect(22, by + 19, (W - 44) * (Number.isFinite(w.xp) ? clamp(this.xp / w.xp, 0, 1) : 1), 6);
     // potenza e overdrive
@@ -602,9 +603,9 @@ export class Horde {
     if (boss) {
       ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(14, H - 40, W - 28, 16);
       ctx.fillStyle = '#ff3b3b'; ctx.fillRect(14, H - 40, (W - 28) * clamp(boss.hp / boss.maxHp, 0, 1), 16);
-      hudText(ctx, 'IL CUSTODE', W / 2, H - 27, { size: 12, align: 'center' });
+      hudText(ctx, t('games.horde.boss'), W / 2, H - 27, { size: 12, align: 'center' });
     }
-    if (!this.hooks.connected()) hudText(ctx, 'DEMO: rullo non connesso', W / 2, H - 12, { size: 11, align: 'center', color: '#ffd34d' });
+    if (!this.hooks.connected()) hudText(ctx, t('games.common.demo'), W / 2, H - 12, { size: 11, align: 'center', color: '#ffd34d' });
     let ty = H * 0.34;
     for (const x of this.texts) {
       ctx.globalAlpha = Math.min(1, x.t * 3);
@@ -623,11 +624,11 @@ export class Horde {
     if (this.hurtT > 0.9) { ctx.fillStyle = `rgba(255,0,40,${(this.hurtT - 0.9) * 0.9})`; ctx.fillRect(0, 0, W, H); }
     if (this.state === 'over') {
       ctx.fillStyle = 'rgba(8,4,14,.8)'; ctx.fillRect(0, 0, W, H);
-      hudText(ctx, "L'ORDA HA VINTO", W / 2, H * 0.32, { size: 32, align: 'center', color: '#ff4d6d' });
-      hudText(ctx, `Punti ${this.score}${this.newBest ? '  · RECORD!' : ''}`, W / 2, H * 0.32 + 40, { size: 18, align: 'center' });
-      hudText(ctx, `Ondata ${this.wave} · ${this.kills} abbattuti · ${this.finalDist} m`, W / 2, H * 0.32 + 66, { size: 13, align: 'center', color: '#e8e8e8' });
-      hudText(ctx, `Arma: ${w.name} · Alleati: ${this.allies.length}`, W / 2, H * 0.32 + 88, { size: 13, align: 'center', color: '#e8e8e8' });
-      if (this.stateT > 1.4) hudText(ctx, '+  RIPROVA', W / 2, H * 0.32 + 140, { size: 20, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, t('games.horde.lost'), W / 2, H * 0.32, { size: 32, align: 'center', color: '#ff4d6d' });
+      hudText(ctx, `${t('games.common.score', { n: this.score })}${this.newBest ? t('games.common.newBest') : ''}`, W / 2, H * 0.32 + 40, { size: 18, align: 'center' });
+      hudText(ctx, t('games.horde.summary', { wave: this.wave, kills: this.kills, m: this.finalDist }), W / 2, H * 0.32 + 66, { size: 13, align: 'center', color: '#e8e8e8' });
+      hudText(ctx, t('games.horde.summary2', { weapon: t(w.name), allies: this.allies.length }), W / 2, H * 0.32 + 88, { size: 13, align: 'center', color: '#e8e8e8' });
+      if (this.stateT > 1.4) hudText(ctx, t('games.common.retry'), W / 2, H * 0.32 + 140, { size: 20, align: 'center', color: '#d9ff3d' });
     }
     this.hooks.progress?.drawToasts(ctx, W, dt);
   }

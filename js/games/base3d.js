@@ -3,6 +3,7 @@
 import { THREE, Stage, loadAll } from './kit3d.js';
 import { hudText, Effort, clamp } from './engine.js';
 import { SONGS } from './audio.js';
+import { t } from '../i18n.js';
 
 export class Base3D {
   constructor(hudCanvas, hooks, audio, { key, title, tagline, rules, song = 'race' }) {
@@ -97,16 +98,16 @@ export class Base3D {
   drawHud(dt) {
     const { ctx, W, H } = this.stage;
     ctx.clearRect(0, 0, W, H);
-    if (this.state === 'loading') { ctx.fillStyle = '#0f0e0c'; ctx.fillRect(0, 0, W, H); hudText(ctx, 'CARICAMENTO…', W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' }); hudText(ctx, `${Math.round((this.loadPct || 0) * 100)}%`, W / 2, H / 2 + 28, { size: 14, align: 'center' }); return; }
-    if (this.state === 'error') { hudText(ctx, `Errore: ${this.error}`, W / 2, H / 2, { size: 14, align: 'center', color: '#ff6b6b' }); return; }
+    if (this.state === 'loading') { ctx.fillStyle = '#0f0e0c'; ctx.fillRect(0, 0, W, H); hudText(ctx, t('games.common.loading'), W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' }); hudText(ctx, `${Math.round((this.loadPct || 0) * 100)}%`, W / 2, H / 2 + 28, { size: 14, align: 'center' }); return; }
+    if (this.state === 'error') { hudText(ctx, t('ui.error', { error: this.error }), W / 2, H / 2, { size: 14, align: 'center', color: '#ff6b6b' }); return; }
     if (this.state === 'menu') {
       const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(8,10,16,.85)'); g.addColorStop(0.45, 'rgba(8,10,16,.15)'); g.addColorStop(1, 'rgba(8,10,16,.92)');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      hudText(ctx, this.title, W / 2, 120, { size: 50, align: 'center', color: '#d9ff3d' });
-      hudText(ctx, this.tagline, W / 2, 150, { size: 15, align: 'center' });
-      this.rules.forEach((l, i) => hudText(ctx, '· ' + l, W / 2, H * 0.62 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
-      hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.62 + this.rules.length * 20 + 14, { size: 12, align: 'center', color: '#bbb' });
-      hudText(ctx, '+  INIZIA', W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, t(this.title), W / 2, 120, { size: 50, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, t(this.tagline), W / 2, 150, { size: 15, align: 'center' });
+      this.rules.forEach((l, i) => hudText(ctx, '· ' + t(l), W / 2, H * 0.62 + i * 20, { size: 12, align: 'center', color: '#e8e8e8' }));
+      hudText(ctx, t('games.common.best', { n: this.best }), W / 2, H * 0.62 + this.rules.length * 20 + 14, { size: 12, align: 'center', color: '#bbb' });
+      hudText(ctx, t('games.common.start'), W / 2, H - 50, { size: 20, align: 'center', color: '#d9ff3d' });
       this.hooks.progress?.drawToasts(ctx, W, dt);
       return;
     }
@@ -126,14 +127,14 @@ export class Base3D {
       hudText(ctx, x.text, W / 2, ty, { size: x.big ? 28 : 15, color: x.color, align: 'center' }); ty += x.big ? 34 : 22;
       ctx.globalAlpha = 1;
     }
-    if (!this.connected) hudText(ctx, 'DEMO: rullo non connesso', W / 2, H - 12, { size: 11, align: 'center', color: '#ffd34d' });
+    if (!this.connected) hudText(ctx, t('games.common.demo'), W / 2, H - 12, { size: 11, align: 'center', color: '#ffd34d' });
     if (this.state === 'over') {
       ctx.fillStyle = 'rgba(8,8,14,.8)'; ctx.fillRect(0, 0, W, H);
       const [head, ...lines] = this.summary();
       hudText(ctx, head, W / 2, H * 0.32, { size: 30, align: 'center', color: '#d9ff3d' });
-      hudText(ctx, `Punti ${Math.round(this.score)}${this.newBest ? '  · RECORD!' : ''}`, W / 2, H * 0.32 + 40, { size: 18, align: 'center' });
+      hudText(ctx, `${t('games.common.score', { n: Math.round(this.score) })}${this.newBest ? t('games.common.newBest') : ''}`, W / 2, H * 0.32 + 40, { size: 18, align: 'center' });
       lines.forEach((l, i) => hudText(ctx, l, W / 2, H * 0.32 + 66 + i * 22, { size: 13, align: 'center', color: '#e8e8e8' }));
-      if (this.stateT > 1.2) hudText(ctx, '+  RIPROVA', W / 2, H * 0.32 + 150, { size: 20, align: 'center', color: '#d9ff3d' });
+      if (this.stateT > 1.2) hudText(ctx, t('games.common.retry'), W / 2, H * 0.32 + 150, { size: 20, align: 'center', color: '#d9ff3d' });
     }
     this.hooks.progress?.drawToasts(ctx, W, dt);
   }

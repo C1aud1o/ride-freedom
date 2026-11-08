@@ -60,7 +60,7 @@ class NativeCharacteristic extends EventTarget {
 
 class NativeService {
   constructor(device, info) { this.device = device; this.uuid = info.uuid; this.chars = (info.characteristics || []).map((c) => new NativeCharacteristic(device, this, c)); }
-  async getCharacteristic(u) { const id = uuid(u); const c = this.chars.find((x) => x.uuid === id); if (!c) throw new DOMException('Caratteristica non trovata', 'NotFoundError'); return c; }
+  async getCharacteristic(u) { const id = uuid(u); const c = this.chars.find((x) => x.uuid === id); if (!c) throw new DOMException('Characteristic not found', 'NotFoundError'); return c; }
   async getCharacteristics() { return this.chars; }
 }
 
@@ -82,7 +82,7 @@ class NativeDevice extends EventTarget {
         return this;
       },
       disconnect() { BLE.disconnect({ deviceId: id }).catch(() => {}); },
-      async getPrimaryService(u) { const want = uuid(u); const s = dev.services.find((x) => x.uuid === want); if (!s) throw new DOMException('Servizio non trovato', 'NotFoundError'); return s; },
+      async getPrimaryService(u) { const want = uuid(u); const s = dev.services.find((x) => x.uuid === want); if (!s) throw new DOMException('Service not found', 'NotFoundError'); return s; },
       async getPrimaryServices() { return dev.services; },
     };
   }
@@ -101,7 +101,7 @@ if (isNative) {
       const req = services.length ? { services: [...new Set(services)] } : namePrefix ? { namePrefix } : {};
       req.optionalServices = (opts.optionalServices || []).map(uuid);
       const d = await BLE.requestDevice(req);
-      return new NativeDevice(d.deviceId, d.name || 'Dispositivo');
+      return new NativeDevice(d.deviceId, d.name || 'Device');
     },
   };
   Object.defineProperty(navigator, 'bluetooth', { value: bluetooth, configurable: true });

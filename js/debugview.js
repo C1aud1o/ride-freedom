@@ -21,7 +21,7 @@ export async function copyText(text, btn) {
   }
   if (btn) {
     const old = btn.textContent;
-    btn.textContent = ok ? 'Copiato ✓' : 'Copia non riuscita';
+    btn.textContent = ok ? 'Copied ✓' : 'Copy failed';
     setTimeout(() => { btn.textContent = old; }, 1500);
   }
 }
@@ -45,9 +45,9 @@ export function setupDebug({ trainer, click, hrm, extra = [], appLog }) {
   document.getElementById('closeDebug').addEventListener('click', () => { panel.hidden = true; document.body.classList.remove('debug-open'); });
   document.getElementById('copyAll').addEventListener('click', (e) => {
     const env = [
-      `Spindro – report debug ${new Date().toISOString()}`,
+      `Spindro – debug report ${new Date().toISOString()}`,
       `Browser: ${navigator.userAgent}`,
-      `Web Bluetooth: ${'bluetooth' in navigator ? 'sì' : 'no'}`,
+      `Web Bluetooth: ${'bluetooth' in navigator ? 'yes' : 'no'}`,
     ];
     copyText([...env, '', ...sensors.map((s) => s.dbg.report()), '', '=== App ===', appLog()].join('\n\n'), e.target);
   });
@@ -61,8 +61,8 @@ function buildCard(sensor, click) {
   const values = el('dl', { class: 'dbg-values' });
   const raw = el('pre', { class: 'dbg-pre small' });
   const logPre = el('pre', { class: 'dbg-pre log' });
-  const copyBtn = el('button', { onclick: (e) => copyText(d.report(), e.target) }, 'Copia log');
-  const clearBtn = el('button', { onclick: () => d.clear() }, 'Svuota');
+  const copyBtn = el('button', { onclick: (e) => copyText(d.report(), e.target) }, 'Copy log');
+  const clearBtn = el('button', { onclick: () => d.clear() }, 'Clear');
 
   const root = el('section', { class: 'dbg-card' },
     el('header', {}, el('h3', {}, d.title), status),
@@ -73,9 +73,9 @@ function buildCard(sensor, click) {
   if (clickView) root.append(clickView.root);
 
   root.append(
-    el('h4', {}, 'Valori'), values,
-    el('h4', {}, 'Ultimi pacchetti ricevuti'), raw,
-    el('details', {}, el('summary', {}, 'Servizi e caratteristiche'), services),
+    el('h4', {}, 'Values'), values,
+    el('h4', {}, 'Latest packets received'), raw,
+    el('details', {}, el('summary', {}, 'Services and characteristics'), services),
     el('h4', {}, 'Log'), logPre,
     el('div', { class: 'dbg-actions' }, copyBtn, clearBtn),
   );
@@ -83,8 +83,8 @@ function buildCard(sensor, click) {
   let lastLines = -1;
   const update = () => {
     status.textContent = d.status;
-    status.classList.toggle('ok', d.status.startsWith('Connesso'));
-    device.textContent = d.device ? `${d.device.name} · id ${d.device.id}` : 'Nessun dispositivo';
+    status.classList.toggle('ok', d.status.startsWith('Connected'));
+    device.textContent = d.device ? `${d.device.name} · id ${d.device.id}` : 'No device';
 
     services.textContent = d.services.length
       ? d.services.map((s) => `${uuidName(s.uuid)}\n${s.chars.map((c) => `  • ${uuidName(c.uuid)} [${c.props.join(', ')}]`).join('\n')}`).join('\n')
@@ -95,7 +95,7 @@ function buildCard(sensor, click) {
     if (!entries.length) values.append(el('dd', {}, '—'));
 
     const now = Date.now();
-    raw.textContent = Object.entries(d.lastRaw).map(([k, v]) => `${k} ×${d.counts[k]} (${((now - v.at) / 1000).toFixed(1)}s fa)\n  ${v.hex}`).join('\n') || '—';
+    raw.textContent = Object.entries(d.lastRaw).map(([k, v]) => `${k} ×${d.counts[k]} (${((now - v.at) / 1000).toFixed(1)}s ago)\n  ${v.hex}`).join('\n') || '—';
 
     if (d.lines.length !== lastLines || d.lines.length === 500) {
       const atBottom = logPre.scrollTop + logPre.clientHeight >= logPre.scrollHeight - 20;
@@ -118,28 +118,28 @@ function buildClickView(click) {
   const hexInput = el('input', { type: 'text', placeholder: 'es. 52 69 64 65 4f 6e', class: 'dbg-hex', autocapitalize: 'off', spellcheck: 'false' });
 
   const assignRow = el('div', { class: 'dbg-actions' },
-    el('button', { onclick: () => d.extra.lastPressed && (click.assign(d.extra.lastPressed, +1), view.update()) }, 'Usa come +'),
-    el('button', { onclick: () => d.extra.lastPressed && (click.assign(d.extra.lastPressed, -1), view.update()) }, 'Usa come −'),
-    el('button', { onclick: () => d.extra.lastPressed && (click.assign(d.extra.lastPressed, 0), view.update()) }, 'Nessuna azione'),
-    el('button', { onclick: () => { click.resetMap(); view.update(); } }, 'Ripristina'),
+    el('button', { onclick: () => d.extra.lastPressed && (click.assign(d.extra.lastPressed, +1), view.update()) }, 'Use as +'),
+    el('button', { onclick: () => d.extra.lastPressed && (click.assign(d.extra.lastPressed, -1), view.update()) }, 'Use as −'),
+    el('button', { onclick: () => d.extra.lastPressed && (click.assign(d.extra.lastPressed, 0), view.update()) }, 'No action'),
+    el('button', { onclick: () => { click.resetMap(); view.update(); } }, 'Reset'),
   );
-  const send = async (bytes) => { try { await click.write(bytes); } catch (err) { d.log(`Errore invio: ${err.message}`); } };
+  const send = async (bytes) => { try { await click.write(bytes); } catch (err) { d.log(`Send error: ${err.message}`); } };
   const writeRow = el('div', { class: 'dbg-actions' },
-    el('button', { onclick: () => send(RIDE_ON) }, 'Rinvia RideOn'),
+    el('button', { onclick: () => send(RIDE_ON) }, 'Resend RideOn'),
     hexInput,
     el('button', { onclick: () => {
       const bytes = hexInput.value.trim().split(/[\s,]+/).filter(Boolean).map((h) => parseInt(h, 16));
-      if (!bytes.length || bytes.some((b) => Number.isNaN(b) || b < 0 || b > 255)) { d.log('Hex non valido'); return; }
+      if (!bytes.length || bytes.some((b) => Number.isNaN(b) || b < 0 || b > 255)) { d.log('Invalid hex'); return; }
       send(bytes);
-    } }, 'Invia'),
+    } }, 'Send'),
   );
 
   const root = el('div', { class: 'dbg-click' },
-    el('p', { class: 'hint' }, 'Premi i tasti del Click: il cerchio corrispondente si deve illuminare. Se non succede nulla guarda "Ultimi pacchetti ricevuti" e il log.'),
+    el('p', { class: 'hint' }, 'Press the Click buttons: the matching circle should light up. If nothing happens, check "Latest packets received" and the log.'),
     el('div', { class: 'btn-row' }, minus, plus),
-    el('h4', {}, 'Pulsanti premuti ora'), pressedList,
+    el('h4', {}, 'Buttons pressed now'), pressedList,
     last, assignRow,
-    el('details', {}, el('summary', {}, 'Invio manuale (avanzato)'), writeRow),
+    el('details', {}, el('summary', {}, 'Manual send (advanced)'), writeRow),
   );
 
   const view = {
@@ -152,8 +152,8 @@ function buildClickView(click) {
       pressedList.replaceChildren(...(pressed.length ? pressed.map((id) => el('span', { class: 'chip ok' }, buttonLabel(id))) : [el('span', { class: 'chip' }, 'nessuno')]));
       const lp = d.extra.lastPressed;
       last.textContent = lp
-        ? `Ultimo pulsante: ${buttonLabel(lp)} → ${click.map[lp] > 0 ? 'cambiata +' : click.map[lp] < 0 ? 'cambiata −' : 'nessuna azione'}`
-        : 'Ultimo pulsante: nessuno rilevato';
+        ? `Last button: ${buttonLabel(lp)} → ${click.map[lp] > 0 ? 'shifts +' : click.map[lp] < 0 ? 'shifts −' : 'no action'}`
+        : 'Last button: none detected';
     },
   };
   return view;

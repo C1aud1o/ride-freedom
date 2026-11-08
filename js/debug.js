@@ -8,9 +8,9 @@ const NAMES = {
   0x2ad9: 'FTMS Control Point', 0x2ada: 'FTMS Status', 0x2a63: 'CP Measurement', 0x2a5b: 'CSC Measurement',
   0x2a37: 'HR Measurement', 0x2a19: 'Battery Level',
   '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e': 'Tacx FE-C',
-  '6e40fec2-b5a3-f393-e0a9-e50e24dcca9e': 'FE-C dal rullo (notify)',
-  '6e40fec3-b5a3-f393-e0a9-e50e24dcca9e': 'FE-C verso il rullo (write)',
-  'a026e005-0a7d-4ab3-97fa-f1500f9feb8b': 'Wahoo controllo (legacy)',
+  '6e40fec2-b5a3-f393-e0a9-e50e24dcca9e': 'FE-C from trainer (notify)',
+  '6e40fec3-b5a3-f393-e0a9-e50e24dcca9e': 'FE-C to trainer (write)',
+  'a026e005-0a7d-4ab3-97fa-f1500f9feb8b': 'Wahoo control (legacy)',
   '00000001-19ca-4651-86e5-fa29dcdd09d1': 'Zwift',
   '00000002-19ca-4651-86e5-fa29dcdd09d1': 'Zwift Async (notify)',
   '00000003-19ca-4651-86e5-fa29dcdd09d1': 'Zwift Sync RX (write)',
@@ -35,7 +35,7 @@ export class SensorDebug extends EventTarget {
     super();
     this.kind = kind;
     this.title = title;
-    this.status = 'Non connesso';
+    this.status = 'Not connected';
     this.device = null;
     this.services = []; // [{ uuid, chars: [{ uuid, props }] }]
     this.values = {}; // ultimi valori interpretati
@@ -47,7 +47,7 @@ export class SensorDebug extends EventTarget {
 
   log(msg) {
     const t = new Date();
-    const ts = `${t.toLocaleTimeString('it-IT')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
+    const ts = `${t.toLocaleTimeString()}.${String(t.getMilliseconds()).padStart(3, '0')}`;
     this.lines.push(`${ts}  ${msg}`);
     if (this.lines.length > MAX_LINES) this.lines.splice(0, this.lines.length - MAX_LINES);
     this.changed();
@@ -68,11 +68,11 @@ export class SensorDebug extends EventTarget {
     this.log(`${dir === 'rx' ? '←' : '→'} ${name}: ${h}`);
   }
 
-  setStatus(s) { this.status = s; this.log(`Stato: ${s}`); }
+  setStatus(s) { this.status = s; this.log(`Status: ${s}`); }
   setValues(v) { Object.assign(this.values, v); this.changed(); }
 
   async describe(device, server) {
-    this.device = { name: device.name || '(senza nome)', id: device.id };
+    this.device = { name: device.name || '(no name)', id: device.id };
     this.services = [];
     try {
       for (const s of await server.getPrimaryServices()) {
@@ -83,27 +83,27 @@ export class SensorDebug extends EventTarget {
             const props = ['read', 'write', 'writeWithoutResponse', 'notify', 'indicate'].filter((k) => p[k]);
             entry.chars.push({ uuid: c.uuid, props });
           }
-        } catch (err) { this.log(`Caratteristiche di ${uuidName(s.uuid)} non leggibili: ${err.message}`); }
+        } catch (err) { this.log(`Characteristics of ${uuidName(s.uuid)} not readable: ${err.message}`); }
         this.services.push(entry);
       }
-      this.log(`Servizi accessibili: ${this.services.map((s) => uuidName(s.uuid)).join(', ') || 'nessuno'}`);
+      this.log(`Accessible services: ${this.services.map((s) => uuidName(s.uuid)).join(', ') || 'none'}`);
     } catch (err) {
-      this.log(`Elenco servizi non disponibile: ${err.message}`);
+      this.log(`Service list not available: ${err.message}`);
     }
     this.changed();
   }
 
   report() {
-    const out = [`=== ${this.title} ===`, `Stato: ${this.status}`];
-    if (this.device) out.push(`Dispositivo: ${this.device.name} (id ${this.device.id})`);
+    const out = [`=== ${this.title} ===`, `Status: ${this.status}`];
+    if (this.device) out.push(`Device: ${this.device.name} (id ${this.device.id})`);
     for (const s of this.services) {
-      out.push(`Servizio ${uuidName(s.uuid)} [${s.uuid}]`);
+      out.push(`Service ${uuidName(s.uuid)} [${s.uuid}]`);
       for (const c of s.chars) out.push(`  - ${uuidName(c.uuid)} [${c.uuid}] ${c.props.join(',')}`);
     }
-    if (Object.keys(this.values).length) out.push(`Valori: ${JSON.stringify(this.values)}`);
+    if (Object.keys(this.values).length) out.push(`Values: ${JSON.stringify(this.values)}`);
     if (Object.keys(this.extra).length) out.push(`Extra: ${JSON.stringify(this.extra)}`);
-    for (const [k, v] of Object.entries(this.lastRaw)) out.push(`Ultimo ${k} (${this.counts[k]} pacchetti): ${v.hex}`);
-    out.push(`--- log (pacchetti ripetuti identici omessi: ${this.repeats || 0}) ---`, ...this.lines);
+    for (const [k, v] of Object.entries(this.lastRaw)) out.push(`Last ${k} (${this.counts[k]} packets): ${v.hex}`);
+    out.push(`--- log (identical repeated packets omitted: ${this.repeats || 0}) ---`, ...this.lines);
     return out.join('\n');
   }
 
