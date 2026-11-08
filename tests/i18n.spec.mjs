@@ -14,7 +14,7 @@ const ITALIAN = [
 async function open(page, lang) {
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
-  await page.addInitScript((l) => { try { if (!localStorage.getItem('lang')) localStorage.setItem('lang', l); } catch { /* */ } }, lang);
+  await page.addInitScript((l) => { try { if (!localStorage.getItem('lang')) localStorage.setItem('lang', l); if (!localStorage.getItem('analytics')) localStorage.setItem('analytics', '0'); } catch { /* */ } }, lang);
   await page.addInitScript({ path: FAKE_BLE });
   await page.goto('/index.html');
   await expect(page.locator('#startStop')).not.toBeEmpty();

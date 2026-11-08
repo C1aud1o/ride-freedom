@@ -42,6 +42,20 @@ export function chooseProtocol({ ftms, fec, wahoo }, { name = '', force = 'auto'
   return 'basic';
 }
 
+// nomi leggibili dei servizi BLE per la segnalazione del rullo (B4); gli altri restano come UUID corto
+const SERVICE_NAMES = {
+  '1800': 'Generic Access', '1801': 'Generic Attribute', '180a': 'Device Information', '180f': 'Battery',
+  '180d': 'Heart Rate', '1816': 'Cycling Speed and Cadence', '1818': 'Cycling Power', '1826': 'Fitness Machine (FTMS)',
+  '1814': 'Running Speed and Cadence', '181c': 'User Data',
+};
+export function serviceName(uuid) {
+  const u = String(uuid).toLowerCase();
+  if (u === FEC_SERVICE.toLowerCase()) return 'Tacx FE-C over BLE';
+  const m = u.match(/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/);
+  if (m) return SERVICE_NAMES[m[1]] || `0x${m[1]}`;
+  return u;
+}
+
 const LABEL = { ftms: 'FTMS', fec: 'FE-C', wahoo: 'Wahoo', basic: 'CP/CSC' };
 
 function forcedProtocol() {
@@ -56,6 +70,7 @@ export class Trainer extends EventTarget {
     this.protocol = null;
     this.dbg = new SensorDebug('trainer', 'Trainer');
     this.drivers = {};
+    this.services = []; // nomi leggibili dei servizi BLE visti
   }
 
   get connected() { return !!this.device?.gatt?.connected; }
@@ -87,6 +102,7 @@ export class Trainer extends EventTarget {
       if (uuids.length) return uuids.includes(full(u));
       try { await server.getPrimaryService(u); return true; } catch { return false; }
     };
+    this.services = uuids.map(serviceName);
     const found = { ftms: await has(FTMS), fec: await has(FEC_SERVICE), wahoo: false };
     if (await has(CPS)) {
       try { await (await server.getPrimaryService(CPS)).getCharacteristic(WAHOO_CONTROL); found.wahoo = true; } catch { /* non è un Wahoo legacy */ }
