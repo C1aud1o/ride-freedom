@@ -16,6 +16,7 @@
 // La pendenza 0x46 è (1 + pendenza/100) × 65535/2 (SwiftySensors, qdomyos, incyclist; GoldenCheetah usa ×32768).
 
 import { SensorDebug } from '../debug.js';
+import { t } from '../i18n.js';
 
 export const CPS = 0x1818;
 export const CP_MEASUREMENT = 0x2a63;
@@ -53,7 +54,7 @@ export class WahooLegacyTrainer extends EventTarget {
     this.hasCadence = false;
     this.crank = null;
     this.sim = null;
-    this.dbg = dbg || new SensorDebug('trainer', 'Rullo');
+    this.dbg = dbg || new SensorDebug('trainer', 'Trainer');
   }
 
   get connected() { return !!this.device?.gatt?.connected; }
@@ -61,18 +62,18 @@ export class WahooLegacyTrainer extends EventTarget {
 
   async connect() {
     this.device = await navigator.bluetooth.requestDevice({ filters: [{ services: [CPS] }], optionalServices: [CPS] });
-    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.emit('disconnected'); });
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnected'); this.emit('disconnected'); });
     await this.setup();
-    return this.device.name || 'Rullo';
+    return this.device.name || t('home.trainer');
   }
 
   async reconnect() {
-    if (!this.device) throw new Error('Nessun dispositivo');
+    if (!this.device) throw new Error('No device');
     await this.setup();
   }
 
   async setup(server) {
-    this.dbg.setStatus('Connessione…');
+    this.dbg.setStatus('Connecting…');
     server ||= await this.device.gatt.connect();
     await this.dbg.describe(this.device, server);
     this.ctrl = null; this.sim = null; this.crank = null;
@@ -88,10 +89,10 @@ export class WahooLegacyTrainer extends EventTarget {
       await this.command(unlockCmd(), 3000);
     } catch (err) {
       this.ctrl = null;
-      this.emit('log', `Controllo Wahoo non disponibile: ${err.message}`);
-      this.dbg.log(`Controllo Wahoo non disponibile: ${err.message}`);
+      this.emit('log', `Wahoo control not available: ${err.message}`);
+      this.dbg.log(`Wahoo control not available: ${err.message}`);
     }
-    this.dbg.setStatus(`Connesso (Wahoo legacy${this.ctrl ? ', controllabile' : ', sola lettura'})`);
+    this.dbg.setStatus(`Connected (Wahoo legacy${this.ctrl ? ', controllable' : ', read-only'})`);
     this.dbg.extra = { protocollo: 'Wahoo legacy', features: this.features, ranges: this.ranges };
     this.emit('connected', { name: this.device.name, ftms: false, protocol: 'Wahoo', features: this.features });
   }
@@ -138,13 +139,13 @@ export class WahooLegacyTrainer extends EventTarget {
     this.pending = null;
     clearTimeout(p.timer);
     const ok = v.getUint8(0) === 0x01;
-    this.dbg.log(`Risposta Wahoo 0x${p.op.toString(16)}: ${ok ? 'ok' : `errore ${v.getUint8(0)}`}`);
-    if (ok) p.resolve(); else p.reject(new Error(`Comando Wahoo 0x${p.op.toString(16)} rifiutato`));
+    this.dbg.log(`Wahoo response 0x${p.op.toString(16)}: ${ok ? 'ok' : `error ${v.getUint8(0)}`}`);
+    if (ok) p.resolve(); else p.reject(new Error(`Wahoo command 0x${p.op.toString(16)} rejected`));
   }
 
   command(bytes, timeout = 800) {
     const run = () => new Promise((resolve, reject) => {
-      if (!this.ctrl) return reject(new Error('Rullo non controllabile'));
+      if (!this.ctrl) return reject(new Error('Trainer is not controllable'));
       const op = bytes[0];
       const timer = setTimeout(() => { this.pending = null; resolve(); }, timeout); // alcuni firmware non rispondono
       this.pending = { op, resolve, reject, timer };

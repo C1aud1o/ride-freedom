@@ -4,6 +4,7 @@
 import { THREE, rider, scatter, mat4, Effects, lights, skyTexture } from './kit3d.js';
 import { hudText, clamp, lerp, pick } from './engine.js';
 import { Base3D } from './base3d.js';
+import { t } from '../i18n.js';
 
 const A = 'assets/3d';
 const SIDE = 6.5;           // spostamento laterale massimo
@@ -13,8 +14,8 @@ const SEG = 26;             // metri tra un elemento e l'altro
 export class Planata extends Base3D {
   constructor(hud, hooks, audio) {
     super(hud, hooks, audio, {
-      key: 'planata', title: 'PLANATA', tagline: 'I tuoi watt sono la quota.', song: 'race',
-      rules: ['Più watt = più in alto · meno watt = scendi', 'Tieni premuto + / − per spostarti di lato', 'Anelli d\'oro = punti, in fila = combo', 'Creste: spingi per scavalcarle', 'Ponti di roccia: cala i watt e passa sotto'],
+      key: 'planata', title: 'games.planata.hud.title', tagline: 'games.planata.hud.tagline', song: 'race',
+      rules: ['games.planata.rule1', 'games.planata.rule2', 'games.planata.rule3', 'games.planata.rule4', 'games.planata.rule5'],
     });
   }
 
@@ -61,7 +62,7 @@ export class Planata extends Base3D {
     this.extendGround();
   }
 
-  onBegin() { this.say('Pedala per salire!', '#d9ff3d', 1.8, true); this.hooks.setGrade(2); }
+  onBegin() { this.say(t('games.planata.climb'), '#d9ff3d', 1.8, true); this.hooks.setGrade(2); }
 
   extendGround() {
     const { scene } = this.stage;
@@ -168,7 +169,7 @@ export class Planata extends Base3D {
   hit(it) {
     this.lives--; this.hurtT = 1.5; this.combo = 0;
     this.audio.sfx('hurt'); this.fx.explode(this.x, this.y + 1, this.z, 1);
-    this.say(it.kind === 'ridge' ? 'Troppo basso: spingi di più!' : 'Troppo alto: cala i watt!', '#ff6b6b', 1.8);
+    this.say(it.kind === 'ridge' ? t('games.planata.tooLow') : t('games.planata.tooHigh'), '#ff6b6b', 1.8);
     if (navigator.vibrate) navigator.vibrate(120);
     if (this.lives <= 0) { this.score = Math.round(this.score); this.hooks.progress?.setMax('planataDist', Math.round(this.z)); this.end(Math.round(this.z / 100)); }
   }
@@ -201,7 +202,7 @@ export class Planata extends Base3D {
     hudText(ctx, String(Math.round(this.score)).padStart(6, '0'), 14, top + 24, { size: 24 });
     hudText(ctx, `${Math.round(this.z)} m`, W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
     let hx = 14; for (let i = 0; i < this.lives; i++) { hudText(ctx, '♥', hx, top + 46, { size: 18, color: '#ff4d6d' }); hx += 17; }
-    if (this.combo > 1) hudText(ctx, `COMBO ×${this.combo}`, W - 14, top + 42, { size: 13, align: 'right', color: '#ffcc33' });
+    if (this.combo > 1) hudText(ctx, t('games.planata.combo', { n: this.combo }), W - 14, top + 42, { size: 13, align: 'right', color: '#ffcc33' });
     this.powerBar(ctx, 14, top + 56, W - 28);
     // altimetro: dove sei e dove devi essere per il prossimo elemento
     const ax = W - 34; const ay = top + 90; const ah = H * 0.42;
@@ -217,10 +218,10 @@ export class Planata extends Base3D {
       ctx.fillRect(ax, yToPx(Math.min(YMAX, hi)), 20, yToPx(Math.max(0, lo)) - yToPx(Math.min(YMAX, hi)));
       hudText(ctx, label, ax - 6, yToPx((lo + Math.min(YMAX, hi)) / 2) + 4, { size: 13, align: 'right', color: n.kind === 'ring' ? '#ffcc33' : '#d9ff3d' });
       const dist = Math.round(n.z - this.z);
-      hudText(ctx, n.kind === 'ring' ? `anello tra ${dist} m` : n.kind === 'ridge' ? `CRESTA tra ${dist} m: SU!` : `PONTE tra ${dist} m: GIÙ!`, W / 2, H - 34, { size: 15, align: 'center', color: n.kind === 'ring' ? '#ffcc33' : n.kind === 'ridge' ? '#ff9f43' : '#4de3ff' });
+      hudText(ctx, t(`games.planata.ahead.${n.kind}`, { dist }), W / 2, H - 34, { size: 15, align: 'center', color: n.kind === 'ring' ? '#ffcc33' : n.kind === 'ridge' ? '#ff9f43' : '#4de3ff' });
     }
     ctx.fillStyle = '#ffffff'; ctx.fillRect(ax - 4, yToPx(this.y) - 2, 28, 4);
   }
 
-  summary() { return ['ATTERRAGGIO!', `${Math.round(this.z)} m in volo · ${this.rings} anelli`]; }
+  summary() { return [t('games.planata.over'), t('games.planata.stats', { m: Math.round(this.z), rings: this.rings })]; }
 }

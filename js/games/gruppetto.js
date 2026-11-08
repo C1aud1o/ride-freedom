@@ -4,6 +4,7 @@
 import { THREE, rider, scatter, mat4, Effects, lights, skyTexture } from './kit3d.js';
 import { hudText, clamp, lerp, pick } from './engine.js';
 import { Base3D } from './base3d.js';
+import { t } from '../i18n.js';
 
 const A = 'assets/3d';
 const HALF = 22;            // metà lato dell'arena
@@ -15,8 +16,8 @@ const COLORS = ['#4de3ff', '#ff4d9d', '#ffd166', '#06d6a0', '#ff922b', '#c77dff'
 export class Gruppetto extends Base3D {
   constructor(hud, hooks, audio) {
     super(hud, hooks, audio, {
-      key: 'gruppetto', title: 'GRUPPETTO', tagline: 'Raccogli chi è rimasto indietro.', song: 'city',
-      rules: ['+ gira a destra · − gira a sinistra (tieni premuto = curva)', 'Passa sui ciclisti fermi: si accodano a te', 'Non urtare la recinzione né la tua fila', 'Più è lungo il gruppo, più sale la pendenza', 'Sprint sopra soglia = punti doppi'],
+      key: 'gruppetto', title: 'games.gruppetto.hud.title', tagline: 'games.gruppetto.hud.tagline', song: 'city',
+      rules: ['games.gruppetto.rule1', 'games.gruppetto.rule2', 'games.gruppetto.rule3', 'games.gruppetto.rule4', 'games.gruppetto.rule5'],
     });
   }
 
@@ -74,7 +75,7 @@ export class Gruppetto extends Base3D {
     this.hooks.setGrade?.(0); this.sentGrade = 0;
   }
 
-  onBegin() { this.say('VIA! Raccogli il gruppo', '#d9ff3d', 1.8, true); }
+  onBegin() { this.say(t('games.gruppetto.go'), '#d9ff3d', 1.8, true); }
 
   addStray() {
     let x; let z; let guard = 0;
@@ -125,7 +126,7 @@ export class Gruppetto extends Base3D {
         this.score += pts; this.prog('rescues', 1, 3);
         this.audio.sfx('rescue'); this.pop(`+${pts}`, this.sprinting ? '#4de3ff' : '#ffd166', this.x, 2.4, this.z);
         this.fx.spawn(s.x, 1, s.z, { tex: 'green', size: 3, life: 0.4 });
-        if (this.train.length % 5 === 0) this.say(`GRUPPO DA ${this.train.length + 1}!`, '#d9ff3d', 1.6, true);
+        if (this.train.length % 5 === 0) this.say(t('games.gruppetto.groupOf', { n: this.train.length + 1 }), '#d9ff3d', 1.6, true);
       }
     }
     this.strays = this.strays.filter((s) => !s.done);
@@ -136,8 +137,8 @@ export class Gruppetto extends Base3D {
     if (grade !== this.sentGrade) { this.sentGrade = grade; this.hooks.setGrade(grade); }
     this.score += dt * (this.sprinting ? 2 : 1) * (1 + this.train.length * 0.1);
     // urti
-    if (Math.abs(this.x) > HALF - 0.4 || Math.abs(this.z) > HALF - 0.4) return this.crash('Contro la recinzione!');
-    if (this.hitsTrain(this.x, this.z, 0.9, 3)) return this.crash('Hai tamponato il tuo gruppo!');
+    if (Math.abs(this.x) > HALF - 0.4 || Math.abs(this.z) > HALF - 0.4) return this.crash(t('games.gruppetto.fence'));
+    if (this.hitsTrain(this.x, this.z, 0.9, 3)) return this.crash(t('games.gruppetto.rearEnded'));
   }
 
   crash(why) {
@@ -172,13 +173,13 @@ export class Gruppetto extends Base3D {
   hud(ctx, W) {
     const top = 56;
     hudText(ctx, String(Math.round(this.score)).padStart(5, '0'), 14, top + 24, { size: 24 });
-    hudText(ctx, `GRUPPO ${this.train.length + 1}`, W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
-    hudText(ctx, `pendenza ${this.sentGrade || 0}%`, W - 14, top + 40, { size: 12, align: 'right', color: '#e8e8e8' });
+    hudText(ctx, t('games.gruppetto.group', { n: this.train.length + 1 }), W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
+    hudText(ctx, t('games.gruppetto.grade', { n: this.sentGrade || 0 }), W - 14, top + 40, { size: 12, align: 'right', color: '#e8e8e8' });
     this.powerBar(ctx, 14, top + 52, W - 28);
-    if (this.sprinting) hudText(ctx, 'PUNTI ×2', W / 2, top + 84, { size: 14, align: 'center', color: '#4de3ff' });
+    if (this.sprinting) hudText(ctx, t('games.gruppetto.double'), W / 2, top + 84, { size: 14, align: 'center', color: '#4de3ff' });
   }
 
   summary() {
-    return [this.why || 'FINE CORSA', `Gruppo di ${this.train.length + 1} ciclisti`, `${Math.round(this.dist)} m · ${Math.round(this.sprintT)} s di sprint`];
+    return [this.why || t('games.gruppetto.over'), t('games.gruppetto.size', { n: this.train.length + 1 }), t('games.gruppetto.stats', { m: Math.round(this.dist), s: Math.round(this.sprintT) })];
   }
 }

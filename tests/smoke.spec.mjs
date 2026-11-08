@@ -7,9 +7,9 @@ const FAKE_BLE = fileURLToPath(new URL('./fake-ble.js', import.meta.url));
 test.beforeEach(async ({ page }) => {
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
-  // l'app non ha un vero onboarding; si parte da dati puliti con valori noti
+  // l'app non ha un vero onboarding; si parte da dati puliti con valori noti. I selettori sul testo usano l'italiano: lang=it salvo diversa scelta del test
   await page.addInitScript(() => {
-    try { if (!localStorage.getItem('__seeded')) { localStorage.setItem('__seeded', '1'); localStorage.setItem('ftp', '200'); localStorage.setItem('mass', '80'); } } catch { /* niente storage */ }
+    try { if (!localStorage.getItem('__seeded')) { localStorage.setItem('__seeded', '1'); localStorage.setItem('ftp', '200'); localStorage.setItem('mass', '80'); } if (!localStorage.getItem('lang')) localStorage.setItem('lang', 'it'); } catch { /* niente storage */ }
   });
   await page.addInitScript({ path: FAKE_BLE });
   await page.goto('/index.html');

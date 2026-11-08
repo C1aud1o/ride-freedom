@@ -1,32 +1,33 @@
 // Allenamenti strutturati in ERG: il rullo imposta da solo i watt di ogni tratto (in % della tua FTP).
 // Libreria originale + test FTP a rampa. + / − durante l'allenamento alzano o abbassano l'intensità del 5%.
 
+import { t } from './i18n.js';
+
 const s = (d, p, label) => ({ d, p, label });
 const ramp = (d, p, to, label) => ({ d, p, to, label });
-const reps = (n, on, off, extraLabel = 'Ripetuta') => Array.from({ length: n }, (_, i) => [
-  { ...on, label: `${extraLabel} ${i + 1}/${n}` }, ...(off && i < n - 1 ? [{ ...off, label: 'Recupero' }] : []),
+// n ripetizioni con etichetta "Ripetuta i/n" (la chiave sceglie il nome); i recuperi sono tra una ripetizione e l'altra
+const reps = (n, on, off, key = 'workouts.step.rep') => Array.from({ length: n }, (_, i) => [
+  { ...on, label: t(key, { i: i + 1, n }) }, ...(off && i < n - 1 ? [{ ...off, label: t('workouts.step.rest') }] : []),
 ]).flat();
-const WARM = [ramp(300, 0.45, 0.7, 'Riscaldamento'), s(120, 0.75, 'Avvicinamento')];
-const COOL = [ramp(300, 0.6, 0.4, 'Defaticamento')];
 
-export const WORKOUTS = [
-  { id: 'sblocco', name: 'Sblocco', tag: 'Facile · 30 min', desc: 'Gambe leggere con qualche accelerazione breve. Ideale il giorno dopo uno sforzo.',
-    steps: [...WARM, ...reps(4, s(30, 1.05), s(150, 0.6), 'Allungo'), s(240, 0.6, 'Fondo'), ...COOL] },
-  { id: 'fondo', name: 'Fondo lento', tag: 'Z2 · 45 min', desc: 'Resistenza aerobica: la base di tutto. Ritmo da chiacchierata.',
-    steps: [...WARM, s(1800, 0.68, 'Fondo'), ...COOL] },
-  { id: 'sweet', name: 'Sweet spot 3×10', tag: 'Medio · 55 min', desc: 'Tre blocchi poco sotto soglia: il miglior rapporto tra fatica e progresso.',
-    steps: [...WARM, ...reps(3, s(600, 0.9), s(300, 0.55), 'Blocco'), ...COOL] },
-  { id: 'soglia', name: 'Soglia 2×15', tag: 'Duro · 55 min', desc: 'Due tratti alla tua FTP. Alza il "soffitto" della tua potenza sostenibile.',
-    steps: [...WARM, ...reps(2, s(900, 1.0), s(420, 0.55), 'Soglia'), ...COOL] },
-  { id: 'vo2', name: 'VO2max 5×3', tag: 'Molto duro · 45 min', desc: 'Ripetute brevi e intense per allargare il motore.',
-    steps: [...WARM, ...reps(5, s(180, 1.15), s(180, 0.5)), ...COOL] },
-  { id: 'piramide', name: 'Piramide', tag: 'Medio · 45 min', desc: 'Sali e scendi di intensità: 1-2-3-4-3-2-1 minuti, recuperi uguali.',
-    steps: [...WARM, ...[1, 2, 3, 4, 3, 2, 1].flatMap((m, i, a) => [s(m * 60, 1.0 + (4 - m) * 0.05, `Gradino ${i + 1}/${a.length}`), ...(i < a.length - 1 ? [s(m * 60, 0.55, 'Recupero')] : [])]), ...COOL] },
-  { id: 'trenta', name: '30/30', tag: 'Duro · 35 min', desc: '2 serie di 8 × 30 secondi forti e 30 facili. Corte ma intense.',
-    steps: [...WARM, ...reps(8, s(30, 1.2), s(30, 0.5), 'Serie 1:'), s(300, 0.5, 'Recupero'), ...reps(8, s(30, 1.2), s(30, 0.5), 'Serie 2:'), ...COOL] },
-  { id: 'ramp', name: 'Test FTP a rampa', tag: 'Test · 15-25 min', test: true, desc: 'Si parte facile e ogni minuto aumenta di 20 W finché non ce la fai più. La tua FTP = 75% del miglior minuto. Smetti di pedalare (o premi Termina) quando sei al limite.',
-    steps: [{ d: 300, w: 90, label: 'Riscaldamento' }, ...Array.from({ length: 40 }, (_, i) => ({ d: 60, w: 100 + i * 20, label: `Gradino ${i + 1}` }))] },
-];
+// Libreria: gli id restano fissi, nomi/descrizioni/etichette vengono dalle traduzioni (workouts.<id>.*).
+// È una funzione perché cambiando lingua i testi vanno rifatti.
+export function workouts() {
+  const WARM = [ramp(300, 0.45, 0.7, t('workouts.step.warm')), s(120, 0.75, t('workouts.step.approach'))];
+  const COOL = [ramp(300, 0.6, 0.4, t('workouts.step.cool'))];
+  const meta = (id) => ({ id, name: t(`workouts.${id}.name`), tag: t(`workouts.${id}.tag`), desc: t(`workouts.${id}.desc`) });
+  return [
+    { ...meta('sblocco'), steps: [...WARM, ...reps(4, s(30, 1.05), s(150, 0.6), 'workouts.step.stride'), s(240, 0.6, t('workouts.step.endurance')), ...COOL] },
+    { ...meta('fondo'), steps: [...WARM, s(1800, 0.68, t('workouts.step.endurance')), ...COOL] },
+    { ...meta('sweet'), steps: [...WARM, ...reps(3, s(600, 0.9), s(300, 0.55), 'workouts.step.block'), ...COOL] },
+    { ...meta('soglia'), steps: [...WARM, ...reps(2, s(900, 1.0), s(420, 0.55), 'workouts.step.threshold'), ...COOL] },
+    { ...meta('vo2'), steps: [...WARM, ...reps(5, s(180, 1.15), s(180, 0.5)), ...COOL] },
+    { ...meta('piramide'), steps: [...WARM, ...[1, 2, 3, 4, 3, 2, 1].flatMap((m, i, a) => [s(m * 60, 1.0 + (4 - m) * 0.05, t('workouts.step.stepN', { i: i + 1, n: a.length })), ...(i < a.length - 1 ? [s(m * 60, 0.55, t('workouts.step.rest'))] : [])]), ...COOL] },
+    { ...meta('trenta'), steps: [...WARM, ...reps(8, s(30, 1.2), s(30, 0.5), 'workouts.step.set1'), s(300, 0.5, t('workouts.step.rest')), ...reps(8, s(30, 1.2), s(30, 0.5), 'workouts.step.set2'), ...COOL] },
+    { ...meta('ramp'), test: true,
+      steps: [{ d: 300, w: 90, label: t('workouts.step.warm') }, ...Array.from({ length: 40 }, (_, i) => ({ d: 60, w: 100 + i * 20, label: t('workouts.step.rampStep', { i: i + 1 }) }))] },
+  ];
+}
 
 export const duration = (w) => w.steps.reduce((a, x) => a + x.d, 0);
 // stima del carico (TSS) dalla potenza normalizzata semplificata
@@ -99,32 +100,32 @@ export function zoneColor(pct) {
 export const fmtTime = (sec) => { sec = Math.max(0, Math.round(sec)); const m = Math.floor(sec / 60); return `${m}:${String(sec % 60).padStart(2, '0')}`; };
 
 // ---------- Import .zwo (formato aperto XML usato da molti siti di allenamenti) ----------
-export function parseZwo(text, fileName = 'Allenamento') {
+export function parseZwo(text, fileName = t('editor.fallbackName')) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
-  if (doc.querySelector('parsererror')) throw new Error('File non valido');
-  const wk = doc.querySelector('workout'); if (!wk) throw new Error('Nessun allenamento nel file');
+  if (doc.querySelector('parsererror')) throw new Error(t('zwo.invalid'));
+  const wk = doc.querySelector('workout'); if (!wk) throw new Error(t('zwo.none'));
   const num = (el, a, d = 0) => { const v = parseFloat(el.getAttribute(a) ?? el.getAttribute(a.toLowerCase())); return Number.isFinite(v) ? v : d; };
   const steps = [];
   for (const el of wk.children) {
-    const t = el.tagName.toLowerCase(); const d = Math.round(num(el, 'Duration'));
-    if (t === 'warmup' || t === 'cooldown' || t === 'ramp') {
-      steps.push({ d, p: num(el, 'PowerLow', 0.5), to: num(el, 'PowerHigh', 0.5), label: t === 'warmup' ? 'Riscaldamento' : t === 'cooldown' ? 'Defaticamento' : 'Rampa' });
-    } else if (t === 'steadystate') {
-      steps.push({ d, p: num(el, 'Power', num(el, 'PowerLow', 0.6)), label: 'Ritmo costante' });
-    } else if (t === 'intervalst') {
+    const tag = el.tagName.toLowerCase(); const d = Math.round(num(el, 'Duration'));
+    if (tag === 'warmup' || tag === 'cooldown' || tag === 'ramp') {
+      steps.push({ d, p: num(el, 'PowerLow', 0.5), to: num(el, 'PowerHigh', 0.5), label: t(tag === 'warmup' ? 'editor.label.warm' : tag === 'cooldown' ? 'editor.label.cool' : 'editor.label.ramp') });
+    } else if (tag === 'steadystate') {
+      steps.push({ d, p: num(el, 'Power', num(el, 'PowerLow', 0.6)), label: t('editor.label.steady') });
+    } else if (tag === 'intervalst') {
       const n = Math.round(num(el, 'Repeat', 1));
       for (let i = 0; i < n; i++) {
-        steps.push({ d: Math.round(num(el, 'OnDuration')), p: num(el, 'OnPower', 1), label: `Ripetuta ${i + 1}/${n}` });
-        steps.push({ d: Math.round(num(el, 'OffDuration')), p: num(el, 'OffPower', 0.5), label: 'Recupero' });
+        steps.push({ d: Math.round(num(el, 'OnDuration')), p: num(el, 'OnPower', 1), label: t('workouts.step.rep', { i: i + 1, n }) });
+        steps.push({ d: Math.round(num(el, 'OffDuration')), p: num(el, 'OffPower', 0.5), label: t('workouts.step.rest') });
       }
-    } else if (t === 'freeride' || t === 'maxeffort') {
-      steps.push({ d, p: t === 'maxeffort' ? 1.5 : 0.65, label: t === 'maxeffort' ? 'Massimo sforzo' : 'Libero' });
+    } else if (tag === 'freeride' || tag === 'maxeffort') {
+      steps.push({ d, p: tag === 'maxeffort' ? 1.5 : 0.65, label: t(tag === 'maxeffort' ? 'zwo.maxEffort' : 'zwo.free') });
     }
   }
   const valid = steps.filter((x) => x.d > 0);
-  if (!valid.length) throw new Error('Allenamento vuoto');
+  if (!valid.length) throw new Error(t('zwo.empty'));
   const name = doc.querySelector('workout_file > name')?.textContent?.trim() || fileName.replace(/\.zwo$/i, '');
-  const desc = doc.querySelector('workout_file > description')?.textContent?.trim().slice(0, 200) || 'Importato da file';
+  const desc = doc.querySelector('workout_file > description')?.textContent?.trim().slice(0, 200) || t('zwo.fromFile');
   const mins = Math.round(duration({ steps: valid }) / 60);
-  return { id: `zwo-${Date.now()}`, name, tag: `Importato · ${mins} min`, desc, steps: valid, custom: true };
+  return { id: `zwo-${Date.now()}`, name, tag: t('zwo.tag', { mins }), desc, steps: valid, custom: true };
 }

@@ -1,14 +1,15 @@
 import { SensorDebug } from './debug.js';
+import { t } from './i18n.js';
 
 // Fascia cardio o orologio Garmin con "Trasmetti frequenza cardiaca" attivo (Bluetooth HRS).
 export class HeartRate extends EventTarget {
-  constructor() { super(); this.device = null; this.dbg = new SensorDebug('hr', 'Cardio'); }
+  constructor() { super(); this.device = null; this.dbg = new SensorDebug('hr', 'Heart rate'); }
   get connected() { return !!this.device?.gatt?.connected; }
 
   async connect() {
     this.device = await navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] });
-    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.dispatchEvent(new Event('disconnected')); });
-    this.dbg.setStatus('Connessione…');
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnected'); this.dispatchEvent(new Event('disconnected')); });
+    this.dbg.setStatus('Connecting…');
     const server = await this.device.gatt.connect();
     await this.dbg.describe(this.device, server);
     const c = await (await server.getPrimaryService('heart_rate')).getCharacteristic('heart_rate_measurement');
@@ -20,8 +21,8 @@ export class HeartRate extends EventTarget {
       this.dispatchEvent(new CustomEvent('hr', { detail: hr }));
     });
     await c.startNotifications();
-    this.dbg.setStatus('Connesso');
-    return this.device.name || 'Cardio';
+    this.dbg.setStatus('Connected');
+    return this.device.name || t('home.hr');
   }
 
   disconnect() { if (this.connected) this.device.gatt.disconnect(); }

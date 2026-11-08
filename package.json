@@ -7,7 +7,8 @@
     "build:web": "node scripts/copy-web.mjs",
     "android:sync": "npm run build:web && npx cap sync android",
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleFossDebug",
-    "test": "playwright test --trace off",
+    "test": "node tests/i18n-check.mjs && playwright test --trace off",
+    "test:i18n": "node tests/i18n-check.mjs",
     "test:install": "playwright install --with-deps chromium"
   },
   "dependencies": {

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f0e0c">
-  <meta name="description" content="Controllo del rullo Van Rysel D100 via Bluetooth con cambio virtuale stile Zwift Cog.">
+  <meta name="description" content="" data-i18n-attr="content:app.description">
   <title>Spindro</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -17,127 +17,127 @@
   <header class="top">
     <span class="wordmark">Ride<b>Freedom</b></span>
     <span class="top-actions">
-      <button id="openWorkouts" class="icon-btn" aria-label="Allenamenti">
+      <button id="openWorkouts" class="icon-btn" data-i18n-attr="aria-label:nav.workouts">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h18M5 19v-5M9 19V9M13 19v-7M17 19V5" /></svg>
       </button>
-      <button id="openGame" class="icon-btn" aria-label="Giochi">
+      <button id="openGame" class="icon-btn" data-i18n-attr="aria-label:nav.games">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9v6M4 12h6M15.5 11h.01M18 13.5h.01" /><rect x="1.75" y="6.5" width="20.5" height="11" rx="5.5" /></svg>
       </button>
-      <button id="openSettings" class="icon-btn" aria-label="Impostazioni">
+      <button id="openSettings" class="icon-btn" data-i18n-attr="aria-label:nav.settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>
       </button>
     </span>
   </header>
 
   <main>
-    <nav class="sensors" aria-label="Sensori">
-      <button id="connectTrainer" class="sensor"><i></i><span class="s-name">Rullo</span><span id="trainerStatus" class="s-state">collega</span></button>
+    <nav class="sensors" data-i18n-attr="aria-label:home.sensors">
+      <button id="connectTrainer" class="sensor"><i></i><span class="s-name" data-i18n="home.trainer"></span><span id="trainerStatus" class="s-state" data-i18n="home.status.connect"></span></button>
       <button id="connectClick" class="sensor"><i></i><span class="s-name">Click</span><span id="clickStatus" class="s-state">—</span></button>
-      <button id="connectHr" class="sensor"><i></i><span class="s-name">Cardio</span><span id="hrStatus" class="s-state">—</span></button>
+      <button id="connectHr" class="sensor"><i></i><span class="s-name" data-i18n="home.hr"></span><span id="hrStatus" class="s-state">—</span></button>
     </nav>
-    <p id="unsupported" class="warn" hidden>Questo browser non parla Bluetooth. Su PC e Mac usa <strong>Chrome</strong> o <strong>Edge</strong>; su Android Chrome o l'app; su iPhone l'app <strong>Bluefy</strong>.</p>
+    <p id="unsupported" class="warn" hidden data-i18n-html="home.unsupported"></p>
 
     <!-- stato vuoto: benvenuto (utente nuovo) o ultimo allenamento (utente che torna) -->
     <section id="welcome" class="card welcome" hidden></section>
     <section id="garminBanner" class="card banner" hidden></section>
 
-    <section class="card readout" aria-label="Dati in tempo reale">
+    <section class="card readout" data-i18n-attr="aria-label:home.live">
       <div class="power">
-        <span class="label">Potenza</span>
+        <span class="label" data-i18n="home.power"></span>
         <span id="zone" class="zone">—</span>
         <span class="power-value"><span id="power">0</span><small>W</small></span>
         <div class="zonebar" aria-hidden="true"><i id="zoneFill"></i></div>
       </div>
       <dl class="metrics">
-        <div><dt>Cadenza</dt><dd><span id="cadence">0</span><small>rpm</small></dd></div>
-        <div><dt>Velocità</dt><dd><span id="speed">0.0</span><small>km/h</small></dd></div>
-        <div><dt>Battito <span id="hrZone" class="hr-zone"></span></dt><dd><span id="hr">--</span><small>bpm</small></dd></div>
+        <div><dt data-i18n="home.cadence"></dt><dd><span id="cadence">0</span><small>rpm</small></dd></div>
+        <div><dt data-i18n="home.speed"></dt><dd><span id="speed">0.0</span><small>km/h</small></dd></div>
+        <div><dt><span data-i18n="home.heartRate"></span> <span id="hrZone" class="hr-zone"></span></dt><dd><span id="hr">--</span><small>bpm</small></dd></div>
       </dl>
     </section>
 
     <section id="routeCard" class="card workout" hidden aria-live="polite">
       <div class="wk-head"><span id="rtName" class="wk-name"></span><span id="rtKm" class="wk-total"></span></div>
       <div class="wk-main">
-        <div><span class="wk-label">Pendenza</span><span class="wk-target"><b id="rtGrade">0.0</b> %</span></div>
+        <div><span class="wk-label" data-i18n="home.grade"></span><span class="wk-target"><b id="rtGrade">0.0</b> %</span></div>
         <canvas id="rtMap" class="rt-map"></canvas>
       </div>
       <canvas id="rtProfile" class="wk-profile"></canvas>
-      <div class="wk-actions"><span class="fine" id="rtInfo"></span><button id="rtStop" class="ghost">Termina percorso</button></div>
+      <div class="wk-actions"><span class="fine" id="rtInfo"></span><button id="rtStop" class="ghost" data-i18n="route.stop"></button></div>
     </section>
     <section id="workoutCard" class="card workout" hidden aria-live="polite">
       <div class="wk-head"><span id="wkName" class="wk-name"></span><span id="wkTotal" class="wk-total"></span></div>
       <div class="wk-main">
         <div><span class="wk-label" id="wkStep"></span><span class="wk-target"><b id="wkTarget">0</b> W</span></div>
-        <div class="wk-left"><span class="wk-label">Mancano</span><b id="wkLeft">0:00</b></div>
+        <div class="wk-left"><span class="wk-label" data-i18n="workout.left"></span><b id="wkLeft">0:00</b></div>
       </div>
       <canvas id="wkProfile" class="wk-profile"></canvas>
       <p class="fine" id="wkNext"></p>
-      <div class="wk-actions"><span class="fine" id="wkBias"></span><button id="wkSkip" class="ghost">Salta tratto</button><button id="wkStop" class="ghost">Termina</button></div>
+      <div class="wk-actions"><span class="fine" id="wkBias"></span><button id="wkSkip" class="ghost" data-i18n="workout.skip"></button><button id="wkStop" class="ghost" data-i18n="workout.end"></button></div>
     </section>
-    <div class="modes" role="radiogroup" aria-label="Modalità">
-      <label><input type="radio" name="mode" value="gears" checked><span>Cambio</span></label>
+    <div class="modes" role="radiogroup" data-i18n-attr="aria-label:home.modes">
+      <label><input type="radio" name="mode" value="gears" checked><span data-i18n="mode.gears"></span></label>
       <label><input type="radio" name="mode" value="erg"><span>ERG</span></label>
-      <label><input type="radio" name="mode" value="sim"><span>Pendenza</span></label>
-      <label><input type="radio" name="mode" value="resistance"><span>Resist.</span></label>
+      <label><input type="radio" name="mode" value="sim"><span data-i18n="mode.sim"></span></label>
+      <label><input type="radio" name="mode" value="resistance"><span data-i18n="mode.resistance"></span></label>
     </div>
 
     <section class="card control">
       <div class="dial">
-        <span id="controlUnit" class="label">rapporto</span>
+        <span id="controlUnit" class="label"></span>
         <span id="controlValue" class="dial-value">12</span>
         <div id="cassette" class="cassette only-gears" aria-hidden="true"></div>
-        <span class="dial-target">al rullo <b id="target">—</b></span>
+        <span class="dial-target"><span data-i18n="home.toTrainer"></span> <b id="target">—</b></span>
       </div>
-      <div class="presets only-gears only-sim" role="group" aria-label="Pendenza">
-        <span class="label">Pendenza <output id="gradeVal">0.0 %</output></span>
+      <div class="presets only-gears only-sim" role="group" data-i18n-attr="aria-label:home.grade">
+        <span class="label"><span data-i18n="home.grade"></span> <output id="gradeVal">0.0 %</output></span>
         <div class="chips">
-          <button data-preset="grade" data-v="0">Piano<small>0%</small></button>
-          <button data-preset="grade" data-v="2">Falsopiano<small>2%</small></button>
-          <button data-preset="grade" data-v="4">Salita<small>4%</small></button>
-          <button data-preset="grade" data-v="6">Muro<small>6%</small></button>
+          <button data-preset="grade" data-v="0"><span data-i18n="preset.grade.flat"></span><small>0%</small></button>
+          <button data-preset="grade" data-v="2"><span data-i18n="preset.grade.rolling"></span><small>2%</small></button>
+          <button data-preset="grade" data-v="4"><span data-i18n="preset.grade.climb"></span><small>4%</small></button>
+          <button data-preset="grade" data-v="6"><span data-i18n="preset.grade.wall"></span><small>6%</small></button>
         </div>
       </div>
-      <div class="presets only-erg" role="group" aria-label="Potenza">
-        <span class="label">Potenza <output id="ergVal">150 W</output></span>
+      <div class="presets only-erg" role="group" data-i18n-attr="aria-label:home.power">
+        <span class="label"><span data-i18n="home.power"></span> <output id="ergVal">150 W</output></span>
         <div class="chips">
-          <button data-preset="erg" data-v="100">Facile<small>100 W</small></button>
-          <button data-preset="erg" data-v="150">Medio<small>150 W</small></button>
-          <button data-preset="erg" data-v="200">Ritmo<small>200 W</small></button>
-          <button data-preset="erg" data-v="260">Forte<small>260 W</small></button>
+          <button data-preset="erg" data-v="100"><span data-i18n="preset.erg.easy"></span><small>100 W</small></button>
+          <button data-preset="erg" data-v="150"><span data-i18n="preset.erg.medium"></span><small>150 W</small></button>
+          <button data-preset="erg" data-v="200"><span data-i18n="preset.erg.tempo"></span><small>200 W</small></button>
+          <button data-preset="erg" data-v="260"><span data-i18n="preset.erg.hard"></span><small>260 W</small></button>
         </div>
       </div>
-      <div class="presets only-resistance" role="group" aria-label="Resistenza">
-        <span class="label">Resistenza <output id="resVal">30 %</output></span>
+      <div class="presets only-resistance" role="group" data-i18n-attr="aria-label:home.resistance">
+        <span class="label"><span data-i18n="home.resistance"></span> <output id="resVal">30 %</output></span>
         <div class="chips">
-          <button data-preset="resistance" data-v="15">Leggera<small>15%</small></button>
-          <button data-preset="resistance" data-v="30">Media<small>30%</small></button>
-          <button data-preset="resistance" data-v="50">Dura<small>50%</small></button>
-          <button data-preset="resistance" data-v="75">Massima<small>75%</small></button>
+          <button data-preset="resistance" data-v="15"><span data-i18n="preset.res.light"></span><small>15%</small></button>
+          <button data-preset="resistance" data-v="30"><span data-i18n="preset.res.medium"></span><small>30%</small></button>
+          <button data-preset="resistance" data-v="50"><span data-i18n="preset.res.hard"></span><small>50%</small></button>
+          <button data-preset="resistance" data-v="75"><span data-i18n="preset.res.max"></span><small>75%</small></button>
         </div>
       </div>
       <input id="grade" type="hidden" value="0"><input id="erg" type="hidden" value="150"><input id="resistance" type="hidden" value="30">
       <div class="only-gears autoshift">
-        <label class="switch"><input type="checkbox" id="autoShift"><span>Cambio automatico: tiene la cadenza</span></label>
+        <label class="switch"><input type="checkbox" id="autoShift"><span data-i18n="home.autoShift"></span></label>
         <div class="chips" id="cadChips" hidden><button data-c="80">80 rpm</button><button data-c="85">85</button><button data-c="90">90</button><button data-c="95">95</button></div>
       </div>
-      <p class="note only-gears">Marcia <b id="gearNum">12</b>/24 · rapporto <b id="gearRatio">-</b> · usa − e + qui sotto o il Click</p>
+      <p class="note only-gears" data-i18n-html="home.gearNote"></p>
     </section>
 
-    <section class="card session" aria-label="Sessione">
-      <div><dt class="label">Tempo</dt><dd id="time">0:00</dd></div>
+    <section class="card session" data-i18n-attr="aria-label:home.session">
+      <div><dt class="label" data-i18n="home.time"></dt><dd id="time">0:00</dd></div>
       <div><dt class="label">km</dt><dd id="distance">0.00</dd></div>
-      <div><dt class="label">W medi</dt><dd id="avgPower">0</dd></div>
+      <div><dt class="label" data-i18n="home.avgPower"></dt><dd id="avgPower">0</dd></div>
       <div><dt class="label">kJ</dt><dd id="kj">0</dd></div>
-      <button id="finishRide" class="finish-link" disabled>Termina allenamento</button>
+      <button id="finishRide" class="finish-link" disabled data-i18n="home.finish"></button>
     </section>
-    <p class="fine desk-only">Tastiera: <kbd>←</kbd> <kbd>→</kbd> o <kbd>−</kbd> <kbd>+</kbd> cambiano marcia · <kbd>Spazio</kbd> avvia / pausa · <kbd>G</kbd> giochi · nei giochi tieni premute le frecce per sterzare.</p>
+    <p class="fine desk-only" data-i18n-html="home.keyboard"></p>
   </main>
 
   <!-- barra nella zona del pollice -->
-  <nav class="thumbbar" aria-label="Comandi">
-    <button id="down" class="key" aria-label="Diminuisci"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg></button>
-    <button id="startStop" class="cta">Avvia</button>
-    <button id="up" class="key" aria-label="Aumenta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg></button>
+  <nav class="thumbbar" data-i18n-attr="aria-label:home.controls">
+    <button id="down" class="key" data-i18n-attr="aria-label:ui.decrease"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg></button>
+    <button id="startStop" class="cta" data-i18n="home.start"></button>
+    <button id="up" class="key" data-i18n-attr="aria-label:ui.increase"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg></button>
   </nav>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -145,10 +145,10 @@
   <!-- Fine allenamento: il momento da ricordare -->
   <div id="finishSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
-      <button class="close" data-close="finishSheet" aria-label="Chiudi">×</button>
+      <button class="close" data-close="finishSheet" data-i18n-attr="aria-label:ui.close">×</button>
       <div class="celebrate">
         <svg class="check" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" /><path d="M20 33l8 8 16-17" /></svg>
-        <h2 id="finishTitle">Allenamento completato</h2>
+        <h2 id="finishTitle" data-i18n="finish.title"></h2>
         <p id="finishPraise" class="praise"></p>
       </div>
       <dl id="finishSummary" class="summary"></dl>
@@ -156,144 +156,152 @@
       <p id="finishCompare" class="compare"></p>
       <p id="stravaMsg" class="msg"></p>
       <div class="sheet-actions">
-        <button id="uploadStrava" class="strava-btn" disabled hidden>Carica su Strava</button>
-        <button id="garminUp" class="garmin-btn" disabled>Salva e apri Garmin Connect</button>
-        <button id="saveFit" class="ghost" disabled>Salva file .FIT</button>
-        <button id="shareFit" class="ghost" disabled hidden>Condividi .FIT</button>
-        <button id="openFit" class="ghost" disabled hidden>Apri .FIT con…</button>
-        <button id="shareImg" class="ghost">Condividi immagine</button>
-        <button id="reset" class="danger">Azzera sessione</button>
+        <button id="uploadStrava" class="strava-btn" disabled hidden data-i18n="finish.uploadStrava"></button>
+        <button id="garminUp" class="garmin-btn" disabled data-i18n="finish.garmin"></button>
+        <button id="saveFit" class="ghost" disabled data-i18n="finish.saveFit"></button>
+        <button id="shareFit" class="ghost" disabled hidden data-i18n="finish.shareFit"></button>
+        <button id="openFit" class="ghost" disabled hidden data-i18n="finish.openFit"></button>
+        <button id="shareImg" class="ghost" data-i18n="finish.shareImage"></button>
+        <button id="reset" class="danger" data-i18n="finish.reset"></button>
       </div>
       <p id="finishNudge" class="fine center"></p>
-      <button id="finishHistory" class="ghost">Storico e record</button>
+      <button id="finishHistory" class="ghost" data-i18n="history.open"></button>
     </div>
   </div>
 
-  <!-- Impostazioni -->
+  <!-- Allenamenti e percorsi -->
   <div id="workoutSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="workoutTitle">
-      <header class="sheet-head"><h2 id="workoutTitle">Allenamenti e percorsi</h2><button class="close" data-close="workoutSheet" aria-label="Chiudi">×</button></header>
+      <header class="sheet-head"><h2 id="workoutTitle" data-i18n="workouts.title"></h2><button class="close" data-close="workoutSheet" data-i18n-attr="aria-label:ui.close">×</button></header>
       <section class="rt-pick">
-        <h3>Percorsi</h3>
-        <p class="fine">Carica un file GPX (esportalo da Strava, Komoot, Garmin Connect…): la pendenza segue il tracciato e la traccia finisce nel file .FIT, con la mappa su Strava.</p>
-        <label class="ghost file-btn">Carica un percorso GPX<input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden></label>
+        <h3 data-i18n="routes.title"></h3>
+        <p class="fine" data-i18n="routes.intro"></p>
+        <label class="ghost file-btn"><span data-i18n="routes.load"></span><input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden></label>
         <div id="routeSamples" class="rt-samples"></div>
-        <p class="fine">Realismo della pendenza (100% = pendenza vera):</p>
+        <p class="fine" data-i18n="routes.realism"></p>
         <div class="chips rt-real" id="routeReal"><button data-r="0.5">50%</button><button data-r="0.75">75%</button><button data-r="1">100%</button></div>
       </section>
-      <h3 class="wk-h3">Allenamenti</h3>
-      <p class="fine wk-intro">Il rullo imposta da solo i watt di ogni tratto in base alla tua FTP (<b id="wkFtp">200</b> W, la cambi in Impostazioni o con il test). Durante l'allenamento + e − alzano o abbassano l'intensità del 5%.</p>
+      <h3 class="wk-h3" data-i18n="workouts.heading"></h3>
+      <p class="fine wk-intro" data-i18n-html="workouts.intro"></p>
       <div id="workoutList" class="wk-list"></div>
     </div>
   </div>
 
   <div id="editorSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
-      <header class="sheet-head"><h2 id="editorTitle">Crea allenamento</h2><button class="close" data-close="editorSheet" aria-label="Chiudi">×</button></header>
+      <header class="sheet-head"><h2 id="editorTitle" data-i18n="editor.create"></h2><button class="close" data-close="editorSheet" data-i18n-attr="aria-label:ui.close">×</button></header>
       <div id="editorBody" class="ed-body"></div>
     </div>
   </div>
 
   <div id="historySheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
-      <header class="sheet-head"><h2 id="historyTitle">Storico</h2><button class="close" data-close="historySheet" aria-label="Chiudi">×</button></header>
+      <header class="sheet-head"><h2 id="historyTitle" data-i18n="history.title"></h2><button class="close" data-close="historySheet" data-i18n-attr="aria-label:ui.close">×</button></header>
       <div id="historyBody" class="hs-body"></div>
     </div>
   </div>
 
+  <!-- Impostazioni -->
   <div id="settingsSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <header class="sheet-head"><h2 id="settingsTitle">Impostazioni</h2><button class="close" data-close="settingsSheet" aria-label="Chiudi">×</button></header>
+      <header class="sheet-head"><h2 id="settingsTitle" data-i18n="settings.title"></h2><button class="close" data-close="settingsSheet" data-i18n-attr="aria-label:ui.close">×</button></header>
 
       <section class="group">
-        <h3>Tu</h3>
+        <h3 data-i18n="settings.you"></h3>
         <div class="fields">
-          <label>Peso con la bici <span class="unit-input"><input id="mass" type="number" min="30" max="200" step="1" value="80" inputmode="numeric"><i>kg</i></span></label>
+          <label><span data-i18n="settings.weight"></span> <span class="unit-input"><input id="mass" type="number" min="30" max="200" step="1" value="80" inputmode="numeric"><i>kg</i></span></label>
           <label>FTP <span class="unit-input"><input id="ftp" type="number" min="80" max="500" step="5" value="200" inputmode="numeric"><i>W</i></span></label>
-          <label>Battito massimo <span class="unit-input"><input id="hrMax" data-start="185" type="number" min="120" max="220" step="1" placeholder="auto" inputmode="numeric"><i>bpm</i></span></label>
+          <label><span data-i18n="settings.hrMax"></span> <span class="unit-input"><input id="hrMax" data-start="185" type="number" min="120" max="220" step="1" data-i18n-attr="placeholder:settings.auto" inputmode="numeric"><i>bpm</i></span></label>
         </div>
-        <p class="fine">L'FTP colora le zone di potenza; il peso conta nel cambio virtuale.</p>
-        <p class="fine">Obiettivo settimanale:</p>
-        <div class="chips goal-chips" id="goalChips"><button data-g="0">Nessuno</button><button data-g="90">90 min</button><button data-g="150">150 min</button><button data-g="240">4 ore</button></div>
-        <label class="switch"><input type="checkbox" id="autoPause" checked><span>Avvio e pausa automatici quando pedali o ti fermi</span></label>
-        <label class="switch"><input type="checkbox" id="smooth3"><span>Potenza media su 3 secondi (numero più stabile)</span></label>
-        <label class="switch"><input type="checkbox" id="coachOn"><span>Coach vocale: annuncia ripetute, salite e traguardi</span></label>
-        <button id="fullscreen" class="ghost">Schermo intero</button>
+        <p class="fine" data-i18n="settings.ftpHint"></p>
+        <p class="fine" data-i18n="settings.goal"></p>
+        <div class="chips goal-chips" id="goalChips"><button data-g="0" data-i18n="settings.goal.none"></button><button data-g="90" data-i18n="settings.goal.min90"></button><button data-g="150" data-i18n="settings.goal.min150"></button><button data-g="240" data-i18n="settings.goal.hours4"></button></div>
+        <label class="switch"><input type="checkbox" id="autoPause" checked><span data-i18n="settings.autoPause"></span></label>
+        <label class="switch"><input type="checkbox" id="smooth3"><span data-i18n="settings.smooth3"></span></label>
+        <label class="switch"><input type="checkbox" id="coachOn"><span data-i18n="settings.coach"></span></label>
+        <button id="fullscreen" class="ghost" data-i18n="settings.fullscreen"></button>
       </section>
 
       <section class="group">
-        <h3>Misuratore di potenza <span id="pmStatus" class="pill">non collegato</span></h3>
-        <button id="connectPm" class="ghost">Collega misuratore</button>
-        <label class="switch"><input type="checkbox" id="usePm" checked><span>Usa i suoi watt e la sua cadenza al posto del rullo</span></label>
-        <p class="fine">Pedali Garmin Rally o Vector, Favero Assioma, guarniture con potenza Bluetooth. Il rullo continua a regolare la resistenza.</p>
+        <h3><span data-i18n="settings.language"></span></h3>
+        <label class="lang-pick"><span class="fine" data-i18n="settings.languageHint"></span>
+          <select id="langSelect" data-i18n-attr="aria-label:settings.language"></select></label>
       </section>
 
       <section class="group">
-        <h3>Garmin <span id="garminStatus" class="pill">spento</span></h3>
+        <h3><span data-i18n="pm.title"></span> <span id="pmStatus" class="pill" data-i18n="status.notConnected"></span></h3>
+        <button id="connectPm" class="ghost" data-i18n="pm.connect"></button>
+        <label class="switch"><input type="checkbox" id="usePm" checked><span data-i18n="pm.use"></span></label>
+        <p class="fine" data-i18n="pm.hint"></p>
+      </section>
+
+      <section class="group">
+        <h3>Garmin <span id="garminStatus" class="pill" data-i18n="status.off"></span></h3>
         <div id="garminNative" hidden>
-          <label class="switch"><input type="checkbox" id="garminOn"><span>Trasmetti potenza, cadenza e velocità al Garmin</span></label>
-          <p class="fine">Mentre è attivo, il Bluetooth del telefono si chiama "Spindro"; spegnendolo torna il nome di prima.</p>
+          <label class="switch"><input type="checkbox" id="garminOn"><span data-i18n="garmin.broadcast"></span></label>
+          <p class="fine" data-i18n="garmin.nameHint"></p>
           <ol class="fine steps">
-            <li>Attiva l'opzione qui sopra.</li>
-            <li>Sul Garmin: Sensori e accessori → Aggiungi nuovo → Potenza, poi Velocità/Cadenza. Scegli "Spindro".</li>
-            <li>Avvia sul Garmin un'attività Bici indoor.</li>
+            <li data-i18n="garmin.step1"></li>
+            <li data-i18n="garmin.step2"></li>
+            <li data-i18n="garmin.step3"></li>
           </ol>
           <div id="garminConflict" class="hint-box" hidden></div>
-          <p id="garminHint" class="hint-box" hidden><b>Il Garmin resta su "Connecting"?</b> Se l'orologio è già collegato a questo telefono con Garmin Connect, spesso non apre una seconda connessione. Sul Garmin disattiva per un momento il collegamento al telefono (Impostazioni → Connettività → Telefono), aggiungi il sensore e poi riattivalo: l'attività si sincronizzerà a fine allenamento.</p>
+          <p id="garminHint" class="hint-box" hidden data-i18n-html="garmin.stuck"></p>
         </div>
-        <p id="garminWeb" class="fine">Il telefono diventa un sensore per il tuo Garmin solo nell'app Android: <a href="app/spindro.apk" download>scarica l'APK</a>.</p>
+        <p id="garminWeb" class="fine" data-i18n-html="garmin.webOnly"></p>
       </section>
 
       <section class="group">
-        <h3>Musica</h3>
+        <h3 data-i18n="music.title"></h3>
         <div id="musicNative" hidden>
-          <label class="switch"><input type="checkbox" id="musicOn"><span>Comanda la musica dal Click</span></label>
-          <p class="fine">Pressione lunga (quasi 1 secondo) su <b>+</b> = brano successivo, su <b>−</b> = play / pausa. La pressione breve resta il cambio. Funziona con Spotify, YouTube Music, podcast e qualsiasi app che suona in sottofondo.</p>
+          <label class="switch"><input type="checkbox" id="musicOn"><span data-i18n="music.control"></span></label>
+          <p class="fine" data-i18n-html="music.hint"></p>
         </div>
-        <p id="musicWeb" class="fine">Disponibile nell'app Android: dal browser non si possono comandare le altre app.</p>
+        <p id="musicWeb" class="fine" data-i18n="music.webOnly"></p>
       </section>
       <section class="group">
-        <h3>Strava <span id="stravaStatus" class="pill">non collegato</span></h3>
+        <h3>Strava <span id="stravaStatus" class="pill" data-i18n="status.notConnected"></span></h3>
         <div id="stravaBox" class="strava">
           <div id="stravaPublic" hidden>
-            <p class="fine">Con Termina, la pedalata arriva su Strava da sola.</p>
-            <button id="stravaPublicConnect" class="strava-btn">Connetti con Strava</button>
+            <p class="fine" data-i18n="strava.autoUpload"></p>
+            <button id="stravaPublicConnect" class="strava-btn" data-i18n="strava.connectWith"></button>
           </div>
           <div id="stravaSetup">
             <ol class="fine steps">
-              <li>Crea un'applicazione su <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>, sito <code id="stravaSite"></code>.</li>
-              <li>Authorization Callback Domain: <code id="stravaDomain"></code>.</li>
-              <li>Incolla qui Client ID e Client Secret. Restano su questo telefono.</li>
+              <li data-i18n-html="strava.step1"></li>
+              <li data-i18n-html="strava.step2"></li>
+              <li data-i18n="strava.step3"></li>
             </ol>
             <div class="fields">
               <label>Client ID <input id="stravaId" inputmode="numeric" autocomplete="off"></label>
               <label>Client Secret <input id="stravaSecret" type="password" autocomplete="off"></label>
             </div>
-            <button id="stravaConnect" class="strava-btn">Collega Strava</button>
+            <button id="stravaConnect" class="strava-btn" data-i18n="strava.connect"></button>
           </div>
           <div id="stravaLinked" hidden>
-            <label class="switch"><input type="checkbox" id="stravaAuto"><span>Carica in automatico quando termino</span></label>
-            <button id="stravaDisconnect" class="ghost">Scollega</button>
+            <label class="switch"><input type="checkbox" id="stravaAuto"><span data-i18n="strava.auto"></span></label>
+            <button id="stravaDisconnect" class="ghost" data-i18n="ui.disconnect"></button>
           </div>
           <p id="stravaNote" class="msg"></p>
-          <p class="powered">Compatibile con Strava</p>
+          <p class="powered" data-i18n="strava.powered"></p>
         </div>
       </section>
 
       <section class="group">
-        <h3>Diagnostica</h3>
-        <button id="openHistory" class="ghost">Storico e record</button>
-        <div class="row2 backup-row"><button id="backupOut" class="ghost">Esporta i miei dati</button><label class="ghost file-btn">Importa dati<input id="backupIn" type="file" accept=".json,application/json" hidden></label></div>
-        <p class="fine">Per passare dal telefono al PC (o viceversa): esporta qui, apri il file sull'altro dispositivo con "Importa dati". Storico, record, FTP e impostazioni; l'accesso a Strava non viene copiato.</p>
-        <button id="reportIssue" class="ghost">Segnala un problema</button>
-        <p class="fine">Apre una segnalazione su GitHub già compilata con versione dell'app e tipo di dispositivo. Nessun dato personale.</p>
-        <button id="openDebug" class="ghost dev-only">Sensori e log</button>
-        <p class="fine dev-only">Audio: se non senti nulla, prova l'altro metodo e scegli quello che funziona.</p>
-        <div class="row2 dev-only"><button id="audioTestA" class="ghost">Prova suono A</button><button id="audioTestB" class="ghost">Prova suono B</button></div>
-        <div class="chips audio-mode dev-only" id="audioMode"><button data-m="auto">Automatico</button><button data-m="web">A · Web Audio</button><button data-m="element">B · Lettore</button></div>
+        <h3 data-i18n="settings.data"></h3>
+        <button id="openHistory" class="ghost" data-i18n="history.open"></button>
+        <div class="row2 backup-row"><button id="backupOut" class="ghost" data-i18n="backup.export"></button><label class="ghost file-btn"><span data-i18n="backup.import"></span><input id="backupIn" type="file" accept=".json,application/json" hidden></label></div>
+        <p class="fine" data-i18n="backup.hint"></p>
+        <button id="reportIssue" class="ghost" data-i18n="report.button"></button>
+        <p class="fine" data-i18n="report.hint"></p>
+        <!-- Modalità sviluppatore: testi tecnici in inglese, non tradotti -->
+        <button id="openDebug" class="ghost dev-only">Sensors and log</button>
+        <p class="fine dev-only">Audio: if you hear nothing, try the other method and keep the one that works.</p>
+        <div class="row2 dev-only"><button id="audioTestA" class="ghost">Test sound A</button><button id="audioTestB" class="ghost">Test sound B</button></div>
+        <div class="chips audio-mode dev-only" id="audioMode"><button data-m="auto">Auto</button><button data-m="web">A · Web Audio</button><button data-m="element">B · Player</button></div>
         <p id="audioResult" class="fine dev-only"></p>
-        <details class="log dev-only"><summary>Registro eventi</summary><pre id="log"></pre></details>
-        <label class="switch dev-only"><input type="checkbox" id="devModeOff" checked><span>Modalità sviluppatore</span></label>
+        <details class="log dev-only"><summary>Event log</summary><pre id="log"></pre></details>
+        <label class="switch dev-only"><input type="checkbox" id="devModeOff" checked><span>Developer mode</span></label>
         <p id="appVersion" class="fine" role="button" tabindex="0"></p>
       </section>
     </div>
@@ -302,52 +310,53 @@
   <div id="gamePanel" class="game-panel" hidden>
     <canvas id="gameCanvas"></canvas>
     <div class="game-bar">
-      <strong id="gameTitle">Giochi</strong>
+      <strong id="gameTitle" data-i18n="games.title"></strong>
       <span id="gameHelp" class="game-help"></span>
-      <button id="muteGame" class="small" aria-label="Audio">Audio sì</button>
-      <button id="closeGame" class="small">Esci</button>
+      <button id="muteGame" class="small" data-i18n-attr="aria-label:games.audio"></button>
+      <button id="closeGame" class="small" data-i18n="games.exit"></button>
     </div>
     <div id="gameMenu" class="game-menu">
-      <h2>Scegli il gioco</h2>
+      <h2 data-i18n="games.choose"></h2>
       <div id="progressPanel" class="prog"></div>
       <button class="game-card video-card" data-game="video">
         <span class="game-emoji" aria-hidden="true">▶</span>
-        <span><b>Pedala su un video</b><small>Un percorso da YouTube o un video tuo che scorre alla tua velocità: ti fermi e si ferma. + / − restano il cambio.</small></span>
+        <span><b data-i18n="games.video.name"></b><small data-i18n="games.video.desc"></small></span>
       </button>
       <button class="game-card" data-game="horde">
         <span class="game-emoji" aria-hidden="true">01</span>
-        <span><b>L'Orda</b><small>Strada larga, orde sempre più grandi: tieni premuto + / − per sterzare, evolvi l'arma, prendi alleati dai portali. Più watt = più colpi.</small></span>
+        <span><b data-i18n="games.horde.name"></b><small data-i18n="games.horde.desc"></small></span>
       </button>
       <button class="game-card" data-game="planata">
         <span class="game-emoji" aria-hidden="true">02</span>
-        <span><b>Planata</b><small>Novità. Un aereo a pedali: i watt sono la quota. Anelli, creste da scavalcare e ponti da passare sotto: un allenamento a intervalli che non sembra tale.</small></span>
+        <span><b data-i18n="games.planata.name"></b><small data-i18n="games.planata.desc"></small></span>
       </button>
       <button class="game-card" data-game="gruppetto">
         <span class="game-emoji" aria-hidden="true">03</span>
-        <span><b>Gruppetto</b><small>Novità. Raccogli i ciclisti rimasti indietro: si accodano alla tua scia. Non tamponare la tua fila. Più è lungo il gruppo, più sale la pendenza.</small></span>
+        <span><b data-i18n="games.gruppetto.name"></b><small data-i18n="games.gruppetto.desc"></small></span>
       </button>
       <button class="game-card" data-game="mattoni">
         <span class="game-emoji" aria-hidden="true">04</span>
-        <span><b>Mattoni</b><small>Novità. Rimbalzi in 3D: la bici è la racchetta, la cadenza è la velocità della palla, lo sprint la rende infuocata.</small></span>
+        <span><b data-i18n="games.mattoni.name"></b><small data-i18n="games.mattoni.desc"></small></span>
       </button>
       <button class="game-card" data-game="racer">
         <span class="game-emoji" aria-hidden="true">05</span>
-        <span><b>Turbo Pedali 3D</b><small>Tappe in linea con 8 corridori: scia, monete, oggetti con lo sprint, traguardo volante e GPM. Le salite arrivano sul rullo.</small></span>
+        <span><b data-i18n="games.racer.name"></b><small data-i18n="games.racer.desc"></small></span>
       </button>
       <button class="game-card" data-game="shooter">
         <span class="game-emoji" aria-hidden="true">06</span>
-        <span><b>Pedal Strike 3D</b><small>Sparatutto a scorrimento: 3 eroi, 3 missioni, 5 armi, prigionieri da liberare, boss. Lo sprint scatena l'OVERDRIVE.</small></span>
+        <span><b data-i18n="games.shooter.name"></b><small data-i18n="games.shooter.desc"></small></span>
       </button>
-      <label class="switch"><input type="checkbox" id="gameGlow"><span>Effetti luminosi (si spengono da soli se il telefono rallenta)</span></label>
-      <p class="hint">Con il rullo connesso la registrazione parte da sola. Durante il gioco la marcia resta quella scelta prima.</p>
+      <label class="switch"><input type="checkbox" id="gameGlow"><span data-i18n="games.glow"></span></label>
+      <p class="hint" data-i18n="games.hint"></p>
     </div>
   </div>
 
+  <!-- Pannello sviluppatore: testi in inglese, non tradotti -->
   <div id="debugPanel" class="debug-panel dev-only" hidden>
     <div class="debug-head">
-      <h2>Debug sensori</h2>
-      <button id="copyAll" class="primary small">Copia tutto</button>
-      <button id="closeDebug" class="small">Chiudi</button>
+      <h2>Sensor debug</h2>
+      <button id="copyAll" class="primary small">Copy all</button>
+      <button id="closeDebug" class="small">Close</button>
     </div>
     <div id="debugCards"></div>
   </div>

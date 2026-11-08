@@ -503,3 +503,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* Modalità sviluppatore: gli elementi di debug compaiono solo con body.dev */
 body:not(.dev) .dev-only { display: none !important; }
 #appVersion { cursor: default; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+
+/* selettore lingua nelle Impostazioni */
+.lang-pick { display: grid; gap: 8px; }
+.lang-pick select { font: 700 var(--fs-body)/1 var(--font-ui); background: var(--ink); color: var(--t1); border: 1px solid var(--t4); border-radius: 12px; padding: 12px; width: 100%; min-height: 44px; }

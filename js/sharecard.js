@@ -1,4 +1,5 @@
 // Immagine riassuntiva dell'uscita (1080×1350, formato da social) da condividere o salvare.
+import { t } from './i18n.js';
 
 export async function shareCard({ title, date, stats, series, ftp, route }) {
   const W = 1080; const H = 1350;
@@ -35,13 +36,13 @@ export async function shareCard({ title, date, stats, series, ftp, route }) {
     const fill = g.createLinearGradient(0, gy, 0, gy + gh); fill.addColorStop(0, 'rgba(217,255,61,.5)'); fill.addColorStop(1, 'rgba(217,255,61,0)');
     g.beginPath(); g.moveTo(gx, gy + gh); series.forEach((v, i) => g.lineTo(X(i), Y(v))); g.lineTo(gx + gw, gy + gh); g.closePath(); g.fillStyle = fill; g.fill();
     g.beginPath(); series.forEach((v, i) => (i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)))); g.strokeStyle = '#d9ff3d'; g.lineWidth = 4; g.stroke();
-    g.font = ui(26); g.fillStyle = 'rgba(242,240,230,.5)'; g.fillText(route ? `Percorso: ${route}` : 'Potenza', gx, gy - 20);
+    g.font = ui(26); g.fillStyle = 'rgba(242,240,230,.5)'; g.fillText(route ? t('share.route', { route }) : t('home.power'), gx, gy - 20);
   }
   g.font = ui(26); g.fillStyle = 'rgba(242,240,230,.4)'; g.fillText('mta-world.com', 72, H - 50);
   const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
   const file = new File([blob], `spindro-${Date.now()}.png`, { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Il mio allenamento' }); return 'shared'; } catch (err) { if (err.name === 'AbortError') return 'aborted'; }
+    try { await navigator.share({ files: [file], title: t('share.imageTitle') }); return 'shared'; } catch (err) { if (err.name === 'AbortError') return 'aborted'; }
   }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);

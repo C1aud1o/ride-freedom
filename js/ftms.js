@@ -2,6 +2,7 @@
 // su Cycling Power / Cycling Speed & Cadence. Il Van Rysel D100 espone FTMS.
 
 import { SensorDebug } from './debug.js';
+import { t } from './i18n.js';
 
 const FTMS = 0x1826;
 const CPS = 0x1818;
@@ -31,7 +32,7 @@ const OP = {
   response: 0x80,
 };
 
-const RESULT = { 1: 'ok', 2: 'non supportato', 3: 'parametro non valido', 4: 'fallito', 5: 'controllo non concesso' };
+const RESULT = { 1: 'ok', 2: 'not supported', 3: 'invalid parameter', 4: 'fallito', 5: 'control not granted' };
 
 export class Trainer extends EventTarget {
   constructor() {
@@ -44,7 +45,7 @@ export class Trainer extends EventTarget {
     this.ranges = { power: [0, 600, 1], resistance: [0, 25.5, 0.1] };
     this.crank = null; // stato per calcolo cadenza da CPS/CSC
     this.wheel = null;
-    this.dbg = new SensorDebug('trainer', 'Rullo');
+    this.dbg = new SensorDebug('trainer', 'Trainer');
   }
 
   get connected() { return !!this.device?.gatt?.connected; }
@@ -55,19 +56,19 @@ export class Trainer extends EventTarget {
       filters: [{ services: [FTMS] }, { services: [CPS] }, { namePrefix: 'D100' }, { namePrefix: 'VAN RYSEL' }, { namePrefix: 'Van Rysel' }],
       optionalServices: [FTMS, CPS, CSC, HRS],
     });
-    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.emit('disconnected'); });
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnected'); this.emit('disconnected'); });
     await this.setup();
-    return this.device.name || 'Rullo';
+    return this.device.name || t('home.trainer');
   }
 
   async reconnect() {
-    if (!this.device) throw new Error('Nessun dispositivo');
+    if (!this.device) throw new Error('No device');
     await this.setup();
   }
 
   // server: opzionale, già connesso dalla scelta automatica del protocollo (js/trainers/index.js)
   async setup(server) {
-    this.dbg.setStatus('Connessione…');
+    this.dbg.setStatus('Connecting…');
     server ||= await this.device.gatt.connect();
     await this.dbg.describe(this.device, server);
     this.cp = null;
@@ -88,8 +89,8 @@ export class Trainer extends EventTarget {
         await this.command([OP.startResume]).catch(() => {});
       } catch (err) {
         this.cp = null;
-        this.emit('log', `Controllo resistenza non disponibile: ${err.message}`);
-        this.dbg.log(`Control point non disponibile: ${err.message}`);
+        this.emit('log', `Resistance control not available: ${err.message}`);
+        this.dbg.log(`Control point not available: ${err.message}`);
       }
       // Alcuni rulli (es. Van Rysel D100) non mettono la cadenza nei dati FTMS:
       // proviamo a leggerla dal servizio Cycling Power.
@@ -99,7 +100,7 @@ export class Trainer extends EventTarget {
       this.ftmsActive = false;
       await this.setupFallback(server);
     }
-    this.dbg.setStatus(ftms ? `Connesso (FTMS${this.cp ? ', controllabile' : ', sola lettura'})` : 'Connesso (senza FTMS)');
+    this.dbg.setStatus(ftms ? `Connected (FTMS${this.cp ? ', controllable' : ', read-only'})` : 'Connected (no FTMS)');
     this.dbg.extra = { features: this.features, ranges: this.ranges };
     this.emit('connected', { name: this.device.name, ftms: !!ftms, protocol: ftms ? 'FTMS' : 'CP/CSC', features: this.features });
   }
@@ -132,13 +133,13 @@ export class Trainer extends EventTarget {
       try {
         const f = await (await cps.getCharacteristic(0x2a65)).readValue();
         const feat = f.getUint32(0, true);
-        this.dbg.log(`CP Feature 0x${feat.toString(16)}: giri pedivella ${feat & 0x08 ? 'sì' : 'no'}, giri ruota ${feat & 0x04 ? 'sì' : 'no'}`);
+        this.dbg.log(`CP Feature 0x${feat.toString(16)}: crank revs ${feat & 0x08 ? 'yes' : 'no'}, wheel revs ${feat & 0x04 ? 'yes' : 'no'}`);
       } catch { /* opzionale */ }
       const c = await cps.getCharacteristic(CH.cpMeasurement);
       c.addEventListener('characteristicvaluechanged', (e) => { this.dbg.raw('rx', CH.cpMeasurement, e.target.value); this.onCyclingPower(e.target.value); });
       await c.startNotifications();
-      this.dbg.log('Notifiche Cycling Power attive');
-    } catch (err) { this.dbg.log(`Cycling Power non disponibile: ${err.message}`); }
+      this.dbg.log('Cycling Power notifications on');
+    } catch (err) { this.dbg.log(`Cycling Power not available: ${err.message}`); }
   }
 
   async setupFallback(server) {
@@ -186,7 +187,7 @@ export class Trainer extends EventTarget {
     if (o < v.byteLength) {
       const extra = [];
       for (let i = o; i + 1 < v.byteLength; i += 2) extra.push(v.getUint16(i, true));
-      this.dbg.setValues({ byteExtra: extra.join(' / '), cadenzaStimata: d.speed != null ? Math.round(d.speed * 7.37) : '-' });
+      this.dbg.setValues({ extraBytes: extra.join(' / '), estCadence: d.speed != null ? Math.round(d.speed * 7.37) : '-' });
     }
     this.dbg.setValues(d);
     this.emit('data', d);
@@ -211,7 +212,7 @@ export class Trainer extends EventTarget {
     if (this.ftmsActive) {
       // con FTMS attivo usiamo da qui solo la cadenza (potenza e velocità arrivano da FTMS)
       delete d.power; delete d.speed;
-      if (d.cadence != null) this.dbg.setValues({ cadenzaCP: Math.round(d.cadence) });
+      if (d.cadence != null) this.dbg.setValues({ cpCadence: Math.round(d.cadence) });
     }
     if (d.cadence != null) this.hasCadence = true;
     this.dbg.setValues(d);
@@ -257,15 +258,15 @@ export class Trainer extends EventTarget {
     if (op !== p.op) return;
     this.pending = null;
     clearTimeout(p.timer);
-    this.dbg.log(`Risposta comando 0x${op.toString(16)}: ${RESULT[result] || result}`);
+    this.dbg.log(`Command response 0x${op.toString(16)}: ${RESULT[result] || result}`);
     if (result === 1) p.resolve();
-    else p.reject(new Error(`Comando 0x${op.toString(16)}: ${RESULT[result] || result}`));
+    else p.reject(new Error(`Command 0x${op.toString(16)}: ${RESULT[result] || result}`));
   }
 
   // Le scritture GATT vanno serializzate: una alla volta, attendendo la risposta.
   command(bytes) {
     const run = () => new Promise((resolve, reject) => {
-      if (!this.cp) return reject(new Error('Rullo non controllabile'));
+      if (!this.cp) return reject(new Error('Trainer is not controllable'));
       const op = bytes[0];
       const timer = setTimeout(() => { this.pending = null; resolve(); }, 1500); // alcuni rulli non rispondono sempre
       this.pending = { op, resolve, reject, timer };

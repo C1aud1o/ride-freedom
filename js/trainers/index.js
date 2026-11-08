@@ -19,6 +19,7 @@ import { Trainer as FtmsTrainer } from '../ftms.js';
 import { FecTrainer, FEC_SERVICE } from './fec.js';
 import { WahooLegacyTrainer, WAHOO_CONTROL } from './wahoo.js';
 import { SensorDebug } from '../debug.js';
+import { t } from '../i18n.js';
 
 const FTMS = 0x1826;
 const CPS = 0x1818;
@@ -53,7 +54,7 @@ export class Trainer extends EventTarget {
     this.device = null;
     this.driver = null;
     this.protocol = null;
-    this.dbg = new SensorDebug('trainer', 'Rullo');
+    this.dbg = new SensorDebug('trainer', 'Trainer');
     this.drivers = {};
   }
 
@@ -69,13 +70,13 @@ export class Trainer extends EventTarget {
         { namePrefix: 'Tacx' }, { namePrefix: 'D100' }, { namePrefix: 'VAN RYSEL' }, { namePrefix: 'Van Rysel' }],
       optionalServices: [FTMS, CPS, CSC, HRS, FEC_SERVICE],
     });
-    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.emit('disconnected'); });
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnected'); this.emit('disconnected'); });
     await this.setup();
-    return this.device.name || 'Rullo';
+    return this.device.name || t('home.trainer');
   }
 
   async reconnect() {
-    if (!this.device) throw new Error('Nessun dispositivo');
+    if (!this.device) throw new Error('No device');
     await this.setup();
   }
 
@@ -106,11 +107,11 @@ export class Trainer extends EventTarget {
   }
 
   async setup() {
-    this.dbg.setStatus('Connessione…');
+    this.dbg.setStatus('Connecting…');
     const server = await this.device.gatt.connect();
     const found = await this.probe(server);
     this.protocol = chooseProtocol(found, { name: this.device.name || '', force: forcedProtocol() });
-    this.dbg.log(`Protocolli trovati: ${Object.entries(found).filter(([, v]) => v).map(([k]) => LABEL[k]).join(', ') || 'nessuno di controllo'} → uso ${LABEL[this.protocol]}`);
+    this.dbg.log(`Protocols found: ${Object.entries(found).filter(([, v]) => v).map(([k]) => LABEL[k]).join(', ') || 'none with control'} → using ${LABEL[this.protocol]}`);
     this.driver = this.makeDriver(this.protocol);
     this.driver.device = this.device;
     await this.driver.setup(server);
@@ -118,9 +119,9 @@ export class Trainer extends EventTarget {
 
   disconnect() { if (this.device?.gatt?.connected) this.device.gatt.disconnect(); }
 
-  setTargetPower(w) { return this.driver ? this.driver.setTargetPower(w) : Promise.reject(new Error('Rullo non collegato')); }
-  setResistancePercent(p) { return this.driver ? this.driver.setResistancePercent(p) : Promise.reject(new Error('Rullo non collegato')); }
-  setSimulation(o) { return this.driver ? this.driver.setSimulation(o) : Promise.reject(new Error('Rullo non collegato')); }
+  setTargetPower(w) { return this.driver ? this.driver.setTargetPower(w) : Promise.reject(new Error('Trainer not connected')); }
+  setResistancePercent(p) { return this.driver ? this.driver.setResistancePercent(p) : Promise.reject(new Error('Trainer not connected')); }
+  setSimulation(o) { return this.driver ? this.driver.setSimulation(o) : Promise.reject(new Error('Trainer not connected')); }
 
   emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
 }

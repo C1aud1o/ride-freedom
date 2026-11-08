@@ -39,12 +39,13 @@ export function countUp(el, ms = 900) {
   const text = el.textContent.trim();
   if (reduce()) return;
   const time = text.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+  const sep = text.includes(',') ? ',' : '.'; // separatore decimale della lingua
   const num = parseFloat(text.replace(',', '.'));
   if (!time && !Number.isFinite(num)) return;
-  const dec = (text.split('.')[1] || '').length;
+  const dec = (text.split(sep)[1] || '').length;
   const total = time ? (time[3] != null ? +time[1] * 3600 + +time[2] * 60 + +time[3] : +time[1] * 60 + +time[2]) : num;
   const fmt = (v) => {
-    if (!time) return v.toFixed(dec);
+    if (!time) return v.toFixed(dec).replace('.', sep);
     const s = Math.round(v); const pad = (n) => String(n).padStart(2, '0');
     return time[3] != null ? `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : `${Math.floor(s / 60)}:${pad(s % 60)}`;
   };

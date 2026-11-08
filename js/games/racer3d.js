@@ -6,6 +6,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../../vendor/three/addons/loaders/GLTFLoader.js';
 import { hudText, Effort, clamp, lerp, pick, hash } from './engine.js';
 import { SONGS } from './audio.js';
+import { t, fmtDec, ordinal } from '../i18n.js';
+const you = () => t('games.racer.you'); // il giocatore è riconosciuto dal nome interno 'TU'
+const first = (n) => (n === 'TU' ? you() : n.split(' ')[0]);
+const who = (n) => (n === 'TU' ? you() : n);
 import { rider } from './kit3d.js';
 
 const STEP = 2;            // campionamento della strada (m)
@@ -17,19 +21,19 @@ const ASSETS = 'assets/3d';
 
 const STAGES = [
   {
-    name: 'LITORALE AL TRAMONTO', desc: 'Veloce, curve sul mare, strappi brevi',
+    name: 'games.racer.stage1.name', desc: 'games.racer.stage1.desc',
     sky: ['#f6c177', '#f08a5d', '#7b3f7a'], fog: '#e7a477', grass: '#7fae55', grass2: '#6a9a47', far: 'sea',
     scenery: { tree_palmTall: 5, tree_palmBend: 4, tree_palmShort: 3, plant_bushLarge: 3, plant_bush: 3, rock_largeA: 2, flower_redA: 2, flower_yellowA: 2, grass_large: 3 },
     layout: [[200, 0, 0], [250, 14, 1], [200, 0, 3], [300, -18, 0], [250, 8, -2], [200, 0, 4], [300, 20, 0], [250, -10, -2], [300, 0, 2], [250, -16, 0], [200, 0, 0]],
   },
   {
-    name: 'PASSO DELLE NUVOLE', desc: 'Si sale davvero: fino al 6% sul rullo',
+    name: 'games.racer.stage2.name', desc: 'games.racer.stage2.desc',
     sky: ['#cfe6ff', '#8fbef0', '#4d7fc4'], fog: '#c9dcf0', grass: '#5f9a4a', grass2: '#4f8540', far: 'mountains',
     scenery: { tree_pineTallA: 6, tree_pineTallB: 5, tree_pineRoundA: 3, tree_pineDefaultA: 4, rock_largeC: 3, rock_largeE: 2, rock_smallA: 2, stone_tallA: 1, grass_leafsLarge: 2 },
     layout: [[200, 0, 0], [300, 10, 4], [250, -16, 5], [300, 14, 6], [200, 0, 3], [250, -12, 5], [300, 18, 6], [200, 0, 2], [300, -14, -4], [250, 10, -3], [200, 0, 0]],
   },
   {
-    name: 'COLLINE D\'AUTUNNO', desc: 'Saliscendi tra i boschi colorati',
+    name: 'games.racer.stage3.name', desc: 'games.racer.stage3.desc',
     sky: ['#ffe2b8', '#f2b880', '#c56b52'], fog: '#efc9a0', grass: '#a3b05a', grass2: '#8f9c4c', far: 'hills',
     scenery: { tree_oak_fall: 5, tree_default_fall: 5, tree_tall_fall: 4, tree_oak: 2, tree_fat: 2, plant_bushDetailed: 3, rock_largeA: 1, log: 1, flower_purpleA: 2, grass_large: 2 },
     layout: [[200, 0, 0], [250, -12, 3], [250, 16, -3], [200, 0, 4], [300, -20, -2], [250, 12, 3], [250, 0, -3], [300, 16, 5], [250, -14, -4], [250, 8, 2], [200, 0, 0]],
@@ -37,19 +41,19 @@ const STAGES = [
 ];
 
 const RIVALS = [
-  { name: 'Gianni Gambalunga', color: '#2a9d8f', model: 'b', skill: 1.02, line: 'Gambe lunghe, fiato corto!' },
-  { name: 'Turbo Tina', color: '#ff4d9d', model: 'c', skill: 1.05, line: 'Ciao ciao, lumaca!' },
-  { name: 'Il Conte Catena', color: '#7b2cbf', model: 'd', skill: 1.04, line: 'Un nobile non perde mai.' },
-  { name: 'Mirko Muro', color: '#e63946', model: 'e', skill: 0.98, line: 'Di qui non si passa!' },
-  { name: 'Lia Leggera', color: '#ffd166', model: 'f', skill: 1.0, line: 'In salita volo!' },
-  { name: 'Bruno Borraccia', color: '#3a86ff', model: 'g', skill: 0.95, line: 'Sempre idratato!' },
-  { name: 'Zia Salita', color: '#f77f00', model: 'h', skill: 0.97, line: 'Ai miei tempi...' },
+  { name: 'games.racer.rival1.name', color: '#2a9d8f', model: 'b', skill: 1.02, line: 'games.racer.rival1.line' },
+  { name: 'games.racer.rival2.name', color: '#ff4d9d', model: 'c', skill: 1.05, line: 'games.racer.rival2.line' },
+  { name: 'games.racer.rival3.name', color: '#7b2cbf', model: 'd', skill: 1.04, line: 'games.racer.rival3.line' },
+  { name: 'games.racer.rival4.name', color: '#e63946', model: 'e', skill: 0.98, line: 'games.racer.rival4.line' },
+  { name: 'games.racer.rival5.name', color: '#ffd166', model: 'f', skill: 1.0, line: 'games.racer.rival5.line' },
+  { name: 'games.racer.rival6.name', color: '#3a86ff', model: 'g', skill: 0.95, line: 'games.racer.rival6.line' },
+  { name: 'games.racer.rival7.name', color: '#f77f00', model: 'h', skill: 0.97, line: 'games.racer.rival7.line' },
 ];
 
 const ITEMS = {
-  gel: { name: 'GEL TURBO', color: '#ffd166' },
-  wind: { name: 'VENTO A FAVORE', color: '#06d6a0' },
-  shield: { name: 'SCUDO', color: '#4de3ff' },
+  gel: { name: 'games.racer.item.gel', color: '#ffd166' },
+  wind: { name: 'games.racer.item.wind', color: '#06d6a0' },
+  shield: { name: 'games.racer.item.shield', color: '#4de3ff' },
 };
 
 const loader = new GLTFLoader();
@@ -369,9 +373,9 @@ export class Racer3D {
         this.scene.add(post);
       }
     };
-    banner(30, 'PARTENZA', '#1b1b1b');
-    banner(this.length - 4, 'ARRIVO', '#d62839');
-    for (const ln of this.lines) banner(ln.s, ln.type === 'kom' ? 'G.P. MONTAGNA' : 'TRAGUARDO VOLANTE', ln.type === 'kom' ? '#d62839' : '#2a9d3a');
+    banner(30, t('games.racer.start'), '#1b1b1b');
+    banner(this.length - 4, t('games.racer.finish'), '#d62839');
+    for (const ln of this.lines) banner(ln.s, ln.type === 'kom' ? t('games.racer.komBanner') : t('games.racer.sprintBanner'), ln.type === 'kom' ? '#d62839' : '#2a9d3a');
     // tribune, tende e bandiere all'arrivo e alla partenza
     for (const s of [this.length - 30, this.length - 60, 20]) {
       this.place('grandStandCovered', s, -(ROAD_W / 2 + 2.2), 7, Math.PI / 2);
@@ -498,7 +502,7 @@ export class Racer3D {
     this.item = null; this.boost = 0; this.boostKind = null; this.shield = false; this.bumpT = 0;
     this.draft = 0; this.coinsTaken = 0; this.sprintHeld = 0; this.finished = false; this.lean = 0;
     this.points = { green: {}, kom: {} }; this.lineCount = {}; this.draftAcc = 0;
-    this.rivals = RIVALS.map((r, i) => ({ ...r, i, s: 3 + (6 - i) * 2.2, x: LANES[i % 3], targetX: LANES[i % 3], speed: 0, finished: null, boost: 0, slow: 0, said: 0, phase: Math.random() * 6 }));
+    this.rivals = RIVALS.map((r, i) => ({ ...r, name: t(r.name), line: t(r.line), i, s: 3 + (6 - i) * 2.2, x: LANES[i % 3], targetX: LANES[i % 3], speed: 0, finished: null, boost: 0, slow: 0, said: 0, phase: Math.random() * 6 }));
     for (const c of this.coins) { c.taken = false; c.mesh.visible = true; }
     for (const b of this.boxes) b.takenAt = -99;
     this.state = 'countdown'; this.stateT = 0; this.lastBeep = 4;
@@ -550,7 +554,7 @@ export class Racer3D {
     if (this.state === 'countdown') {
       const left = 3 - Math.floor(this.stateT);
       if (left !== this.lastBeep && left > 0) { this.lastBeep = left; this.audio.sfx('beep'); }
-      if (this.stateT >= 3) { this.state = 'race'; this.stateT = 0; this.audio.sfx('go'); this.say('VIA!', '#06d6a0', 1, true); }
+      if (this.stateT >= 3) { this.state = 'race'; this.stateT = 0; this.audio.sfx('go'); this.say(t('games.racer.go'), '#06d6a0', 1, true); }
       return;
     }
     if (this.state === 'results') return;
@@ -589,7 +593,7 @@ export class Racer3D {
       if (c.taken || Math.abs(c.s - this.s) > 0.9 || Math.abs(LANES[c.lane] - this.x) > 1) continue;
       c.taken = true; c.mesh.visible = false; this.coinsTaken++; this.pop('+1', '#ffcc33');
       this.audio.sfx('coin'); this.prog('coins', 1, 1);
-      if (this.coinsTaken === 10) this.say('10 MONETE: +10% VELOCITÀ', '#ffcc33', 2);
+      if (this.coinsTaken === 10) this.say(t('games.racer.coins10'), '#ffcc33', 2);
     }
     for (const b of this.boxes) {
       if (this.t - b.takenAt < 8 || Math.abs(b.s - this.s) > 0.9 || Math.abs(LANES[b.lane] - this.x) > 1) continue;
@@ -597,8 +601,8 @@ export class Racer3D {
       if (!this.item) {
         const place = this.place();
         const pool = place <= 2 ? ['shield', 'gel'] : place <= 5 ? ['gel', 'shield', 'wind'] : ['gel', 'wind', 'wind'];
-        this.item = pick(pool); this.audio.sfx('pickup'); this.pop(ITEMS[this.item].name, ITEMS[this.item].color, 1.2);
-        this.say(`${ITEMS[this.item].name}: fai uno SPRINT per usarlo`, ITEMS[this.item].color, 2.2);
+        this.item = pick(pool); this.audio.sfx('pickup'); this.pop(t(ITEMS[this.item].name), ITEMS[this.item].color, 1.2);
+        this.say(t('games.racer.useItem', { name: t(ITEMS[this.item].name) }), ITEMS[this.item].color, 2.2);
       }
     }
   }
@@ -609,11 +613,11 @@ export class Racer3D {
     if (it === 'gel') { this.boost = 4; this.boostKind = 'gel'; this.audio.sfx('boost'); }
     if (it === 'wind') { this.boost = 7; this.boostKind = 'wind'; this.audio.sfx('boost'); }
     if (it === 'shield') this.shield = true;
-    this.say(`${ITEMS[it].name}!`, ITEMS[it].color, 1.4, true);
+    this.say(`${t(ITEMS[it].name)}!`, ITEMS[it].color, 1.4, true);
   }
 
   bump(text) {
-    if (this.shield) { this.shield = false; this.say('SCUDO!', '#4de3ff', 1); this.audio.sfx('clank'); return; }
+    if (this.shield) { this.shield = false; this.say(t('games.racer.shield'), '#4de3ff', 1); this.audio.sfx('clank'); return; }
     if (this.bumpT > 0) return;
     this.bumpT = 1; this.audio.sfx('hurt'); this.say(text, '#ff6b6b', 1);
     if (navigator.vibrate) navigator.vibrate(60);
@@ -628,7 +632,7 @@ export class Racer3D {
       this.points[ln.type][name] = (this.points[ln.type][name] || 0) + pts;
       if (name === 'TU') {
         this.audio.sfx(n === 0 ? 'win' : 'coin');
-        this.say(`${ln.type === 'kom' ? 'GPM' : 'TRAGUARDO VOLANTE'}: ${n + 1}° · +${pts}`, ln.type === 'kom' ? '#ff5a6a' : '#3ccf6a', 2.2, n === 0);
+        this.say(t(ln.type === 'kom' ? 'games.racer.komSay' : 'games.racer.sprintSay', { place: ordinal(n + 1), pts }), ln.type === 'kom' ? '#ff5a6a' : '#3ccf6a', 2.2, n === 0);
       }
     }
   }
@@ -660,11 +664,11 @@ export class Racer3D {
       r.x = lerp(r.x, r.targetX, Math.min(1, dt * 1.6));
       const same = Math.abs(r.x - this.x) < 1.1;
       if (same && gap > 1.6 && gap < 12) drafting = true;
-      if (same && gap > -0.3 && gap < 1.5 && playerV > r.speed) { this.bump('URTO!'); r.boost = 0.6; }
+      if (same && gap > -0.3 && gap < 1.5 && playerV > r.speed) { this.bump(t('games.racer.crash')); r.boost = 0.6; }
       if (gap < -1 && gap > -4 && r.said < this.t - 25 && Math.random() < dt * 2) { r.said = this.t; this.say(`${r.name}: "${r.line}"`, r.color, 2.2); }
     }
     this.draft = clamp(this.draft + (drafting ? dt / 1.2 : -dt * 2), 0, 1);
-    if (this.draft >= 1 && !this.draftShown) { this.draftShown = true; this.say('SCIA! +12%', '#4de3ff', 1); this.audio.sfx('boost'); }
+    if (this.draft >= 1 && !this.draftShown) { this.draftShown = true; this.say(t('games.racer.draft'), '#4de3ff', 1); this.audio.sfx('boost'); }
     if (this.draft < 0.5) this.draftShown = false;
     this.standing = this.ranking();
   }
@@ -763,39 +767,39 @@ export class Racer3D {
     }
     if (this.state === 'loading') {
       ctx.fillStyle = '#0f0e0c'; if (!this.scene) ctx.fillRect(0, 0, W, H);
-      hudText(ctx, 'CARICAMENTO…', W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, t('games.common.loading'), W / 2, H / 2, { size: 22, align: 'center', color: '#d9ff3d' });
       hudText(ctx, `${Math.round((this.loadPct || 0) * 100)}%`, W / 2, H / 2 + 28, { size: 14, align: 'center' });
       return;
     }
-    if (this.state === 'error') { hudText(ctx, `Errore: ${this.error}`, W / 2, H / 2, { size: 14, align: 'center', color: '#ff6b6b' }); return; }
+    if (this.state === 'error') { hudText(ctx, t('ui.error', { error: this.error }), W / 2, H / 2, { size: 14, align: 'center', color: '#ff6b6b' }); return; }
     if (this.state === 'select') return this.drawSelect(ctx, W, H);
     const top = 56; const place = this.place();
-    hudText(ctx, `${place}°`, 14, top + 44, { size: 48, color: place <= 3 ? '#d9ff3d' : '#fff' });
+    hudText(ctx, ordinal(place), 14, top + 44, { size: 48, color: place <= 3 ? '#d9ff3d' : '#fff' });
     hudText(ctx, '/8', 14 + (place >= 10 ? 66 : 46), top + 44, { size: 18, color: '#e8e8e8' });
     const left = Math.max(0, this.length - this.s);
-    hudText(ctx, `${(left / 1000 / WORLD_SCALE).toFixed(2)} km`, W - 14, top + 22, { size: 18, align: 'right' });
+    hudText(ctx, `${fmtDec(left / 1000 / WORLD_SCALE, 2)} km`, W - 14, top + 22, { size: 18, align: 'right' });
     hudText(ctx, fmt(this.raceT || 0), W - 14, top + 42, { size: 14, align: 'right', color: '#e8e8e8' });
-    hudText(ctx, `${Math.round((this.speed / WORLD_SCALE) * 3.6)} km/h · ${Math.round(this.power)} W · ${(this.grade || 0).toFixed(1)}%`, W - 14, top + 60, { size: 12, align: 'right', color: '#e8e8e8' });
+    hudText(ctx, `${Math.round((this.speed / WORLD_SCALE) * 3.6)} km/h · ${Math.round(this.power)} W · ${fmtDec(this.grade || 0, 1)}%`, W - 14, top + 60, { size: 12, align: 'right', color: '#e8e8e8' });
     hudText(ctx, `● ${this.coinsTaken || 0}`, 14, top + 66, { size: 14, color: '#ffcc33' });
     // oggetto
     const iy = top + 80;
     ctx.fillStyle = 'rgba(10,10,8,.6)'; ctx.fillRect(14, iy, 176, 46);
     if (this.item) {
       const it = ITEMS[this.item];
-      hudText(ctx, it.name, 22, iy + 16, { size: 13, color: it.color });
+      hudText(ctx, t(it.name), 22, iy + 16, { size: 13, color: it.color });
       ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(22, iy + 22, 160, 7);
       ctx.fillStyle = this.sprinting ? '#d9ff3d' : '#888'; ctx.fillRect(22, iy + 22, 160 * clamp(this.sprintHeld / 1.2, 0, 1), 7);
-      hudText(ctx, `sprint sopra ${this.effort.threshold} W`, 22, iy + 41, { size: 10, color: '#e8e8e8' });
-    } else hudText(ctx, 'prendi un cubo ?', 22, iy + 28, { size: 11, color: '#bbb' });
+      hudText(ctx, t('games.racer.sprintAbove', { w: this.effort.threshold }), 22, iy + 41, { size: 10, color: '#e8e8e8' });
+    } else hudText(ctx, t('games.racer.grabCube'), 22, iy + 28, { size: 11, color: '#bbb' });
     if (this.draft > 0.05) {
       ctx.fillStyle = 'rgba(10,10,8,.6)'; ctx.fillRect(W - 134, iy, 120, 16);
       ctx.fillStyle = this.draft >= 1 ? '#4de3ff' : '#2a6f97'; ctx.fillRect(W - 134, iy, 120 * this.draft, 16);
-      hudText(ctx, this.draft >= 1 ? 'IN SCIA +12%' : 'scia…', W - 74, iy + 12, { size: 11, align: 'center' });
+      hudText(ctx, this.draft >= 1 ? t('games.racer.inDraft') : t('games.racer.drafting'), W - 74, iy + 12, { size: 11, align: 'center' });
     }
     const gr = this.leader('green'); const km = this.leader('kom');
-    hudText(ctx, `Verde ${gr ? `${gr.name === 'TU' ? 'TU' : gr.name.split(' ')[0]} ${gr.pts}` : '-'} · Pois ${km ? `${km.name === 'TU' ? 'TU' : km.name.split(' ')[0]} ${km.pts}` : '-'}`, W - 14, iy + 34, { size: 11, align: 'right', color: '#e8e8e8' });
+    hudText(ctx, t('games.racer.jerseys', { green: gr ? `${first(gr.name)} ${gr.pts}` : '-', dots: km ? `${first(km.name)} ${km.pts}` : '-' }), W - 14, iy + 34, { size: 11, align: 'right', color: '#e8e8e8' });
     // classifica
-    (this.standing || this.ranking()).forEach((r, i) => hudText(ctx, `${i + 1}. ${r.me ? 'TU' : r.name}`, 14, H - 196 + i * 15, { size: 11, color: r.me ? '#d9ff3d' : '#f2f2f2' }));
+    (this.standing || this.ranking()).forEach((r, i) => hudText(ctx, `${i + 1}. ${r.me ? you() : r.name}`, 14, H - 196 + i * 15, { size: 11, color: r.me ? '#d9ff3d' : '#f2f2f2' }));
     this.drawProfile(ctx, W, H);
     let ty = H * 0.3;
     for (const x of this.texts) {
@@ -810,7 +814,7 @@ export class Racer3D {
       for (let i = 0; i < 3; i++) { ctx.fillStyle = i < 4 - n ? '#ff3b3b' : '#330000'; ctx.beginPath(); ctx.arc(cx - 36 + i * 36, cy, 13, 0, Math.PI * 2); ctx.fill(); }
       hudText(ctx, String(n), W / 2, H * 0.42, { size: 70, align: 'center', color: '#d9ff3d' });
     }
-    if (!this.hooks.connected()) hudText(ctx, 'DEMO: rullo non connesso', W - 14, H - 64, { size: 11, align: 'right', color: '#ffd34d' });
+    if (!this.hooks.connected()) hudText(ctx, t('games.common.demo'), W - 14, H - 64, { size: 11, align: 'right', color: '#ffd34d' });
     if (this.state === 'results') this.drawResults(ctx, W, H);
     this.hooks.progress?.drawToasts(ctx, W, dt);
   }
@@ -838,36 +842,36 @@ export class Racer3D {
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H * 0.45);
     const g2 = ctx.createLinearGradient(0, H * 0.6, 0, H); g2.addColorStop(0, 'rgba(8,8,6,0)'); g2.addColorStop(1, 'rgba(8,8,6,.9)');
     ctx.fillStyle = g2; ctx.fillRect(0, H * 0.6, W, H * 0.4);
-    hudText(ctx, 'TURBO PEDALI', W / 2, 100, { size: 34, align: 'center', color: '#d9ff3d' });
-    hudText(ctx, 'Tappa in linea · 8 corridori', W / 2, 124, { size: 12, align: 'center', color: '#f2f2f2' });
-    hudText(ctx, `TAPPA ${this.stageIndex + 1}/${STAGES.length}`, W / 2, 168, { size: 13, align: 'center', color: '#d9ff3d' });
-    hudText(ctx, S.name, W / 2, 194, { size: 22, align: 'center' });
-    hudText(ctx, S.desc, W / 2, 216, { size: 13, align: 'center', color: '#f2f2f2' });
-    hudText(ctx, `${(this.length / 1000 / WORLD_SCALE).toFixed(1)} km · dislivello ${Math.round((this.maxY - this.minY) / VIS_GRADE)} m`, W / 2, 236, { size: 12, align: 'center', color: '#f2f2f2' });
+    hudText(ctx, t('games.racer.hud.title'), W / 2, 100, { size: 34, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t('games.racer.hud.tagline'), W / 2, 124, { size: 12, align: 'center', color: '#f2f2f2' });
+    hudText(ctx, t('games.racer.stage', { i: this.stageIndex + 1, n: STAGES.length }), W / 2, 168, { size: 13, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t(S.name), W / 2, 194, { size: 22, align: 'center' });
+    hudText(ctx, t(S.desc), W / 2, 216, { size: 13, align: 'center', color: '#f2f2f2' });
+    hudText(ctx, t('games.racer.length', { km: fmtDec(this.length / 1000 / WORLD_SCALE, 1), m: Math.round((this.maxY - this.minY) / VIS_GRADE) }), W / 2, 236, { size: 12, align: 'center', color: '#f2f2f2' });
     const best = Number(localStorage.getItem(`racer3dBest${this.stageIndex}`));
-    if (best) hudText(ctx, `Record ${fmt(best)}`, W / 2, 256, { size: 12, align: 'center', color: '#f2f2f2' });
+    if (best) hudText(ctx, t('games.racer.best', { time: fmt(best) }), W / 2, 256, { size: 12, align: 'center', color: '#f2f2f2' });
     this.drawProfile(ctx, W, H - 90);
-    hudText(ctx, '−  cambia tappa          +  via!', W / 2, H - 40, { size: 15, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t('games.racer.menuKeys'), W / 2, H - 40, { size: 15, align: 'center', color: '#d9ff3d' });
     this.hooks.progress?.drawToasts(ctx, W, 0.016);
   }
 
   drawResults(ctx, W, H) {
     ctx.fillStyle = 'rgba(8,8,6,.82)'; ctx.fillRect(0, 0, W, H);
     const place = this.place();
-    hudText(ctx, place === 1 ? 'VITTORIA!' : place <= 3 ? 'PODIO!' : 'ARRIVO', W / 2, H * 0.14, { size: 36, align: 'center', color: place <= 3 ? '#d9ff3d' : '#fff' });
-    hudText(ctx, `${place}° · ${fmt(this.finishT)}${this.newBest ? '  · RECORD!' : ''}`, W / 2, H * 0.14 + 30, { size: 15, align: 'center' });
+    hudText(ctx, place === 1 ? t('games.racer.victory') : place <= 3 ? t('games.racer.podium') : t('games.racer.finish'), W / 2, H * 0.14, { size: 36, align: 'center', color: place <= 3 ? '#d9ff3d' : '#fff' });
+    hudText(ctx, `${ordinal(place)} · ${fmt(this.finishT)}${this.newBest ? t('games.common.newBest') : ''}`, W / 2, H * 0.14 + 30, { size: 15, align: 'center' });
     const base = H * 0.42; const top3 = this.standing.slice(0, 3); const order = [1, 0, 2]; const heights = [60, 84, 44];
     order.forEach((idx, k) => {
       const r = top3[idx]; if (!r) return;
       const x = W / 2 + (k - 1) * 92;
       ctx.fillStyle = ['#c0c0c0', '#d9ff3d', '#cd7f32'][idx]; ctx.fillRect(x - 40, base - heights[k] + 40, 80, heights[k]);
       hudText(ctx, String(idx + 1), x, base + 30, { size: 22, align: 'center', color: '#1b1b1b', stroke: 'transparent' });
-      hudText(ctx, r.me ? 'TU' : r.name.split(' ')[0], x, base - heights[k] + 30, { size: 13, align: 'center', color: r.me ? '#d9ff3d' : '#fff' });
+      hudText(ctx, r.me ? you() : r.name.split(' ')[0], x, base - heights[k] + 30, { size: 13, align: 'center', color: r.me ? '#d9ff3d' : '#fff' });
     });
     const gr = this.leader('green'); const km = this.leader('kom');
-    hudText(ctx, `Maglia verde: ${gr ? (gr.name === 'TU' ? 'TU!' : gr.name) : '-'} · Maglia a pois: ${km ? (km.name === 'TU' ? 'TU!' : km.name) : '-'}`, W / 2, H * 0.53, { size: 12, align: 'center' });
-    this.standing.forEach((r, i) => hudText(ctx, `${i + 1}. ${r.me ? 'TU' : r.name}${r.fin != null ? '  ' + fmt(r.fin) : ''}`, W / 2, H * 0.57 + i * 19, { size: 13, align: 'center', color: r.me ? '#d9ff3d' : '#e8e8e8' }));
-    if (this.stateT > 1.5) hudText(ctx, '+ rivincita   ·   − cambia tappa', W / 2, H * 0.92, { size: 15, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t('games.racer.jerseysEnd', { green: gr ? who(gr.name) : '-', dots: km ? who(km.name) : '-' }), W / 2, H * 0.53, { size: 12, align: 'center' });
+    this.standing.forEach((r, i) => hudText(ctx, `${i + 1}. ${r.me ? you() : r.name}${r.fin != null ? '  ' + fmt(r.fin) : ''}`, W / 2, H * 0.57 + i * 19, { size: 13, align: 'center', color: r.me ? '#d9ff3d' : '#e8e8e8' }));
+    if (this.stateT > 1.5) hudText(ctx, t('games.racer.endKeys'), W / 2, H * 0.92, { size: 15, align: 'center', color: '#d9ff3d' });
   }
 
   loop(now) {

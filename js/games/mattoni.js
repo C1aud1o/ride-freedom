@@ -3,6 +3,7 @@
 import { THREE, rider, Effects, lights, skyTexture } from './kit3d.js';
 import { hudText, clamp, pick } from './engine.js';
 import { Base3D } from './base3d.js';
+import { t } from '../i18n.js';
 
 const A = 'assets/3d';
 const HW = 8;               // metà larghezza del campo
@@ -19,17 +20,17 @@ const LEVELS = [
   ['1.2.33.2.1', '#22222222#', '.31111113.', '##111111##', '3333333333'],
 ];
 const POWERS = [
-  { id: 'wide', text: 'RACCHETTA LARGA', color: '#4de3ff' },
-  { id: 'multi', text: 'PALLE ×3', color: '#d9ff3d' },
-  { id: 'slow', text: 'PALLA LENTA', color: '#ffd166' },
-  { id: 'life', text: '+1 VITA', color: '#ff4d6d' },
+  { id: 'wide', text: 'games.mattoni.pu.wide', color: '#4de3ff' },
+  { id: 'multi', text: 'games.mattoni.pu.multi', color: '#d9ff3d' },
+  { id: 'slow', text: 'games.mattoni.pu.slow', color: '#ffd166' },
+  { id: 'life', text: 'games.shooter.plusLife', color: '#ff4d6d' },
 ];
 
 export class Mattoni extends Base3D {
   constructor(hud, hooks, audio) {
     super(hud, hooks, audio, {
-      key: 'mattoni', title: 'MATTONI', tagline: 'Rimbalza, sfonda, pedala.', song: 'desert',
-      rules: ['Tieni premuto + / − per spostare la bici', 'La cadenza decide la velocità della palla', 'Sprint sopra soglia = palla infuocata', 'Le capsule che cadono danno potenziamenti', 'Hai 3 vite: non far cadere la palla'],
+      key: 'mattoni', title: 'games.mattoni.hud.title', tagline: 'games.mattoni.hud.tagline', song: 'desert',
+      rules: ['games.mattoni.rule1', 'games.mattoni.rule2', 'games.mattoni.rule3', 'games.mattoni.rule4', 'games.mattoni.rule5'],
     });
   }
 
@@ -96,7 +97,7 @@ export class Mattoni extends Base3D {
     this.balls.push({ mesh, x, z, vx, vz, stuck });
   }
 
-  onBegin() { this.say(`LIVELLO ${this.level + 1}`, '#d9ff3d', 1.6, true); this.say('+ per lanciare', '#ffffff', 2); }
+  onBegin() { this.say(t('games.mattoni.level', { n: this.level + 1 }), '#d9ff3d', 1.6, true); this.say(t('games.mattoni.launch'), '#ffffff', 2); }
 
   press(dir) {
     const stuck = this.balls.find((b) => b.stuck);
@@ -151,7 +152,7 @@ export class Mattoni extends Base3D {
       this.lives--; this.audio.sfx('hurt'); this.combo = 0;
       if (navigator.vibrate) navigator.vibrate(100);
       if (this.lives <= 0) return this.end(this.level * 15);
-      this.say(`Vite: ${this.lives}`, '#ff4d6d', 1.4, true); this.serve();
+      this.say(t('games.mattoni.lives', { n: this.lives }), '#ff4d6d', 1.4, true); this.serve();
     }
     // capsule
     for (const c of this.caps) {
@@ -164,7 +165,7 @@ export class Mattoni extends Base3D {
     if (!this.bricks.some((b) => !b.dead && !b.solid)) {
       this.level++; this.score += 200 * this.level; this.audio.sfx('win'); this.prog('races', 0, 25);
       this.hooks.progress?.setMax('mattoniLevel', this.level + 1);
-      this.say(`LIVELLO ${this.level + 1}!`, '#d9ff3d', 2, true);
+      this.say(t('games.mattoni.levelUp', { n: this.level + 1 }), '#d9ff3d', 2, true);
       this.loadLevel(this.level);
     }
   }
@@ -187,7 +188,7 @@ export class Mattoni extends Base3D {
   }
 
   power(p) {
-    this.audio.sfx('pickup'); this.pop(p.text, p.color, this.px, 1.6, PZ);
+    this.audio.sfx('pickup'); this.pop(t(p.text), p.color, this.px, 1.6, PZ);
     if (p.id === 'wide') this.wideT = 14;
     if (p.id === 'slow') this.slowT = 10;
     if (p.id === 'life') this.lives = Math.min(5, this.lives + 1);
@@ -215,12 +216,12 @@ export class Mattoni extends Base3D {
   hud(ctx, W) {
     const top = 56;
     hudText(ctx, String(Math.round(this.score)).padStart(6, '0'), 14, top + 24, { size: 24 });
-    hudText(ctx, `LIVELLO ${this.level + 1}`, W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
+    hudText(ctx, t('games.mattoni.level', { n: this.level + 1 }), W - 14, top + 22, { size: 18, align: 'right', color: '#d9ff3d' });
     let hx = 14; for (let i = 0; i < this.lives; i++) { hudText(ctx, '♥', hx, top + 46, { size: 18, color: '#ff4d6d' }); hx += 17; }
-    hudText(ctx, `palla ${Math.round(this.speed() * 3.6)} km/h · cadenza ${Math.round(this.cadence)}`, W - 14, top + 42, { size: 12, align: 'right', color: '#e8e8e8' });
+    hudText(ctx, t('games.mattoni.ball', { kmh: Math.round(this.speed() * 3.6), rpm: Math.round(this.cadence) }), W - 14, top + 42, { size: 12, align: 'right', color: '#e8e8e8' });
     this.powerBar(ctx, 14, top + 56, W - 28);
-    if (this.sprinting) hudText(ctx, 'PALLA INFUOCATA', W / 2, top + 88, { size: 14, align: 'center', color: '#ff9f43' });
+    if (this.sprinting) hudText(ctx, t('games.mattoni.fire'), W / 2, top + 88, { size: 14, align: 'center', color: '#ff9f43' });
   }
 
-  summary() { return ['PARTITA FINITA', `Livello raggiunto: ${this.level + 1}`]; }
+  summary() { return [t('games.mattoni.over'), t('games.mattoni.reached', { n: this.level + 1 })]; }
 }

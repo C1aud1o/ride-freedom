@@ -8,13 +8,15 @@ const hav = (a, b) => {
   return 2 * R * Math.asin(Math.sqrt(h));
 };
 
-export function parseGpx(text, name = 'Percorso') {
+import { t } from './i18n.js';
+
+export function parseGpx(text, name = t('routes.defaultName')) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
-  if (doc.querySelector('parsererror')) throw new Error('File GPX non valido');
+  if (doc.querySelector('parsererror')) throw new Error(t('route.errInvalid'));
   let pts = [...doc.querySelectorAll('trkpt')]; if (!pts.length) pts = [...doc.querySelectorAll('rtept')];
   const raw = pts.map((p) => ({ lat: +p.getAttribute('lat'), lon: +p.getAttribute('lon'), ele: p.querySelector('ele') ? +p.querySelector('ele').textContent : null }))
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
-  if (raw.length < 2) throw new Error('Il GPX non contiene una traccia');
+  if (raw.length < 2) throw new Error(t('route.errNoTrack'));
   const title = doc.querySelector('trk > name, metadata > name, rte > name')?.textContent?.trim() || name.replace(/\.gpx$/i, '');
   return build(title, raw);
 }
@@ -55,9 +57,9 @@ export function at(route, dist) {
 
 // percorsi di prova inventati (nessun file necessario): una salita e un circuito ondulato
 export const SAMPLES = [
-  { id: 'colle', name: 'Colle di prova', desc: '8 km in salita, media 5,5% con un tratto al 9%', make: () => synth('Colle di prova', 8000, (d) => 40 + d * 0.055 + Math.max(0, Math.min(1, (d - 4500) / 1200)) * 40 - Math.max(0, Math.min(1, (d - 6500) / 600)) * 20, 45.9, 9.4) },
-  { id: 'onde', name: 'Colline ondulate', desc: '20 km di saliscendi brevi, ottimi per il cambio', make: () => synth('Colline ondulate', 20000, (d) => 120 + 25 * Math.sin(d / 900) + 12 * Math.sin(d / 310), 43.7, 11.2) },
-  { id: 'piano', name: 'Lungolago', desc: '15 km quasi piatti per il fondo', make: () => synth('Lungolago', 15000, (d) => 200 + 3 * Math.sin(d / 1500), 45.8, 9.1) },
+  { id: 'colle', get name() { return t('routes.colle.name'); }, get desc() { return t('routes.colle.desc'); }, make: () => synth(t('routes.colle.name'), 8000, (d) => 40 + d * 0.055 + Math.max(0, Math.min(1, (d - 4500) / 1200)) * 40 - Math.max(0, Math.min(1, (d - 6500) / 600)) * 20, 45.9, 9.4) },
+  { id: 'onde', get name() { return t('routes.onde.name'); }, get desc() { return t('routes.onde.desc'); }, make: () => synth(t('routes.onde.name'), 20000, (d) => 120 + 25 * Math.sin(d / 900) + 12 * Math.sin(d / 310), 43.7, 11.2) },
+  { id: 'piano', get name() { return t('routes.piano.name'); }, get desc() { return t('routes.piano.desc'); }, make: () => synth(t('routes.piano.name'), 15000, (d) => 200 + 3 * Math.sin(d / 1500), 45.8, 9.1) },
 ];
 function synth(name, len, eleFn, lat0, lon0) {
   const raw = [];

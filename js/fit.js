@@ -77,7 +77,7 @@ const fitTime = (ms) => Math.round(ms / 1000) - FIT_EPOCH;
  * Restituisce un Uint8Array con il file .FIT.
  */
 export function encodeFit(samples) {
-  if (!samples.length) throw new Error('Nessun dato registrato');
+  if (!samples.length) throw new Error('No data recorded');
   const w = new Writer();
   const start = samples[0].t; const end = samples[samples.length - 1].t;
   const startTs = fitTime(start); const endTs = fitTime(end);

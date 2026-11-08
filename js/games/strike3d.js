@@ -4,6 +4,7 @@ import { Strike } from './strike.js';
 import { THREE, Stage, loadAll, character, rider, bike, scatter, mat4, Pool, Effects, labelTexture, skyTexture, lights , tracer } from './kit3d.js';
 import { hudText, clamp, hash, pick } from './engine.js';
 import { SONGS } from './audio.js';
+import { t } from '../i18n.js';
 
 const A = 'assets/3d';
 const HERO_MODEL = ['d', 'c', 'h']; // Rocco, Vale, Nonno Gino
@@ -81,7 +82,7 @@ export class Strike3D extends Strike {
 
   startLevel() {
     super.startLevel();
-    if (this.levelIndex === 2) this.level = { ...this.level, name: 'CIMITERO DEL BARONE' };
+    if (this.levelIndex === 2) this.level = { ...this.level, name: 'games.shooter.level3b' };
     if (!this.stage || !this.m) return;
     this.applyTheme(this.levelIndex);
     // pulizia degli oggetti della missione precedente
@@ -388,18 +389,17 @@ export class Strike3D extends Strike {
     this.stage.render();
     ctx.clearRect(0, 0, W, H);
     const h = (this.HEROES || [])[this.heroIndex];
-    const names = ['ROCCO "CHIAVE INGLESE"', 'VALE "LAMPO"', 'NONNO GINO'];
-    const perks = ['Meccanico di quartiere: 6 vite invece di 5', 'Velocista: spara il 25% più veloce', 'Bici d\'acciaio del \'68: parte con 6 bombe'];
-    hudText(ctx, 'PEDAL STRIKE', W / 2, 96, { size: 36, align: 'center', color: '#d9ff3d' });
-    hudText(ctx, 'Il Barone Bullone ha rubato le bici della città.', W / 2, 122, { size: 12, align: 'center' });
-    hudText(ctx, 'Riprenditele, una missione alla volta.', W / 2, 138, { size: 12, align: 'center' });
-    hudText(ctx, 'SCEGLI L\'EROE', W / 2, H * 0.24, { size: 15, align: 'center', color: '#d9ff3d' });
-    hudText(ctx, names[this.heroIndex], W / 2, H * 0.72, { size: 22, align: 'center' });
-    hudText(ctx, perks[this.heroIndex], W / 2, H * 0.72 + 24, { size: 13, align: 'center', color: '#06d6a0' });
+    const ids = ['rocco', 'vale', 'gino'];
+    hudText(ctx, t('games.shooter.hud.title'), W / 2, 96, { size: 36, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t('games.shooter.story3'), W / 2, 122, { size: 12, align: 'center' });
+    hudText(ctx, t('games.shooter.story4'), W / 2, 138, { size: 12, align: 'center' });
+    hudText(ctx, t('games.shooter.pickHero'), W / 2, H * 0.24, { size: 15, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t(`games.shooter.hero.${ids[this.heroIndex]}.name`), W / 2, H * 0.72, { size: 22, align: 'center' });
+    hudText(ctx, t(`games.shooter.hero.${ids[this.heroIndex]}.perk`), W / 2, H * 0.72 + 24, { size: 13, align: 'center', color: '#06d6a0' });
     hudText(ctx, [0, 1, 2].map((i) => (i === this.heroIndex ? '●' : '○')).join(' '), W / 2, H * 0.72 + 48, { size: 14, align: 'center' });
-    hudText(ctx, '−  cambia eroe        +  inizia', W / 2, H * 0.86, { size: 15, align: 'center', color: '#d9ff3d' });
-    hudText(ctx, 'In gioco: + salta · − bomba · avvicinati: colpo di pompa', W / 2, H * 0.86 + 24, { size: 11, align: 'center', color: '#e8e8e8' });
-    hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.86 + 44, { size: 11, align: 'center', color: '#e8e8e8' });
+    hudText(ctx, t('games.shooter.heroKeys'), W / 2, H * 0.86, { size: 15, align: 'center', color: '#d9ff3d' });
+    hudText(ctx, t('games.shooter.inGame'), W / 2, H * 0.86 + 24, { size: 11, align: 'center', color: '#e8e8e8' });
+    hudText(ctx, t('games.common.best', { n: this.best }), W / 2, H * 0.86 + 44, { size: 11, align: 'center', color: '#e8e8e8' });
     this.hooks.progress?.drawToasts(ctx, W, dt);
   }
 
@@ -408,7 +408,7 @@ export class Strike3D extends Strike {
     if (this.state === 'loading' || this.state === 'error') {
       const { ctx, W, H } = this.stage; ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = '#0f0e0c'; ctx.fillRect(0, 0, W, H);
-      hudText(ctx, this.state === 'error' ? `Errore: ${this.error}` : 'CARICAMENTO…', W / 2, H / 2, { size: 20, align: 'center', color: '#d9ff3d' });
+      hudText(ctx, this.state === 'error' ? t('ui.error', { error: this.error }) : t('games.common.loading'), W / 2, H / 2, { size: 20, align: 'center', color: '#d9ff3d' });
       if (this.state === 'loading') hudText(ctx, `${Math.round((this.loadPct || 0) * 100)}%`, W / 2, H / 2 + 26, { size: 14, align: 'center' });
       this.last = now; requestAnimationFrame(this.loop); return;
     }

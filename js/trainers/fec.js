@@ -20,6 +20,7 @@
 // broadcast 0x4E (accettiamo anche 0x4F/0x4D).
 
 import { SensorDebug } from '../debug.js';
+import { t } from '../i18n.js';
 
 export const FEC_SERVICE = '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e';
 export const FEC_RX = '6e40fec2-b5a3-f393-e0a9-e50e24dcca9e'; // notifiche: rullo → app
@@ -44,7 +45,7 @@ export function checksum(bytes) { return bytes.reduce((x, b) => x ^ b, 0); }
 
 // messaggio ANT completo da una pagina FE-C di 8 byte
 export function antMessage(page, type = MSG_ACK, channel = CHANNEL) {
-  if (page.length !== 8) throw new Error('Una pagina FE-C è di 8 byte');
+  if (page.length !== 8) throw new Error('An FE-C page is 8 bytes');
   const m = [SYNC, 0x09, type, channel, ...page];
   return Uint8Array.from([...m, checksum(m)]);
 }
@@ -135,7 +136,7 @@ export function parsePage(p) {
   }
 }
 
-const STATUS = { 0: 'ok', 1: 'fallito', 2: 'non supportato', 3: 'rifiutato', 255: 'non inizializzato' };
+const STATUS = { 0: 'ok', 1: 'fallito', 2: 'not supported', 3: 'rifiutato', 255: 'not initialized' };
 
 // ---------- Driver ----------
 // Stessa interfaccia pubblica di Trainer in js/ftms.js: eventi connected / disconnected / data / log,
@@ -151,7 +152,7 @@ export class FecTrainer extends EventTarget {
     this.ranges = { power: [0, 2000, 1], resistance: [0, 100, 0.5] };
     this.hasCadence = false;
     this.sim = null; // ultimi parametri di simulazione inviati (per non ripetere 0x37/0x32)
-    this.dbg = dbg || new SensorDebug('trainer', 'Rullo');
+    this.dbg = dbg || new SensorDebug('trainer', 'Trainer');
   }
 
   get connected() { return !!this.device?.gatt?.connected; }
@@ -160,19 +161,19 @@ export class FecTrainer extends EventTarget {
   // uso diretto (senza scelta automatica del protocollo)
   async connect() {
     this.device = await navigator.bluetooth.requestDevice({ filters: [{ services: [FEC_SERVICE] }, { namePrefix: 'Tacx' }], optionalServices: [FEC_SERVICE] });
-    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnesso'); this.emit('disconnected'); });
+    this.device.addEventListener('gattserverdisconnected', () => { this.dbg.setStatus('Disconnected'); this.emit('disconnected'); });
     await this.setup();
-    return this.device.name || 'Rullo';
+    return this.device.name || t('home.trainer');
   }
 
   async reconnect() {
-    if (!this.device) throw new Error('Nessun dispositivo');
+    if (!this.device) throw new Error('No device');
     await this.setup();
   }
 
   // server: già connesso dalla scelta automatica del protocollo (evita una seconda gatt.connect)
   async setup(server) {
-    this.dbg.setStatus('Connessione…');
+    this.dbg.setStatus('Connecting…');
     server ||= await this.device.gatt.connect();
     await this.dbg.describe(this.device, server);
     this.tx = null; this.sim = null;
@@ -183,12 +184,12 @@ export class FecTrainer extends EventTarget {
     try {
       this.tx = await svc.getCharacteristic(FEC_TX);
     } catch (err) {
-      this.emit('log', `Controllo resistenza non disponibile: ${err.message}`);
-      this.dbg.log(`Caratteristica di scrittura FE-C non disponibile: ${err.message}`);
+      this.emit('log', `Resistance control not available: ${err.message}`);
+      this.dbg.log(`FE-C write characteristic not available: ${err.message}`);
     }
     // chiediamo le capacità (resistenza massima, modalità supportate): la risposta arriva come pagina 0x36
     if (this.tx) this.send(requestPage(PAGE.capabilities)).catch(() => {});
-    this.dbg.setStatus(`Connesso (Tacx FE-C${this.tx ? ', controllabile' : ', sola lettura'})`);
+    this.dbg.setStatus(`Connected (Tacx FE-C${this.tx ? ', controllable' : ', read-only'})`);
     this.dbg.extra = { protocollo: 'FE-C', features: this.features, ranges: this.ranges };
     this.emit('connected', { name: this.device.name, ftms: false, protocol: 'FE-C', features: this.features });
   }
@@ -202,18 +203,18 @@ export class FecTrainer extends EventTarget {
       const d = parsePage(page);
       if (!d) continue;
       if (page[0] === PAGE.commandStatus) {
-        this.dbg.log(`Stato comando 0x${d.lastCommand.toString(16)}: ${STATUS[d.status] ?? d.status}`);
+        this.dbg.log(`Command status 0x${d.lastCommand.toString(16)}: ${STATUS[d.status] ?? d.status}`);
         continue;
       }
       if (page[0] === PAGE.capabilities) {
-        if (d.maxResistanceN) this.dbg.setValues({ resistenzaMaxN: d.maxResistanceN });
+        if (d.maxResistanceN) this.dbg.setValues({ maxResistanceN: d.maxResistanceN });
         this.features = { resistance: !!(d.caps & 1), power: !!(d.caps & 2), simulation: !!(d.caps & 4) };
-        this.dbg.log(`Capacità: basic ${this.features.resistance ? 'sì' : 'no'}, ERG ${this.features.power ? 'sì' : 'no'}, simulazione ${this.features.simulation ? 'sì' : 'no'}`);
+        this.dbg.log(`Capabilities: basic ${this.features.resistance ? 'yes' : 'no'}, ERG ${this.features.power ? 'yes' : 'no'}, simulation ${this.features.simulation ? 'yes' : 'no'}`);
         continue;
       }
       if (page[0] === PAGE.trainer) {
         const { trainerStatus, targetLimit, ...rest } = d;
-        this.dbg.setValues({ statoRullo: trainerStatus, limiteTarget: targetLimit });
+        this.dbg.setValues({ trainerStatus, targetLimit });
         if (rest.cadence != null) this.hasCadence = true;
         this.dbg.setValues(rest);
         this.emit('data', rest);
@@ -228,7 +229,7 @@ export class FecTrainer extends EventTarget {
   // pagina 0x46→0x47 (lo facciamo solo nel debug). Scrittura senza risposta come GoldenCheetah e incyclist.
   send(page) {
     const run = async () => {
-      if (!this.tx) throw new Error('Rullo non controllabile');
+      if (!this.tx) throw new Error('Trainer is not controllable');
       const msg = antMessage(page);
       this.dbg.raw('tx', FEC_TX, msg);
       const p = this.tx.properties || {};

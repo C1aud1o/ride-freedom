@@ -5,6 +5,7 @@
 
 import { PixelScreen, sprite, flip, whiten, bandedSky, hash, hudText, Effort, rand, randInt, clamp, lerp, pick, pline, pring, ptext } from './engine.js';
 import { SONGS } from './audio.js';
+import { t, fmtDec } from '../i18n.js';
 
 const PPM = 16; // pixel (del buffer) per metro
 const G = 24;
@@ -22,19 +23,19 @@ const BODY = [
 ];
 const HEROES = [
   {
-    id: 'rocco', name: 'ROCCO "CHIAVE INGLESE"', perk: 'Meccanico di quartiere: 6 vite invece di 5',
+    id: 'rocco', name: 'games.shooter.hero.rocco.name', perk: 'games.shooter.hero.rocco.perk',
     hp: 6, bombs: 3, fire: 1, bike: '#e85d04', pants: '#264653',
     pal: { K: '#1b1b2f', H: '#e63946', V: '#7fe7ff', S: '#f2c29b', M: '#5b3a1e', J: '#f4a261', j: '#c7743a' },
     head: ['......KKKK......', '.....KHHHHK.....', '....KHHHHHHK....', '....KHHHVVVK....', '.....KSSSSSK....', '.....KMMMSK.....'],
   },
   {
-    id: 'vale', name: 'VALE "LAMPO"', perk: 'Velocista: spara il 25% più veloce',
+    id: 'vale', name: 'games.shooter.hero.vale.name', perk: 'games.shooter.hero.vale.perk',
     hp: 5, bombs: 3, fire: 1.25, bike: '#ff4d9d', pants: '#2b2d42',
     pal: { K: '#1b1b2f', H: '#ff4d9d', V: '#7fe7ff', S: '#f6d0b1', Y: '#ffd166', J: '#7b2cbf', j: '#5a189a' },
     head: ['......KKKK......', '.....KHHHHK.....', '...YKHHHHHHK....', '..YYKHHHVVVK....', '..Y..KSSSSSK....', '.....KSSSSK.....'],
   },
   {
-    id: 'gino', name: 'NONNO GINO', perk: 'Bici d\'acciaio del \'68: parte con 6 bombe',
+    id: 'gino', name: 'games.shooter.hero.gino.name', perk: 'games.shooter.hero.gino.perk',
     hp: 5, bombs: 6, fire: 1, bike: '#2a9d8f', pants: '#6c584c',
     pal: { K: '#1b1b2f', C: '#8d6e63', S: '#e8b796', W: '#f1f1f1', J: '#3a86ff', j: '#2559b5' },
     head: ['................', '.....KKKKK......', '....KCCCCCKK....', '....KCCCCCCCK...', '.....KSSSSSK....', '.....KWWWWSK....'],
@@ -43,30 +44,30 @@ const HEROES = [
 
 // ---------- armi ----------
 const WEAPONS = {
-  blaster: { name: 'BLASTER', rate: 1, ammo: Infinity, color: '#fff59d', sfx: 'shot' },
-  mg: { name: 'MITRAGLIA', letter: 'M', rate: 2.4, ammo: 220, color: '#ffd166', sfx: 'mg' },
-  rocket: { name: 'RAZZI', letter: 'R', rate: 0.55, ammo: 30, color: '#ff6b35', sfx: 'rocket' },
-  flame: { name: 'FIAMME', letter: 'F', rate: 3.5, ammo: 160, color: '#ff9f1c', sfx: 'flame' },
-  laser: { name: 'LASER', letter: 'L', rate: 1.2, ammo: 60, color: '#4de3ff', sfx: 'laser' },
+  blaster: { name: 'games.shooter.weapon.blaster', rate: 1, ammo: Infinity, color: '#fff59d', sfx: 'shot' },
+  mg: { name: 'games.shooter.weapon.mg', letter: 'M', rate: 2.4, ammo: 220, color: '#ffd166', sfx: 'mg' },
+  rocket: { name: 'games.shooter.weapon.rocket', letter: 'R', rate: 0.55, ammo: 30, color: '#ff6b35', sfx: 'rocket' },
+  flame: { name: 'games.shooter.weapon.flame', letter: 'F', rate: 3.5, ammo: 160, color: '#ff9f1c', sfx: 'flame' },
+  laser: { name: 'games.shooter.weapon.laser', letter: 'L', rate: 1.2, ammo: 60, color: '#4de3ff', sfx: 'laser' },
 };
 const WEAPON_KEYS = ['mg', 'rocket', 'flame', 'laser'];
 
 // ---------- missioni ----------
 const LEVELS = [
   {
-    name: 'PERIFERIA ARRUGGINITA', song: 'city', boss: 'tank',
+    name: 'games.shooter.level1', song: 'city', boss: 'tank',
     sky: ['#1d1135', '#3b1c4a', '#6b2b4f', '#a53f4f', '#d9644a', '#f2994a', '#f7c35f'],
     sun: '#ffe08a', far: '#4a2a5e', farLit: '#ffb347', mid: '#2b1a3d', ground: '#3a3347', groundTop: '#56506a', groundLine: '#f7c35f', dirt: '#251d31',
     mix: { walker: 5, drone: 2, barrel: 2, mine: 2, shield: 1, turret: 0 },
   },
   {
-    name: 'DESERTO DEI PISTONI', song: 'desert', boss: 'heli',
+    name: 'games.shooter.level2', song: 'desert', boss: 'heli',
     sky: ['#2a6f97', '#3d8fb5', '#61a5c2', '#89c2d9', '#b8dbe6', '#f5e6c8', '#f9d48b'],
     sun: '#fff3c4', far: '#c9835b', farLit: '#e8a87c', mid: '#9c5a3c', ground: '#d9a45b', groundTop: '#f0c27b', groundLine: '#b7793f', dirt: '#a8723d',
     mix: { walker: 4, drone: 3, barrel: 2, mine: 2, shield: 2, turret: 2 },
   },
   {
-    name: 'FABBRICA DEL BARONE', song: 'factory', boss: 'trike',
+    name: 'games.shooter.level3', song: 'factory', boss: 'trike',
     sky: ['#05050d', '#0b0b1a', '#141428', '#1c1c36', '#262646', '#33224a', '#4a2340'],
     sun: '#b8c4ff', far: '#1e1e33', farLit: '#ff4d4d', mid: '#15152a', ground: '#3b4252', groundTop: '#5c677d', groundLine: '#ffd166', dirt: '#252a36',
     mix: { walker: 4, drone: 3, barrel: 1, mine: 2, shield: 3, turret: 3 },
@@ -212,7 +213,7 @@ export class Strike {
   }
 
   bomb() {
-    if (this.p.bombs <= 0) { this.say('BOMBE FINITE!', '#ff6b6b'); return; }
+    if (this.p.bombs <= 0) { this.say(t('games.shooter.noBombs'), '#ff6b6b'); return; }
     this.p.bombs--;
     this.flash = 0.4; this.shake = 0.6; this.freeze = 0.08;
     this.audio.sfx('bomb');
@@ -263,7 +264,7 @@ export class Strike {
     if (this.state === 'clear') {
       if (this.stateT > 5) {
         this.levelIndex++;
-        if (this.levelIndex >= LEVELS.length) { this.levelIndex = 0; this.loopN++; this.say('IL BARONE È TORNATO... PIÙ ARRABBIATO!', '#ff6b6b', 3); }
+        if (this.levelIndex >= LEVELS.length) { this.levelIndex = 0; this.loopN++; this.say(t('games.shooter.baronBack'), '#ff6b6b', 3); }
         this.p.hp = Math.min(this.p.maxHp, this.p.hp + 2); this.p.bombs = Math.max(this.p.bombs, 3);
         this.startLevel();
       }
@@ -280,12 +281,12 @@ export class Strike {
     // OVERDRIVE: si carica restando sopra la soglia sprint
     if (this.overdrive > 0) {
       this.overdrive -= dt;
-      if (this.overdrive <= 0) { this.audio.transpose = 0; this.say('OVERDRIVE FINITO', '#9aa3b5', 1); }
+      if (this.overdrive <= 0) { this.audio.transpose = 0; this.say(t('games.shooter.odOver'), '#9aa3b5', 1); }
     } else {
       this.odMeter = clamp(this.odMeter + (sprinting ? dt / 4 : -dt / 20), 0, 1);
       if (this.odMeter >= 1) {
         this.overdrive = 8; this.odMeter = 0; this.audio.transpose = 2;
-        this.audio.sfx('overdrive'); this.say('OVERDRIVE!', '#4de3ff', 2, true); this.flash = 0.2; this.prog('overdrives', 1, 15);
+        this.audio.sfx('overdrive'); this.say(t('games.horde.overdrive'), '#4de3ff', 2, true); this.flash = 0.2; this.prog('overdrives', 1, 15);
       }
     }
 
@@ -399,7 +400,7 @@ export class Strike {
     this.audio.sfx(w.sfx);
     if (this.weapon !== 'blaster') {
       this.ammo -= 1;
-      if (this.ammo <= 0) { this.weapon = 'blaster'; this.ammo = Infinity; this.say('MUNIZIONI FINITE', '#9aa3b5', 1.2); }
+      if (this.ammo <= 0) { this.weapon = 'blaster'; this.ammo = Infinity; this.say(t('games.shooter.noAmmo'), '#9aa3b5', 1.2); }
     }
   }
 
@@ -438,7 +439,7 @@ export class Strike {
     const x = this.bossArena + this.viewW * 0.55;
     const hpBase = { tank: 110, heli: 120, trike: 160 }[kind];
     const hp = Math.round(hpBase * this.diff);
-    const names = { tank: 'CINGOLONE', heli: 'IL FRULLATORE', trike: 'BARONE BULLONE' };
+    const names = { tank: 'games.shooter.boss.tank', heli: 'games.shooter.boss.heli', trike: 'games.shooter.boss.trike' };
     this.boss = {
       type: 'boss', kind, name: names[kind], x, homeX: x, y: this.ground(x), w: kind === 'heli' ? 3.6 : 3.8, h: kind === 'heli' ? 1.6 : 2.6,
       hp, maxHp: hp, t: 0, a1: 2, a2: 4, a3: 6, flash: 0, enter: 1.5,
@@ -447,7 +448,7 @@ export class Strike {
     this.enemies = this.enemies.filter((e) => e.x < this.bossArena + 1);
     this.audio.sfx('alarm');
     this.audio.playSong(SONGS.boss);
-    this.say(`⚠ ${names[kind]} ⚠`, '#ff4d4d', 3, true);
+    this.say(`⚠ ${t(names[kind])} ⚠`, '#ff4d4d', 3, true);
   }
 
   updateEnemy(e, dt) {
@@ -560,7 +561,7 @@ export class Strike {
       }
       if (b.a2 <= 0 && !b.back) { // carica: va saltata!
         b.a2 = rand(5, 7);
-        b.charge = true; this.say('SALTA!', '#ffd34d', 1);
+        b.charge = true; this.say(t('games.shooter.jump'), '#ffd34d', 1);
       }
       if (b.a3 <= 0) { // evoca robottini
         b.a3 = rand(6, 9);
@@ -580,13 +581,13 @@ export class Strike {
         if (Math.abs(b.x - e.x) < e.w / 2 + 0.1 && b.y > e.y - 0.1 && b.y < e.y + e.h + 0.35) {
           if (e.type === 'shield' && e.shield > 0 && b.x < e.x && b.kind !== 'rocket' && b.kind !== 'laser') {
             e.shield -= b.dmg; b.life = 0; this.spark(b.x, b.y, '#ffd166'); this.audio.sfx('clank');
-            if (e.shield <= 0) { this.say('SCUDO ROTTO!', '#ffd166', 0.8); this.debris(e.x - 0.5, e.y + 0.6, '#ffb703', 6); }
+            if (e.shield <= 0) { this.say(t('games.shooter.shieldBroken'), '#ffd166', 0.8); this.debris(e.x - 0.5, e.y + 0.6, '#ffb703', 6); }
             break;
           }
           let dmg = b.dmg;
           if (e === this.boss) { // punto debole: danno doppio
             const wp = this.weakPoint(e);
-            if (Math.hypot(b.x - wp.x, b.y - wp.y) < 0.6) { dmg *= 2; this.fx.push({ type: 'spark', x: b.x, y: b.y, vx: 0, vy: 2, t: 0, life: 0.25, color: '#ffffff' }); if (Math.random() < 0.15) this.texts.push({ text: 'CRITICO!', color: '#ffd34d', t: 0.6, life: 0.6, wx: wp.x, wy: wp.y + 0.6 }); }
+            if (Math.hypot(b.x - wp.x, b.y - wp.y) < 0.6) { dmg *= 2; this.fx.push({ type: 'spark', x: b.x, y: b.y, vx: 0, vy: 2, t: 0, life: 0.25, color: '#ffffff' }); if (Math.random() < 0.15) this.texts.push({ text: t('games.shooter.crit'), color: '#ffd34d', t: 0.6, life: 0.6, wx: wp.x, wy: wp.y + 0.6 }); }
           }
           if (b.splash) { this.explode(b.x, b.y, 1.3, dmg); b.life = 0; break; }
           this.damage(e, dmg);
@@ -637,7 +638,7 @@ export class Strike {
     const pts = ENEMY_BASE[e.type].score * mult;
     this.score += pts;
     this.texts.push({ text: `+${pts}`, color: mult > 1 ? '#ffd34d' : '#fff', t: 0.8, life: 0.8, wx: e.x, wy: e.y + e.h + 0.3 });
-    if (this.combo >= 3 && this.combo % 3 === 0) { this.say(`COMBO ×${mult}!`, '#ff9f1c', 1); this.hooks.progress?.setMax('maxCombo', mult); }
+    if (this.combo >= 3 && this.combo % 3 === 0) { this.say(t('games.shooter.comboSay', { n: mult }), '#ff9f1c', 1); this.hooks.progress?.setMax('maxCombo', mult); }
     this.explode(e.x, e.y + e.h / 2, e.type === 'mine' || e.type === 'barrel' ? 1.3 : 0.9, 0);
     this.debris(e.x, e.y + e.h / 2, e.type === 'drone' ? '#2ec4b6' : '#a8b2c1', 6);
     this.freeze = Math.max(this.freeze, 0.035);
@@ -652,7 +653,7 @@ export class Strike {
     this.debris(e.x, e.y + 0.8, '#9aa3b5', 8);
     this.enemies.push({ type: 'freed', x: e.x, y: e.y, w: 0.5, h: 1, hp: 1, t: 0 });
     this.items.push({ kind: pick([...WEAPON_KEYS, ...WEAPON_KEYS, 'bomb', 'heart']), x: e.x - 0.8, y: e.y, t: 0 });
-    this.say(pick(['GRAZIE, CAMPIONE!', 'LA MIA BICI! EVVIVA!', 'TIENI, TI SERVIRÀ!', 'FORZA, PEDALA!']), '#06d6a0', 1.6);
+    this.say(t(pick(['games.shooter.thanks1', 'games.shooter.thanks2', 'games.shooter.thanks3', 'games.shooter.thanks4'])), '#06d6a0', 1.6);
   }
 
   killBoss(b) {
@@ -665,7 +666,7 @@ export class Strike {
     this.audio.sfx('bigboom');
     for (let i = 0; i < 12; i++) setTimeout(() => this.explode(b.x + rand(-2, 2), b.y + rand(0, b.h + 0.5), rand(1.2, 2), 0, true), i * 110);
     this.debris(b.x, b.y + 1, '#6d4c41', 20);
-    this.say(`${b.name} DISTRUTTO! +${bonus}`, '#ffd34d', 3, true);
+    this.say(t('games.shooter.bossDown', { name: t(b.name), bonus }), '#ffd34d', 3, true);
     setTimeout(() => {
       this.boss = null; this.bossArena = null; this.state = 'clear'; this.stateT = 0;
       this.hooks.progress?.addXp(100);
@@ -686,7 +687,7 @@ export class Strike {
         e.shield = 0;
         this.damage(e, 99);
         this.freeze = 0.06; this.audio.sfx('clank');
-        this.say(pick(['POMPA!', 'TOC!', 'GONFIATO!', 'PAF!']), '#fff', 0.6);
+        this.say(t(pick(['games.shooter.pump1', 'games.shooter.pump2', 'games.shooter.pump3', 'games.shooter.pump4'])), '#fff', 0.6);
         this.prog('pumps', 1, 3);
         break;
       }
@@ -699,7 +700,7 @@ export class Strike {
       p.vehicle.hp--; p.hurt = 0.8; this.shake = 0.3; this.audio.sfx('clank');
       if (p.vehicle.hp <= 0) {
         p.vehicle = null; p.hurt = 2;
-        this.explode(p.x + 0.6, p.y + 0.6, 1.5, 4); this.say('CARGO DISTRUTTO!', '#ff6b6b', 1.4);
+        this.explode(p.x + 0.6, p.y + 0.6, 1.5, 4); this.say(t('games.shooter.cargoDown'), '#ff6b6b', 1.4);
       }
       return;
     }
@@ -719,10 +720,10 @@ export class Strike {
     const p = this.p;
     if (WEAPONS[it.kind]) {
       if (this.weapon === it.kind) this.ammo += WEAPONS[it.kind].ammo; else { this.weapon = it.kind; this.ammo = WEAPONS[it.kind].ammo; }
-      this.say(WEAPONS[it.kind].name + '!', WEAPONS[it.kind].color, 1.4, true);
-    } else if (it.kind === 'bomb') { p.bombs++; this.say('+1 BOMBA', '#ffd166', 1); }
-    else if (it.kind === 'heart') { p.hp = Math.min(p.maxHp, p.hp + 1); this.say('+1 VITA', '#ff5a7a', 1); }
-    else if (it.kind === 'vehicle') { p.vehicle = { hp: 6, max: 6 }; this.say('CARGO-CANNONE!', '#ffd166', 2, true); this.audio.sfx('overdrive'); }
+      this.say(t(WEAPONS[it.kind].name) + '!', WEAPONS[it.kind].color, 1.4, true);
+    } else if (it.kind === 'bomb') { p.bombs++; this.say(t('games.shooter.plusBomb'), '#ffd166', 1); }
+    else if (it.kind === 'heart') { p.hp = Math.min(p.maxHp, p.hp + 1); this.say(t('games.shooter.plusLife'), '#ff5a7a', 1); }
+    else if (it.kind === 'vehicle') { p.vehicle = { hp: 6, max: 6 }; this.say(t('games.shooter.cargoCannon'), '#ffd166', 2, true); this.audio.sfx('overdrive'); }
     this.audio.sfx('pickup');
   }
 
@@ -743,11 +744,11 @@ export class Strike {
       if (c.held >= c.need) {
         this.challenge = null; this.nextChallenge = p.x + rand(150, 220);
         this.score += 1000; this.items.push({ kind: pick(WEAPON_KEYS), x: p.x + 3, y: this.ground(p.x + 3), t: 0 });
-        this.p.bombs++; this.audio.sfx('win'); this.say('SFIDA SPRINT VINTA! +1000', '#06d6a0', 2.2, true);
+        this.p.bombs++; this.audio.sfx('win'); this.say(t('games.shooter.challengeWon'), '#06d6a0', 2.2, true);
         this.prog('sprintsWon', 1, 40);
       } else if (c.time > 20) {
         this.challenge = null; this.nextChallenge = p.x + rand(120, 180);
-        this.say('SFIDA PERSA... LA PROSSIMA!', '#9aa3b5', 1.6);
+        this.say(t('games.shooter.challengeLost'), '#9aa3b5', 1.6);
       }
     }
   }
@@ -1110,14 +1111,14 @@ export class Strike {
     const p = this.p;
     // riga 1: punti e combo
     hudText(ctx, String(this.score).padStart(7, '0'), 14, top + 22, { size: 22, color: '#fff' });
-    if (this.combo >= 3) hudText(ctx, `COMBO ×${Math.min(8, 1 + Math.floor(this.combo / 3))}`, 14, top + 44, { size: 14, color: '#ff9f1c' });
-    hudText(ctx, `MISSIONE ${this.levelIndex + 1}${this.loopN ? `+${this.loopN}` : ''}`, W - 14, top + 22, { size: 14, color: '#ffd34d', align: 'right' });
+    if (this.combo >= 3) hudText(ctx, t('games.shooter.combo', { n: Math.min(8, 1 + Math.floor(this.combo / 3)) }), 14, top + 44, { size: 14, color: '#ff9f1c' });
+    hudText(ctx, t('games.shooter.mission', { n: `${this.levelIndex + 1}${this.loopN ? `+${this.loopN}` : ''}` }), W - 14, top + 22, { size: 14, color: '#ffd34d', align: 'right' });
     // vite e bombe
     let hx = 14; const hy = top + 54;
     for (let i = 0; i < p.maxHp; i++) { hudText(ctx, i < p.hp ? '♥' : '♡', hx, hy + 14, { size: 18, color: i < p.hp ? '#ff4d6d' : '#555' }); hx += 17; }
     hudText(ctx, `💣×${p.bombs}`, hx + 8, hy + 14, { size: 15 });
     const w = WEAPONS[this.weapon];
-    hudText(ctx, `${w.name} ${this.ammo === Infinity ? '∞' : this.ammo}`, W - 14, top + 44, { size: 14, color: w.color, align: 'right' });
+    hudText(ctx, `${t(w.name)} ${this.ammo === Infinity ? '∞' : this.ammo}`, W - 14, top + 44, { size: 14, color: w.color, align: 'right' });
     // misuratore potenza / soglia sprint / overdrive
     const gx = 14; const gy = hy + 26; const gw = W - 28; const gh = 14;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(gx, gy, gw, gh);
@@ -1127,35 +1128,35 @@ export class Strike {
     const tx = gx + gw * clamp((this.effort.threshold || 0) / maxW, 0, 1);
     ctx.fillStyle = '#fff'; ctx.fillRect(tx - 1, gy - 3, 2, gh + 6);
     hudText(ctx, `${Math.round(this.power)} W`, gx + 6, gy + 11, { size: 11 });
-    hudText(ctx, `SPRINT ${this.effort.threshold || '-'} W`, tx - 4, gy + 11, { size: 10, align: 'right', color: '#cfe' });
-    hudText(ctx, `${(this.fireRate || 0).toFixed(1)} colpi/s`, gx + gw - 4, gy + 11, { size: 11, align: 'right', color: '#fff59d' });
+    hudText(ctx, t('games.shooter.sprintLine', { w: this.effort.threshold || '-' }), tx - 4, gy + 11, { size: 10, align: 'right', color: '#cfe' });
+    hudText(ctx, t('games.horde.fireRate', { n: fmtDec(this.fireRate || 0, 1) }), gx + gw - 4, gy + 11, { size: 11, align: 'right', color: '#fff59d' });
     // overdrive
     const oy = gy + gh + 6;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(gx, oy, gw, 8);
     const ok = this.overdrive > 0 ? this.overdrive / 8 : this.odMeter;
     ctx.fillStyle = this.overdrive > 0 ? (Math.floor(this.t * 10) % 2 ? '#4de3ff' : '#fff') : '#2ec4b6'; ctx.fillRect(gx, oy, gw * ok, 8);
-    hudText(ctx, this.overdrive > 0 ? 'OVERDRIVE!' : this.sprinting ? 'CARICA OVERDRIVE… TIENI!' : 'Sprint sopra la soglia per caricare l\'OVERDRIVE', W / 2, oy + 22, { size: 11, align: 'center', color: this.overdrive > 0 || this.sprinting ? '#4de3ff' : '#9aa3b5' });
+    hudText(ctx, this.overdrive > 0 ? t('games.horde.overdrive') : this.sprinting ? t('games.shooter.charging') : t('games.shooter.chargeHint'), W / 2, oy + 22, { size: 11, align: 'center', color: this.overdrive > 0 || this.sprinting ? '#4de3ff' : '#9aa3b5' });
     // progresso missione o vita del boss
     if (this.boss) {
       const b = this.boss; const by = H - 34;
       ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(14, by, W - 28, 16);
       ctx.fillStyle = b.hp < b.maxHp * 0.5 ? '#ff3b3b' : '#ff9f1c'; ctx.fillRect(14, by, (W - 28) * Math.max(0, b.hp / b.maxHp), 16);
-      hudText(ctx, b.name, W / 2, by + 13, { size: 12, align: 'center' });
+      hudText(ctx, t(b.name), W / 2, by + 13, { size: 12, align: 'center' });
     } else if (this.state === 'play') {
       const k = clamp(this.p.x / LEVEL_LEN, 0, 1); const by = H - 22;
       ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(14, by, W - 28, 6);
       ctx.fillStyle = '#ffd34d'; ctx.fillRect(14, by, (W - 28) * k, 6);
       hudText(ctx, '☠', W - 14, by + 6, { size: 14, align: 'right', color: '#ff4d4d' });
     }
-    if (!this.hooks.connected()) hudText(ctx, 'DEMO: rullo non connesso', W / 2, H - 40, { size: 11, align: 'center', color: '#ffd34d' });
+    if (!this.hooks.connected()) hudText(ctx, t('games.common.demo'), W / 2, H - 40, { size: 11, align: 'center', color: '#ffd34d' });
     // sfida sprint
     const c = this.challenge;
     if (c) {
       const cy = H * 0.3;
-      if (c.phase === 'ready') hudText(ctx, `SFIDA SPRINT! ${c.need}s sopra ${c.target} W tra ${Math.ceil(c.t)}…`, W / 2, cy, { size: 15, align: 'center', color: '#ffd34d' });
+      if (c.phase === 'ready') hudText(ctx, t('games.shooter.challenge', { need: c.need, target: c.target, t: Math.ceil(c.t) }), W / 2, cy, { size: 15, align: 'center', color: '#ffd34d' });
       else {
-        hudText(ctx, `SPRINT! ${Math.max(0, c.need - c.held).toFixed(1)}s`, W / 2, cy, { size: 26, align: 'center', color: this.power >= c.target ? '#06d6a0' : '#ff6b6b' });
-        hudText(ctx, `sopra ${c.target} W · tempo ${Math.ceil(20 - c.time)}s`, W / 2, cy + 20, { size: 12, align: 'center' });
+        hudText(ctx, t('games.shooter.sprintNow', { s: fmtDec(Math.max(0, c.need - c.held), 1) }), W / 2, cy, { size: 26, align: 'center', color: this.power >= c.target ? '#06d6a0' : '#ff6b6b' });
+        hudText(ctx, t('games.shooter.aboveTime', { target: c.target, s: Math.ceil(20 - c.time) }), W / 2, cy + 20, { size: 12, align: 'center' });
       }
     }
     // testi
@@ -1171,14 +1172,14 @@ export class Strike {
       ctx.globalAlpha = 1;
     }
     this.hooks.progress?.drawToasts(ctx, W, this.lastDt || 0.016);
-    if (this.state === 'title') this.card(`MISSIONE ${this.levelIndex + 1}`, this.level.name, this.levelIndex === 0 && !this.loopN ? 'Libera i prigionieri, prendi le armi, batti il boss!' : '');
+    if (this.state === 'title') this.card(t('games.shooter.mission', { n: this.levelIndex + 1 }), t(this.level.name), this.levelIndex === 0 && !this.loopN ? t('games.shooter.missionHint') : '');
     if (this.state === 'clear') {
       const s = this.levelStats;
-      this.card('MISSIONE COMPIUTA!', `Robot distrutti: ${s.kills} · Ciclisti liberati: ${s.rescued}`, `Punti missione: ${this.score - s.start}`);
+      this.card(t('games.shooter.clear'), t('games.shooter.clearStats', { kills: s.kills, rescued: s.rescued }), t('games.shooter.clearPoints', { n: this.score - s.start }));
     }
     if (this.state === 'over') {
-      this.card('MISSIONE FALLITA', `Punti: ${this.score}${this.newRecord ? '  ★ NUOVO RECORD!' : ''}`, `Record: ${this.best} · Liberati: ${this.rescued}`);
-      if (this.stateT > 1.2) hudText(ctx, '+ riprova   ·   − cambia eroe', W / 2, H * 0.62, { size: 15, align: 'center', color: '#ffd34d' });
+      this.card(t('games.shooter.failed'), `${t('games.shooter.points', { n: this.score })}${this.newRecord ? t('games.shooter.newBest') : ''}`, t('games.shooter.failStats', { best: this.best, rescued: this.rescued }));
+      if (this.stateT > 1.2) hudText(ctx, t('games.shooter.retryKeys'), W / 2, H * 0.62, { size: 15, align: 'center', color: '#ffd34d' });
     }
   }
 
@@ -1208,15 +1209,15 @@ export class Strike {
     s.present();
     const ctx = s.ctx; const W = s.W; const H = s.H;
     hudText(ctx, 'PEDAL STRIKE', W / 2, 92, { size: 34, align: 'center', color: '#fc6719' });
-    hudText(ctx, 'Il Barone Bullone ha rubato le bici della città', W / 2, 118, { size: 12, align: 'center', color: '#cfd6e4' });
-    hudText(ctx, 'e le ha trasformate in robot. Riprenditele!', W / 2, 134, { size: 12, align: 'center', color: '#cfd6e4' });
-    hudText(ctx, 'SCEGLI L\'EROE', W / 2, H * 0.3, { size: 16, align: 'center', color: '#ffd34d' });
-    hudText(ctx, h.name, W / 2, H * 0.68, { size: 20, align: 'center' });
-    hudText(ctx, h.perk, W / 2, H * 0.68 + 24, { size: 13, align: 'center', color: '#06d6a0' });
+    hudText(ctx, t('games.shooter.story1'), W / 2, 118, { size: 12, align: 'center', color: '#cfd6e4' });
+    hudText(ctx, t('games.shooter.story2'), W / 2, 134, { size: 12, align: 'center', color: '#cfd6e4' });
+    hudText(ctx, t('games.shooter.pickHero'), W / 2, H * 0.3, { size: 16, align: 'center', color: '#ffd34d' });
+    hudText(ctx, t(h.name), W / 2, H * 0.68, { size: 20, align: 'center' });
+    hudText(ctx, t(h.perk), W / 2, H * 0.68 + 24, { size: 13, align: 'center', color: '#06d6a0' });
     hudText(ctx, HEROES.map((x, i) => (i === this.heroIndex ? '●' : '○')).join(' '), W / 2, H * 0.68 + 48, { size: 14, align: 'center' });
-    hudText(ctx, '−  cambia eroe        +  inizia', W / 2, H * 0.84, { size: 15, align: 'center', color: '#ffd34d' });
-    hudText(ctx, 'In gioco: + salta · − bomba · avvicinati: colpo di pompa', W / 2, H * 0.84 + 24, { size: 11, align: 'center', color: '#9aa3b5' });
-    hudText(ctx, `Record: ${this.best}`, W / 2, H * 0.84 + 44, { size: 11, align: 'center', color: '#9aa3b5' });
+    hudText(ctx, t('games.shooter.heroKeys'), W / 2, H * 0.84, { size: 15, align: 'center', color: '#ffd34d' });
+    hudText(ctx, t('games.shooter.inGame'), W / 2, H * 0.84 + 24, { size: 11, align: 'center', color: '#9aa3b5' });
+    hudText(ctx, t('games.common.best', { n: this.best }), W / 2, H * 0.84 + 44, { size: 11, align: 'center', color: '#9aa3b5' });
     this.hooks.progress?.drawToasts(ctx, W, this.lastDt || 0.016);
   }
 
