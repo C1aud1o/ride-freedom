@@ -21,6 +21,8 @@ concurrency:
 
 jobs:
   deploy:
+    # dopo una build Android, ripubblica solo se era una build riuscita del ramo principale
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && contains(fromJSON('["main","ccr-28a29a79-yshigo"]'), github.event.workflow_run.head_branch))
     runs-on: ubuntu-latest
     environment:
       name: github-pages
