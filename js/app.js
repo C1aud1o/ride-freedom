@@ -23,6 +23,7 @@ import { party, badges } from './celebrate.js';
 import { initAccount, dataChanged, accountsAvailable, submitGameScore, renderBoards } from './account/index.js';
 import * as challenges from './challenges.js';
 import { initPlans } from './plans-ui.js';
+import { loadFactor, runCalibration, DEFAULT_FACTOR } from './calibrate.js';
 import { createClickNav } from './clicknav.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { workouts, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
@@ -265,7 +266,8 @@ function syncInputs() {
 // Il D100 non trasmette la cadenza nei dati FTMS. Con lo Zwift Cog la trasmissione reale
 // è fissa, quindi la velocità del volano è proporzionale alla pedalata: la stimiamo.
 // 7.37 rpm per km/h viene dai dati del D100 (campo extra ≈ cadenza×10 = velocità×7.37).
-const RPM_PER_KMH = 7.37;
+// Il fattore dipende dalla corona usata: si calibra in Impostazioni → Cambio virtuale (js/calibrate.js).
+let RPM_PER_KMH = loadFactor();
 function pmActive() { return pm.connected && state.usePm; }
 function hasRealCadence() { return trainer.hasCadence || (pmActive() && state.pmCadence); }
 function currentCadence() {
@@ -279,15 +281,18 @@ function currentVirtualSpeed() {
   return cad < 15 ? 0 : virtualSpeed(cad, GEARS[state.gear]);
 }
 
+// Durezza del cambio virtuale (come la "difficoltà" degli altri programmi): scala la potenza richiesta.
+let gearFeel = (() => { try { const v = Number(localStorage.getItem('gearFeel')); return v >= 40 && v <= 100 ? v : 100; } catch { return 100; } })();
 function gearTarget() {
   const v = currentVirtualSpeed();
   if (v <= 0) return 0;
-  return Math.min(MAX_W, powerForSpeed(v, { grade: state.grade, mass: state.mass }));
+  return Math.min(MAX_W, powerForSpeed(v, { grade: state.grade, mass: state.mass }) * gearFeel / 100);
 }
 
 let sending = false;
+let calibrating = false;
 async function applyMode(force = false) {
-  if (!trainer.connected || !trainer.controllable || sending) return;
+  if (!trainer.connected || !trainer.controllable || sending || calibrating) return;
   let key; let fn;
   switch (state.mode) {
     case 'gears': {
@@ -881,11 +886,41 @@ $('connectPm').addEventListener('click', async () => {
 pm.addEventListener('data', (e) => {
   if (!state.usePm) return;
   const d = e.detail;
-  state.data.power = d.power;
+  if (d.power != null) state.data.power = d.power; // un sensore di sola cadenza non manda watt
   if (d.cadence != null) { state.data.cadence = d.cadence; state.pmCadence = true; }
   render();
 });
 pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('pmStatus', t('status.notConnected')); $('connectPm').textContent = t('pm.connect'); });
+
+// ---------- Cambio virtuale: calibrazione della cadenza e durezza ----------
+function renderGearSettings() {
+  $('cadFactorInfo').textContent = t('calib.current', { f: RPM_PER_KMH.toFixed(2) }) + (RPM_PER_KMH === DEFAULT_FACTOR ? ` · ${t('calib.notYet')}` : '');
+  document.querySelectorAll('#gearFeelChips button').forEach((b) => b.classList.toggle('on', +b.dataset.f === gearFeel));
+}
+document.querySelectorAll('#gearFeelChips button').forEach((b) => b.addEventListener('click', () => {
+  gearFeel = +b.dataset.f; try { localStorage.setItem('gearFeel', gearFeel); } catch { /* */ }
+  renderGearSettings(); state.lastSent = null; applyMode(true);
+}));
+$('calibrateCad').addEventListener('click', () => {
+  if (!trainer.connected) { toast(t('calib.needTrainer')); return; }
+  runCalibration({
+    speedKmh: () => state.speedSmooth * 3.6,
+    realCadence: () => (hasRealCadence() ? state.cadenceSmooth : null),
+    // durante la misura il rullo tiene una resistenza leggera e costante
+    hold: (on) => {
+      calibrating = on;
+      if (on && trainer.controllable) trainer.setTargetPower(90).catch(() => {});
+      if (!on) { state.lastSent = null; applyMode(true); }
+    },
+    onDone: (f) => { RPM_PER_KMH = f; renderGearSettings(); },
+  });
+});
+$('cadFactorReset').addEventListener('click', () => {
+  try { localStorage.removeItem('cadFactor'); } catch { /* */ }
+  RPM_PER_KMH = DEFAULT_FACTOR; renderGearSettings();
+});
+renderGearSettings();
+window.addEventListener('langchange', renderGearSettings);
 
 // ---------- Ponte verso Garmin (solo app Android) ----------
 $('garminNative').hidden = !isNative;
@@ -982,7 +1017,8 @@ const gameHooks = {
   runStart: () => { gameRunT0 = Date.now(); },
   runEnd: (r) => reportGameScore(r),
   setGrade: (g) => {
-    state.grade = g == null ? gradeBeforeGame : Math.max(-10, Math.min(15, g));
+    // stessa regola dei percorsi: la pendenza arriva al rullo scalata dal "realismo salite" (default 50%)
+    state.grade = g == null ? gradeBeforeGame : Math.round(Math.max(-10, Math.min(15, g)) * routeRealism * 2) / 2;
     syncInputs(); render(); applyMode(true);
   },
 };

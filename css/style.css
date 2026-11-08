@@ -580,3 +580,12 @@ body:not(.dev) .dev-only { display: none !important; }
 .pl-week li.today, .pl-week li.late { color: var(--t1); font-weight: 700; }
 .pl-all h4 { margin: 12px 0 6px; }
 .pl-all summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+
+/* calibrazione della cadenza */
+.calib { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(0,0,0,.72); padding: 16px; }
+.calib-box { width: min(420px, 100%); background: var(--surface, #161814); border-radius: 20px; padding: 20px; text-align: center; }
+.calib-beat { width: 96px; height: 96px; margin: 18px auto; border-radius: 50%; background: var(--accent, #d9ff3d); opacity: .25; }
+.calib-beat.on { animation: calib-beat .25s ease-out; }
+@keyframes calib-beat { from { opacity: 1; transform: scale(1.12); } to { opacity: .25; transform: scale(1); } }
+.calib-count { font-size: 1.3rem; font-weight: 700; min-height: 1.6em; }
+@media (prefers-reduced-motion: reduce) { .calib-beat.on { animation: none; opacity: 1; } }
