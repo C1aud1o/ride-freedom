@@ -389,7 +389,11 @@ setInterval(() => {
     const k5 = Math.floor(r.distance / 5000);
     if (k5 > (r.lastKm || 0)) { r.lastKm = k5; toast(t('ride.km', { n: k5 * 5 })); }
   }
-  if (state.mode === 'gears') applyMode();
+  // ERG: alcuni rulli (es. D100) fissano la resistenza per la potenza richiesta alla velocità del momento e non
+  // la ricalcolano finché non ricevono un nuovo comando. Come fanno gli altri programmi, ripetiamo il comando
+  // ogni ~2 s anche se il valore non cambia, così la resistenza segue la cadenza e i watt restano quelli richiesti.
+  if ((state.mode === 'erg' || state.mode === 'gears') && performance.now() - state.lastSentAt > 1800) state.lastSent = null;
+  if (state.mode === 'gears' || state.mode === 'erg') applyMode();
   if (workout && r.running) tickWorkout(1);
   if (r.running) autoShiftTick();
   powerBuf.push(d.power || 0); if (powerBuf.length > 3) powerBuf.shift();
