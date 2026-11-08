@@ -1,0 +1,15 @@
+{
+  "name": "spindro-firebase-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Test delle regole Firestore di Spindro con l'emulatore (vedi docs/account-architettura.md).",
+  "scripts": {
+    "test": "firebase emulators:exec --config ../firebase.json --project demo-spindro --only firestore \"node --test test/*.test.js\"",
+    "test:only": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.35.0"
+  }
+}
