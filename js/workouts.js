@@ -24,6 +24,13 @@ export function workouts() {
     { ...meta('vo2'), steps: [...WARM, ...reps(5, s(180, 1.15), s(180, 0.5)), ...COOL] },
     { ...meta('piramide'), steps: [...WARM, ...[1, 2, 3, 4, 3, 2, 1].flatMap((m, i, a) => [s(m * 60, 1.0 + (4 - m) * 0.05, t('workouts.step.stepN', { i: i + 1, n: a.length })), ...(i < a.length - 1 ? [s(m * 60, 0.55, t('workouts.step.rest'))] : [])]), ...COOL] },
     { ...meta('trenta'), steps: [...WARM, ...reps(8, s(30, 1.2), s(30, 0.5), 'workouts.step.set1'), s(300, 0.5, t('workouts.step.rest')), ...reps(8, s(30, 1.2), s(30, 0.5), 'workouts.step.set2'), ...COOL] },
+    // allenamenti dei piani (js/plans.js): sempre in % FTP, durate pensate per chi si allena 3-4 volte a settimana
+    { ...meta('facile'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(1200, 0.62, t('workouts.step.easy')), ...COOL] },
+    { ...meta('costante'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(1800, 0.68, t('workouts.step.endurance')), ...COOL] },
+    { ...meta('tempo'), steps: [...WARM, ...reps(2, s(720, 0.82), s(300, 0.55), 'workouts.step.block'), ...COOL] },
+    { ...meta('lungo60'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(3000, 0.68, t('workouts.step.endurance')), ...COOL] },
+    { ...meta('lungo75'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(3900, 0.68, t('workouts.step.endurance')), ...COOL] },
+    { ...meta('lungo90'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(4800, 0.68, t('workouts.step.endurance')), ...COOL] },
     { ...meta('ramp'), test: true,
       steps: [{ d: 300, w: 90, label: t('workouts.step.warm') }, ...Array.from({ length: 40 }, (_, i) => ({ d: 60, w: 100 + i * 20, label: t('workouts.step.rampStep', { i: i + 1 }) }))] },
   ];

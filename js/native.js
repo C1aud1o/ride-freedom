@@ -6,6 +6,8 @@ const cx = window.capacitorExports;
 export const isNative = !!cx?.Capacitor?.isNativePlatform?.();
 export const BLE = isNative ? cx.registerPlugin('BluetoothLe') : null;
 export const GarminBridge = isNative ? cx.registerPlugin('GarminBridge') : null;
+// promemoria dei piani di allenamento (@capacitor/local-notifications): notifiche locali, nessun server
+export const LocalNotifications = isNative ? cx.registerPlugin('LocalNotifications') : null;
 
 const ALIASES = {
   heart_rate: 0x180d, battery_service: 0x180f, device_information: 0x180a, cycling_power: 0x1818,

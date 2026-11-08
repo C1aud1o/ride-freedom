@@ -22,6 +22,7 @@ import { coach, spokenTime } from './coach.js';
 import { party, badges } from './celebrate.js';
 import { initAccount, dataChanged, accountsAvailable, submitGameScore, renderBoards } from './account/index.js';
 import * as challenges from './challenges.js';
+import { initPlans } from './plans-ui.js';
 import { createClickNav } from './clicknav.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { workouts, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
@@ -432,7 +433,9 @@ function renderWorkoutList() {
     } catch (err) { toast(t('workouts.importFailed', { error: err.message })); }
   });
 }
-$('openWorkouts').addEventListener('click', () => { renderWorkoutList(); renderRoutePick(); openSheet('workoutSheet'); });
+// piani di allenamento (js/plans-ui.js): scheda nel pannello, card in home, promemoria
+const plans = initPlans({ allWorkouts, startWorkout: (w) => startWorkout(w), toast: (m) => toast(m), isNative });
+$('openWorkouts').addEventListener('click', () => { plans.show('main'); renderWorkoutList(); renderRoutePick(); openSheet('workoutSheet'); });
 
 // ---------- Percorsi GPX ----------
 let route = null; let routeDist = 0; let routeT = 0; let routeTrace = []; let routeGhost = null;
@@ -543,11 +546,12 @@ function finishWorkout(completed) {
       if (confirm(t('workout.ftpFound', { best: Math.round(best), ftp, old: state.ftp }))) {
         state.ftp = ftp; $('ftp').value = ftp; localStorage.setItem('ftp', ftp); toast(t('workout.ftpUpdated', { ftp }));
       }
+      plans.onWorkoutDone(w.id);
     } else toast(t('workout.testTooShort'));
     state.erg = Math.round(state.ftp * 0.5); syncInputs(); applyMode(true);
     return;
   }
-  if (completed) { coach.say(t('coach.workoutDone', { name: w.name })); toast(t('workout.done', { name: w.name })); gameAudio.sfx('win'); progress.event('workouts', 1, 50); }
+  if (completed) { coach.say(t('coach.workoutDone', { name: w.name })); toast(t('workout.done', { name: w.name })); gameAudio.sfx('win'); progress.event('workouts', 1, 50); plans.onWorkoutDone(w.id); }
 }
 $('wkSkip').addEventListener('click', () => { workout?.skip(); tickWorkout(0); });
 $('wkStop').addEventListener('click', () => { if (workout?.w.test) finishWorkout(true); else if (confirm(t('workout.confirmEnd'))) finishWorkout(false); });
@@ -752,6 +756,7 @@ function renderWelcome() {
   const el = $('welcome');
   const hist = history();
   const riding = trainer.connected || state.ride.log.length;
+  plans.renderHome(riding);
   renderChallenges(hist, riding);
   if (riding) { el.hidden = true; return; }
   el.hidden = false;
@@ -1457,7 +1462,7 @@ window.addEventListener('langchange', () => {
   if (!$('garminOn').checked) setStatus('garminStatus', t('status.off'));
   showVersion(); showMute(); renderStrava(); renderWelcome(); render(); checkGarminConflict();
   $('wkFtp').textContent = state.ftp;
-  if (!$('workoutSheet').hidden) { renderWorkoutList(); renderRoutePick(); }
+  if (!$('workoutSheet').hidden) { renderWorkoutList(); renderRoutePick(); if (!$('wkPanePlans').hidden) plans.renderPane(); }
   if (!$('historySheet').hidden) openHistory();
   if (!$('gamePanel').hidden) {
     if (activeGame) { $('gameTitle').textContent = t(GAME_DEFS[activeKind].title); $('gameHelp').textContent = t(GAME_DEFS[activeKind].help); }

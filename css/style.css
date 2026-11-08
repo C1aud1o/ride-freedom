@@ -550,3 +550,33 @@ body:not(.dev) .dev-only { display: none !important; }
 /* bersagli da 44 px nelle impostazioni senza tagliare i numeri */
 .unit-input { gap: 2px; padding: 0 2px; }
 .unit-input input { padding: 0; min-width: 2.2em; }
+
+/* piani di allenamento: scheda nel pannello Allenamenti e card in home */
+.wk-tabs { grid-template-columns: repeat(2, 1fr); margin: 4px 0 12px; }
+.wk-tabs button { min-height: 48px; }
+.pl-pane { display: grid; gap: 12px; }
+.pl-choices { display: grid; gap: 10px; }
+.pl-choice.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.pl-date, .pl-remind { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pl-date input, .pl-time input { font: 700 var(--fs-body)/1 var(--font-ui); background: var(--ink); color: var(--t1); border: 1px solid var(--t4); border-radius: 12px; padding: 10px; min-height: 44px; }
+.pl-remind label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.pl-go:disabled { opacity: .45; }
+.pl-pane .cta-sm { min-height: 48px; border: 0; border-radius: var(--r-btn); background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: var(--shadow-cta); }
+.plan-card { padding: 20px; display: grid; gap: 12px; }
+.plan-card h2 { margin: 0; font: 700 var(--fs-title)/1.1 var(--font-num); text-transform: uppercase; }
+.pl-sub { color: var(--t3); }
+.pl-today { margin: 0; }
+.pl-due { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pl-due li { display: grid; gap: 6px; }
+.pl-due small { color: var(--t3); }
+.pl-act { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.pl-act .cta-sm { min-height: 48px; padding: 0 20px; border: 0; border-radius: var(--r-btn); background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: var(--shadow-cta); }
+.pl-act .link { min-height: 44px; }
+.pl-week, .pl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pl-week li, .pl-list li { display: grid; grid-template-columns: 1.4em auto 1fr; gap: 8px; align-items: baseline; color: var(--t2); }
+.pl-week small { color: var(--t3); }
+.pl-week li.done .pl-ico, .pl-list li.done .pl-ico { color: var(--accent); }
+.pl-week li.missed, .pl-list li.missed, .pl-week li.skipped, .pl-list li.skipped { color: var(--t3); }
+.pl-week li.today, .pl-week li.late { color: var(--t1); font-weight: 700; }
+.pl-all h4 { margin: 12px 0 6px; }
+.pl-all summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }

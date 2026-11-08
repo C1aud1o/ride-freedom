@@ -53,6 +53,7 @@
 
     <!-- stato vuoto: benvenuto (utente nuovo) o ultimo allenamento (utente che torna) -->
     <section id="welcome" class="card welcome" hidden></section>
+    <section id="planCard" class="card plan-card" hidden></section>
     <section id="challengeCard" class="card challenges" hidden></section>
     <section id="garminBanner" class="card banner" hidden></section>
 
@@ -190,6 +191,8 @@
   <div id="workoutSheet" class="sheet" hidden>
     <div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="workoutTitle">
       <div class="sheet-head"><h2 id="workoutTitle" data-i18n="workouts.title"></h2><button class="close" data-close="workoutSheet" data-i18n-attr="aria-label:ui.close">×</button></div>
+      <div class="chips wk-tabs" role="tablist"><button id="tabWk" class="on" role="tab" aria-selected="true" data-i18n="workouts.tab"></button><button id="tabPlans" role="tab" aria-selected="false" data-i18n="plans.tab"></button></div>
+      <div id="wkPaneMain">
       <section class="rt-pick">
         <h3 data-i18n="routes.title"></h3>
         <p class="fine" data-i18n="routes.intro"></p>
@@ -201,6 +204,8 @@
       <h3 class="wk-h3" data-i18n="workouts.heading"></h3>
       <p class="fine wk-intro" data-i18n-html="workouts.intro"></p>
       <div id="workoutList" class="wk-list"></div>
+      </div>
+      <div id="wkPanePlans" class="pl-pane" hidden></div>
     </div>
   </div>
 
