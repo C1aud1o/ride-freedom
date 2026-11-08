@@ -86,7 +86,7 @@ const ok = (cond, msg) => { console.log(`${cond ? '  ✓' : '  ✗'} ${msg}`); i
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('dialog', (d) => d.accept());
-  await page.addInitScript(() => { try { localStorage.setItem('lang', 'it'); } catch { /* */ } }); // i controlli leggono testi italiani
+  await page.addInitScript(() => { try { localStorage.setItem('lang', 'it'); localStorage.setItem('analytics', '0'); } catch { /* */ } }); // i controlli leggono testi italiani
   await page.addInitScript(MOCK);
   await page.goto(base);
 

@@ -4,7 +4,7 @@ import { Trainer } from './trainers/index.js';
 import { PowerMeter } from './powermeter.js';
 import { SensorDebug } from './debug.js';
 import { BUILD } from './build.js';
-import { watchGuide, GARMIN_RE } from './watchguide.js';
+import { watchGuide, GARMIN_RE, WATCH_BRANDS, brandGuide } from './watchguide.js';
 import { ZwiftClick } from './click.js';
 import { GEARS, virtualSpeed, powerForSpeed } from './gears.js';
 import { HeartRate } from './hr.js';
@@ -832,6 +832,17 @@ function offerTrainerReport(name) { // la prima volta che si collega un rullo co
 $('reportHintGo').addEventListener('click', () => { $('reportHint').hidden = true; openExternal(trainerReportUrl()); });
 $('reportHintLater').addEventListener('click', () => { $('reportHint').hidden = true; });
 trainer.addEventListener('disconnected', () => { $('reportHint').hidden = true; });
+
+// ---------- Guide per marca di orologio (B6) ----------
+function renderWatchBrand() {
+  const sel = $('watchBrand'); const cur = sel.value || localStorage.getItem('watchBrand') || 'garmin';
+  sel.innerHTML = WATCH_BRANDS.map((b) => `<option value="${b}">${t(`watch.brand.${b}`)}</option>`).join('');
+  sel.value = WATCH_BRANDS.includes(cur) ? cur : 'garmin';
+  $('watchBrandGuide').innerHTML = brandGuide(sel.value);
+}
+$('watchBrand').addEventListener('change', (e) => { try { localStorage.setItem('watchBrand', e.target.value); } catch { /* */ } $('watchBrandGuide').innerHTML = brandGuide(e.target.value); });
+window.addEventListener('langchange', renderWatchBrand);
+renderWatchBrand();
 
 // ---------- Misuratore di potenza esterno ----------
 state.usePm = localStorage.getItem('usePm') !== '0';

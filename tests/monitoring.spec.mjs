@@ -100,3 +100,16 @@ test('"Segnala il tuo rullo": il link contiene template e campi giusti, senza da
   await expect(page.locator('#trainerStatus')).toContainText('FTMS');
   await expect(page.locator('#reportHint')).toBeHidden();
 });
+
+test('guide orologi: il selettore mostra i passi di ogni marca, senza dire "verificato"', async ({ page }) => {
+  await setup(page, { analytics: '0' });
+  await page.click('#openSettings');
+  for (const b of ['wahoo', 'coros', 'suunto', 'polar', 'apple']) {
+    await page.selectOption('#watchBrand', b);
+    await expect(page.locator('#watchBrandGuide li')).toHaveCount(3);
+    await expect(page.locator('#watchBrandGuide')).toContainText('Dovrebbe funzionare');
+    await expect(page.locator('#watchBrandGuide')).not.toContainText(/verificat/i);
+  }
+  await page.selectOption('#watchBrand', 'garmin');
+  await expect(page.locator('#watchBrandGuide .wg-steps li')).toHaveCount(3);
+});
