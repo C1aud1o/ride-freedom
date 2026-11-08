@@ -1,0 +1,7 @@
+Première version publique.
+• 24 vitesses virtuelles, modes ERG, pente et résistance
+• Home trainers FTMS ; Tacx FE-C et Wahoo legacy expérimentaux
+• Jeux 3D au pédalier, séances, test FTP, parcours GPX
+• Enregistrement .FIT et export des séances
+• Pont Garmin : le téléphone sert de capteur puissance/cadence/vitesse
+Dites-nous quel home trainer vous utilisez via « Signaler un problème ».

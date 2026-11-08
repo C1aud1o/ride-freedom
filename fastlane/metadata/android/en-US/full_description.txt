@@ -1,0 +1,37 @@
+Spindro turns your phone into a free, open-source cycling app for your smart trainer. No subscription. No account needed. Your data stays on your device.
+
+CONNECT YOUR TRAINER
+• Bluetooth with automatic protocol choice: FTMS (most smart trainers since about 2020), Tacx FE-C over Bluetooth and Wahoo legacy (experimental: so far tested only against a simulated trainer, not on real hardware), or read-only Cycling Power / Speed & Cadence.
+• Real-time power, cadence, speed and heart rate (Bluetooth chest strap, or a watch that broadcasts heart rate).
+• Developed and tested mainly with the Van Rysel D100. Your trainer not working? There is a built-in "Report a problem" button; every report helps the compatibility list.
+
+FOUR WAYS TO RIDE
+• Gears: 24 virtual gears. A physics model (cadence, gear, slope, weight) sets the ERG power, so shifting really changes the resistance. Optional automatic shifting keeps your target cadence.
+• ERG: fixed power.
+• Slope: simulated gradient.
+• Resistance: resistance level in %.
+Shift with on-screen buttons, keyboard or Bluetooth remotes, or a Zwift Click (experimental support; Zwift Play and Zwift Ride are also recognised).
+
+GAMES THAT USE YOUR LEGS
+Pedal-powered 3D games: a road stage with eight rivals, a side-scrolling shooter, a horde shooter, a plane that flies on watts, a drafting game and a brick breaker. More watts, more speed or firepower; climbs arrive on the trainer as real gradient.
+
+STRUCTURED TRAINING
+• ERG workouts computed on your FTP (sweet spot, threshold, VO2max, pyramid, 30/30…) and a ramp FTP test.
+• Workout editor; export workouts as Garmin FIT or .zwo, import .zwo.
+• GPX routes: gradient follows the track, elevation profile, mini map, challenge your own record.
+• Ride along a YouTube video or your own video file at your speed.
+
+YOUR WATCH AS A BIKE COMPUTER (Android)
+The phone can broadcast your power, cadence and speed as a Bluetooth sensor, so a Garmin watch or bike computer can record the session.
+
+HISTORY AND EXPORT
+• Records every ride as a .FIT file you can import into Garmin Connect, Strava and other services.
+• History with weekly minutes, power records (5 s, 1, 5, 20 min), estimated FTP and a chart for every ride. Share card at the end of the ride.
+• Auto-start and pause, weekly goal, heart-rate zones, data backup.
+
+OPEN SOURCE
+The full source code is public under the GPL-3.0 licence. Accounts and leaderboards are planned for later and will be optional: the app is already complete without them.
+
+Tip: your trainer accepts one Bluetooth connection at a time, so close other cycling apps first.
+
+Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel and other names are trademarks of their respective owners. Spindro is independent and not affiliated with them.

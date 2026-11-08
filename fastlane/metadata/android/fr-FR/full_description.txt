@@ -1,0 +1,37 @@
+Spindro transforme votre téléphone en une application de cyclisme gratuite et open source pour votre home trainer connecté. Pas d'abonnement, pas de compte obligatoire. Vos données restent sur votre appareil.
+
+CONNECTEZ VOTRE HOME TRAINER
+• Bluetooth avec choix automatique du protocole : FTMS (la plupart des home trainers connectés depuis 2020 environ), Tacx FE-C sur Bluetooth et Wahoo legacy (expérimentaux : testés jusqu'ici seulement avec un home trainer simulé, pas sur du matériel réel) ou lecture seule Cycling Power / Speed & Cadence.
+• Puissance, cadence, vitesse et fréquence cardiaque en temps réel (ceinture Bluetooth ou montre qui diffuse le pouls).
+• Développée et testée surtout avec le Van Rysel D100. Votre home trainer ne fonctionne pas ? Le bouton « Signaler un problème » est intégré : chaque signalement enrichit la liste de compatibilité.
+
+QUATRE FAÇONS DE PÉDALER
+• Vitesses : 24 rapports virtuels. Un modèle physique (cadence, rapport, pente, poids) calcule la puissance ERG : changer de vitesse change vraiment la résistance. Le changement automatique en option garde la cadence visée.
+• ERG : puissance fixe.
+• Pente : montées simulées.
+• Résistance : niveau en %.
+Changez avec les boutons à l'écran, le clavier, des télécommandes Bluetooth ou un Zwift Click (prise en charge expérimentale ; Zwift Play et Zwift Ride sont aussi reconnus).
+
+DES JEUX QUI SE JOUENT AVEC LES JAMBES
+Jeux 3D au pédalier : une étape en ligne avec huit rivaux, un shoot'em up à défilement, un jeu de hordes, un avion qui vole aux watts, un jeu d'aspiration et un casse-briques. Plus de watts = plus de vitesse ou de tirs ; les montées arrivent sur le home trainer comme une vraie pente.
+
+ENTRAÎNEMENTS STRUCTURÉS
+• Séances ERG calculées sur votre FTP (sweet spot, seuil, VO2max, pyramide, 30/30…) et test FTP en rampe.
+• Éditeur de séances ; export en .FIT pour Garmin ou en .zwo, import de .zwo.
+• Parcours GPX : la pente suit le tracé, profil altimétrique, mini-carte, défi contre votre record.
+• Pédalez sur une vidéo YouTube ou votre propre fichier, à votre vitesse.
+
+LA MONTRE COMME COMPTEUR (Android)
+Le téléphone peut diffuser puissance, cadence et vitesse comme un capteur Bluetooth : une montre ou un compteur Garmin enregistre la séance.
+
+HISTORIQUE ET EXPORT
+• Enregistre chaque sortie dans un fichier .FIT à importer dans Garmin Connect, Strava et d'autres services.
+• Historique : minutes par semaine, records de puissance (5 s, 1, 5, 20 min), FTP estimée et graphique de chaque sortie. Carte à partager en fin de sortie.
+• Démarrage et pause automatiques, objectif hebdomadaire, zones cardio, sauvegarde des données.
+
+OPEN SOURCE
+Le code source est public sous licence GPL-3.0. Comptes et classements sont prévus plus tard, ils seront facultatifs : l'application est déjà complète sans eux.
+
+Astuce : le home trainer n'accepte qu'une connexion Bluetooth à la fois, fermez les autres applications de cyclisme.
+
+Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel et d'autres noms sont des marques de leurs propriétaires. Spindro est indépendante et n'est affiliée à aucun d'eux.

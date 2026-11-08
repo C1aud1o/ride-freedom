@@ -1,0 +1,37 @@
+Spindro macht dein Handy zu einer kostenlosen Open-Source-Radsport-App für deinen Smart Trainer. Kein Abo, kein Konto nötig. Deine Daten bleiben auf deinem Gerät.
+
+TRAINER VERBINDEN
+• Bluetooth mit automatischer Protokollwahl: FTMS (die meisten Smart Trainer seit etwa 2020), Tacx FE-C über Bluetooth und Wahoo Legacy (experimentell: bisher nur mit einem simulierten Trainer getestet, nicht mit echter Hardware) oder reine Anzeige über Cycling Power / Speed & Cadence.
+• Leistung, Trittfrequenz, Geschwindigkeit und Herzfrequenz in Echtzeit (Bluetooth-Brustgurt oder Uhr, die den Puls sendet).
+• Vor allem mit dem Van Rysel D100 entwickelt und getestet. Dein Trainer läuft nicht? Der Button „Problem melden" ist eingebaut: Jede Meldung verbessert die Kompatibilitätsliste.
+
+VIER ARTEN ZU FAHREN
+• Gänge: 24 virtuelle Gänge. Ein Physikmodell (Trittfrequenz, Übersetzung, Steigung, Gewicht) berechnet die ERG-Leistung – Schalten ändert den Widerstand wirklich. Optionale Automatikschaltung hält die Wunsch-Trittfrequenz.
+• ERG: feste Leistung.
+• Steigung: simulierte Anstiege.
+• Widerstand: Stufe in %.
+Geschaltet wird per Bildschirmtasten, Tastatur, Bluetooth-Fernbedienung oder Zwift Click (experimentelle Unterstützung; Zwift Play und Zwift Ride werden ebenfalls erkannt).
+
+SPIELE, DIE MAN MIT DEN BEINEN SPIELT
+3D-Spiele mit Pedalkraft: eine Straßenetappe mit acht Rivalen, ein seitlich scrollender Shooter, ein Horden-Shooter, ein Flugzeug, das mit Watt fliegt, ein Windschatten-Spiel und ein Brick-Breaker. Mehr Watt = mehr Tempo oder Feuerkraft; Anstiege kommen als echte Steigung am Trainer an.
+
+STRUKTURIERTES TRAINING
+• ERG-Workouts auf Basis deiner FTP (Sweetspot, Schwelle, VO2max, Pyramide, 30/30 …) und Stufentest zur FTP.
+• Workout-Editor; Export als Garmin-FIT oder .zwo, Import von .zwo.
+• GPX-Strecken: Steigung folgt dem Track, Höhenprofil, Minikarte, Duell gegen deinen Rekord.
+• Fahre zu einem YouTube-Video oder eigener Videodatei in deinem Tempo.
+
+DIE UHR ALS FAHRRADCOMPUTER (Android)
+Das Handy kann Leistung, Trittfrequenz und Geschwindigkeit wie ein Bluetooth-Sensor senden, sodass eine Garmin-Uhr oder ein Garmin-Radcomputer die Einheit aufzeichnet.
+
+VERLAUF UND EXPORT
+• Jede Fahrt wird als .FIT-Datei gespeichert, importierbar in Garmin Connect, Strava und andere Dienste.
+• Verlauf mit Wochenminuten, Leistungsrekorden (5 s, 1, 5, 20 Min.), geschätzter FTP und Diagramm je Fahrt. Teilen-Karte am Ende der Fahrt.
+• Automatischer Start und Pause, Wochenziel, Herzfrequenzzonen, Datensicherung.
+
+OPEN SOURCE
+Der Quellcode ist öffentlich unter der GPL-3.0. Konten und Bestenlisten sind für später geplant und werden optional sein: Die App ist auch ohne sie vollständig.
+
+Tipp: Der Trainer akzeptiert nur eine Bluetooth-Verbindung gleichzeitig – schließe andere Rad-Apps vorher.
+
+Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel und weitere Namen sind Marken ihrer jeweiligen Inhaber. Spindro ist unabhängig und nicht mit ihnen verbunden.

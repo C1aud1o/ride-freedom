@@ -1,0 +1,37 @@
+Spindro convierte tu teléfono en una app de ciclismo gratuita y de código abierto para tu rodillo inteligente. Sin suscripción y sin cuenta obligatoria. Tus datos se quedan en tu dispositivo.
+
+CONECTA TU RODILLO
+• Bluetooth con elección automática del protocolo: FTMS (la mayoría de los rodillos inteligentes desde 2020 aproximadamente), Tacx FE-C por Bluetooth y Wahoo legacy (experimentales: hasta ahora probados solo con un rodillo simulado, no con equipos reales) o solo lectura Cycling Power / Speed & Cadence.
+• Potencia, cadencia, velocidad y frecuencia cardíaca en tiempo real (banda Bluetooth o reloj que emite el pulso).
+• Desarrollada y probada sobre todo con el Van Rysel D100. ¿Tu rodillo no funciona? Hay un botón «Informar de un problema»: cada informe mejora la lista de compatibilidad.
+
+CUATRO FORMAS DE PEDALEAR
+• Marchas: 24 desarrollos virtuales. Un modelo físico (cadencia, desarrollo, pendiente, peso) calcula la potencia ERG, así que cambiar de marcha cambia de verdad la resistencia. El cambio automático opcional mantiene la cadencia elegida.
+• ERG: potencia fija.
+• Pendiente: subidas simuladas.
+• Resistencia: nivel en %.
+Cambia con los botones de pantalla, el teclado, mandos Bluetooth o un Zwift Click (soporte experimental; también se reconocen Zwift Play y Zwift Ride).
+
+JUEGOS QUE SE JUEGAN CON LAS PIERNAS
+Juegos 3D a pedales: una etapa en línea con ocho rivales, un shooter lateral, un shooter de hordas, un avión que vuela a vatios, un juego de rueda y un rompeladrillos. Más vatios = más velocidad o más disparos; las subidas llegan al rodillo como pendiente real.
+
+ENTRENAMIENTOS ESTRUCTURADOS
+• Entrenos ERG calculados sobre tu FTP (sweet spot, umbral, VO2max, pirámide, 30/30…) y test de FTP en rampa.
+• Editor de entrenos; exporta a .FIT para Garmin o .zwo, importa .zwo.
+• Rutas GPX: la pendiente sigue el track, perfil de altitud, minimapa, reto contra tu récord.
+• Pedalea sobre un vídeo de YouTube o un archivo propio, a tu velocidad.
+
+EL RELOJ COMO CICLOCOMPUTADOR (Android)
+El teléfono puede emitir potencia, cadencia y velocidad como un sensor Bluetooth, para que un reloj o ciclocomputador Garmin grabe la sesión.
+
+HISTORIAL Y EXPORTACIÓN
+• Graba cada salida en un archivo .FIT que puedes importar a Garmin Connect, Strava y otros servicios.
+• Historial con minutos semanales, récords de potencia (5 s, 1, 5, 20 min), FTP estimada y gráfico de cada salida. Tarjeta para compartir al terminar.
+• Inicio y pausa automáticos, objetivo semanal, zonas cardíacas, copia de seguridad.
+
+CÓDIGO ABIERTO
+El código fuente es público con licencia GPL-3.0. Cuentas y clasificaciones llegarán más adelante y serán opcionales: la app ya está completa sin ellas.
+
+Consejo: el rodillo admite una sola conexión Bluetooth a la vez; cierra otras apps de ciclismo.
+
+Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel y otros nombres son marcas de sus respectivos propietarios. Spindro es independiente y no está afiliada a ninguno.

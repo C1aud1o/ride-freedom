@@ -1,0 +1,7 @@
+Primera versión pública.
+• 24 marchas virtuales, modos ERG, pendiente y resistencia
+• Rodillos FTMS; Tacx FE-C y Wahoo legacy experimentales
+• Juegos 3D a pedales, entrenos, test FTP, rutas GPX
+• Grabación .FIT y exportación de entrenos
+• Puente Garmin: el teléfono actúa como sensor de potencia/cadencia/velocidad
+Cuéntanos qué rodillo usas con «Informar de un problema».

@@ -1,0 +1,7 @@
+Prima versione pubblica.
+• Cambio virtuale a 24 marce, modi ERG, pendenza e resistenza
+• Rulli FTMS; Tacx FE-C e Wahoo legacy sperimentali
+• Giochi 3D a pedali, allenamenti, test FTP, percorsi GPX
+• Registrazione .FIT ed esportazione allenamenti
+• Ponte Garmin: il telefono fa da sensore di potenza/cadenza/velocità
+Dicci che rullo usi con "Segnala un problema".

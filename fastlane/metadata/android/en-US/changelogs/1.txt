@@ -1,0 +1,7 @@
+First public release.
+• 24 virtual gears, ERG, slope and resistance modes
+• FTMS trainers; experimental Tacx FE-C and Wahoo legacy
+• 3D pedal-powered games, structured workouts, FTP test, GPX routes
+• .FIT recording and workout export
+• Garmin bridge: the phone acts as a power/cadence/speed sensor
+Tell us which trainer you use with "Report a problem".

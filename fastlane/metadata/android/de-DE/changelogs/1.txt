@@ -1,0 +1,7 @@
+Erste öffentliche Version.
+• 24 virtuelle Gänge, Modi ERG, Steigung und Widerstand
+• FTMS-Trainer; Tacx FE-C und Wahoo Legacy experimentell
+• 3D-Spiele mit Pedalkraft, Workouts, FTP-Test, GPX-Strecken
+• .FIT-Aufzeichnung und Workout-Export
+• Garmin-Brücke: Das Handy dient als Leistungs-/Trittfrequenz-/Geschwindigkeitssensor
+Sag uns über „Problem melden", welchen Trainer du nutzt.

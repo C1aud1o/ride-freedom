@@ -1,0 +1,38 @@
+Spindro trasforma il telefono in un'app da ciclismo gratuita e open source per il tuo rullo smart. Nessun abbonamento, nessun account obbligatorio. I tuoi dati restano sul dispositivo.
+
+COLLEGA IL RULLO
+• Bluetooth con scelta automatica del protocollo: FTMS (quasi tutti i rulli smart dal 2020 circa), Tacx FE-C su Bluetooth e Wahoo legacy (sperimentali: finora provati solo con un rullo simulato, non con rulli veri) oppure sola lettura Cycling Power / Speed & Cadence.
+• Potenza, cadenza, velocità e frequenza cardiaca in tempo reale (fascia Bluetooth o orologio che trasmette il battito).
+• Sviluppata e provata soprattutto con il Van Rysel D100. Il tuo rullo non va? C'è il pulsante "Segnala un problema": ogni segnalazione migliora l'elenco dei rulli compatibili.
+
+QUATTRO MODI DI PEDALARE
+• Cambio: 24 marce virtuali. Un modello fisico (cadenza, rapporto, pendenza, peso) calcola la potenza ERG, quindi cambiare marcia cambia davvero la resistenza. Il cambio automatico opzionale mantiene la cadenza scelta.
+• ERG: potenza fissa.
+• Pendenza: salite simulate.
+• Resistenza: livello in %.
+Cambi con i pulsanti a schermo, la tastiera o telecomandi Bluetooth, oppure con uno Zwift Click (supporto sperimentale; riconosciuti anche Zwift Play e Zwift Ride).
+
+GIOCHI CHE SI GIOCANO CON LE GAMBE
+Giochi 3D a pedali: una tappa in linea con otto avversari, uno sparatutto a scorrimento, uno sparatutto a orde, un aereo che vola a watt, un gioco di scia e uno di mattoni. Più watt = più velocità o più colpi; le salite arrivano sul rullo come pendenza reale.
+
+ALLENAMENTI STRUTTURATI
+• Allenamenti ERG calcolati sulla tua FTP (sweet spot, soglia, VO2max, piramide, 30/30…) e test FTP a rampa.
+• Editor di allenamenti; esporta in .FIT per Garmin o .zwo, importa .zwo.
+• Percorsi GPX: la pendenza segue il tracciato, profilo altimetrico, mini mappa, sfida al tuo record.
+• Pedala su un video di YouTube o su un tuo file, alla tua velocità.
+
+L'OROLOGIO COME COMPUTER DA BICI (Android)
+Il telefono può trasmettere potenza, cadenza e velocità come un sensore Bluetooth, così un orologio o ciclocomputer Garmin registra l'uscita.
+
+STORICO ED ESPORTAZIONE
+• Registra ogni uscita in un file .FIT da importare in Garmin Connect, Strava e altri servizi.
+• Storico con minuti settimanali, record di potenza (5 s, 1, 5, 20 min), FTP stimata e grafico di ogni uscita. Scheda da condividere a fine uscita.
+• Avvio e pausa automatici, obiettivo settimanale, zone cardio, backup dei dati.
+• Coach vocale nella lingua dell'app: annuncia tratti, watt, ultimi secondi e salite in arrivo.
+
+OPEN SOURCE
+Il codice è pubblico con licenza GPL-3.0. Account e classifiche sono in arrivo, saranno facoltativi: l'app è già completa senza.
+
+Consiglio: il rullo accetta una sola connessione Bluetooth alla volta, quindi chiudi le altre app di ciclismo.
+
+Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel e altri nomi sono marchi dei rispettivi proprietari. Spindro è indipendente e non è affiliata a nessuno di essi.
