@@ -9,3 +9,23 @@ export const STRAVA_PROXY = '';
 export const SENTRY_DSN = '';
 // GoatCounter (statistiche anonime, senza cookie, solo con consenso). Esempio: 'https://spindro.goatcounter.com/count'
 export const GOATCOUNTER_URL = '';
+
+// ---- Account facoltativo (E3/E4, docs/account-architettura.md). ----
+// FIREBASE_CONFIG = null → nessun login, nessuna richiesta di rete verso Google: è il comportamento di fork e build foss.
+// Per attivarlo incolla qui l'oggetto `firebaseConfig` dell'app web (valori pubblici): vedi docs/firebase-setup.md sez. 10.
+// Esempio: { apiKey: '…', authDomain: 'spindro-app.firebaseapp.com', projectId: 'spindro-app', appId: '…', messagingSenderId: '…' }
+export const FIREBASE_CONFIG = null;
+// true = usa gli emulatori locali (Auth 9099, Firestore 8080, Functions 5001): solo per i test.
+export const FIREBASE_EMULATOR = false;
+// Versione ESATTA dell'SDK, caricato solo se FIREBASE_CONFIG c'è, da https://www.gstatic.com/firebasejs/<versione>/
+export const FIREBASE_VERSION = '12.19.0';
+// Regione delle Cloud Functions (fissa, vedi functions/src/index.ts)
+export const FIREBASE_REGION = 'europe-west1';
+// Pagine legali del sito (la versione italiana sta sotto /it/). TERMS_VERSION / PRIVACY_VERSION = data della bozza in docs/legal/:
+// cambiandola, l'app chiede di nuovo l'accettazione.
+export const SITE_URL = 'https://spindro.fit';
+export const TERMS_URL = `${SITE_URL}/terms/`;
+export const PRIVACY_URL = `${SITE_URL}/privacy/`;
+export const TERMS_VERSION = '2026-11';
+export const PRIVACY_VERSION = '2026-11';
+export const HR_CONSENT_VERSION = '2026-11';

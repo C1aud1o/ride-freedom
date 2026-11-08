@@ -6,12 +6,18 @@ on:
       - 'firebase/**'
       - 'functions/**'
       - 'firebase.json'
+      - 'js/account/**'
+      - 'js/config.js'
+      - 'tests/account.spec.mjs'
       - '.github/workflows/rules.yml'
   pull_request:
     paths:
       - 'firebase/**'
       - 'functions/**'
       - 'firebase.json'
+      - 'js/account/**'
+      - 'js/config.js'
+      - 'tests/account.spec.mjs'
       - '.github/workflows/rules.yml'
   workflow_dispatch:
 
@@ -64,3 +70,32 @@ jobs:
           cache-dependency-path: functions/package-lock.json
       - run: npm ci
       - run: npm test
+
+  account:
+    name: Account e sincronizzazione (Playwright + emulatore Auth/Firestore)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4   # l'emulatore Firestore è un .jar
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('firebase/package-lock.json') }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm ci
+        working-directory: firebase
+      # l'SDK Firebase si scarica da gstatic (versione fissa in js/config.js): serve la rete, che su GitHub c'è
+      - name: Test dell'account contro gli emulatori
+        working-directory: firebase
+        run: >
+          npx firebase emulators:exec --config ../firebase.json --project demo-spindro --only auth,firestore
+          "cd .. && SPINDRO_EMULATOR=1 npx playwright test tests/account.spec.mjs --trace off"

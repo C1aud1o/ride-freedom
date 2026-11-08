@@ -508,3 +508,12 @@ body:not(.dev) .dev-only { display: none !important; }
 .lang-pick { display: grid; gap: 8px; }
 .lang-pick select { font: 700 var(--fs-body)/1 var(--font-ui); background: var(--ink); color: var(--t1); border: 1px solid var(--t4); border-radius: 12px; padding: 12px; width: 100%; min-height: 44px; }
 .consent-btn { flex: 1; min-height: 48px; }
+
+/* Account (js/account/ui.js) */
+.acc-fields { grid-template-columns: 1fr; }
+.acc-fields input, .acc-fields select { width: 100%; }
+.acc-err { color: #ff6b6b; }
+.acc-sep { border: 0; border-top: 1px solid var(--t4); width: 100%; margin: 4px 0; }
+.ghost.danger { border-color: rgba(255, 77, 77, .5); background: rgba(255, 77, 77, .08); }
+.pill.warn { background: rgba(242, 194, 48, .15); color: #f2c230; }
+#accountGroup select { font: 700 var(--fs-body)/1 var(--font-ui); background: var(--ink); color: var(--t1); border: 1px solid var(--t4); border-radius: 12px; padding: 12px; min-height: 44px; }

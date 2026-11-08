@@ -1,6 +1,6 @@
 # Account, sincronizzazione e classifiche: architettura (E2)
 
-*Stato: progetto + regole + test. L'interfaccia (login, profilo, sincronizzazione, classifiche) **non è ancora integrata** nell'app: è il lavoro di E3, E4 ed E5.*
+*Stato: progetto + regole + test. **Login web, profilo, consensi e sincronizzazione (E3/E4) sono integrati** (`js/account/`, spenti finché `FIREBASE_CONFIG` in `js/config.js` è `null`). Restano il login nativo Android e le classifiche (E5).*
 
 Riferimenti: `docs/PIANO-LANCIO.md` sez. 4, 5, 7 · bozze legali in `docs/legal/` (privacy sez. 4 e 5, cancellazione account) · setup della console in `docs/firebase-setup.md`.
 
@@ -368,3 +368,18 @@ In CI li esegue `.github/workflows/rules.yml` su Ubuntu con Java 21.
 8. **Web e `authDomain`**: con il sito su un dominio diverso da `*.firebaseapp.com`, il login col popup funziona, il redirect può avere problemi con i browser che isolano i cookie di terze parti. Se il sito passa a Firebase Hosting sullo stesso dominio il problema sparisce.
 9. **Classifiche settimanali vecchie**: decidere quante tenerne (proposta 12 settimane) e aggiungere la pulizia pianificata.
 10. **Emulatore nell'ambiente di sviluppo cloud**: i test delle regole girano; il caricamento dei trigger Firestore nell'emulatore delle funzioni fallisce solo per il proxy dell'ambiente (chiamate locali instradate fuori). In CI e in locale non succede.
+
+## 15. Come è fatto lato web (E3/E4) e cosa provare con il progetto vero
+
+| File | Compito |
+|---|---|
+| `js/config.js` | `FIREBASE_CONFIG` (null = tutto spento), `FIREBASE_EMULATOR`, `FIREBASE_VERSION`, URL e versioni dei testi legali |
+| `js/account/index.js` | ingresso: senza configurazione non fa nulla (nessun elemento, nessun modulo in più, nessuna rete) |
+| `js/account/sdk.js` | `import()` dinamico dell'SDK da `gstatic.com/firebasejs/<versione>/` (app, auth, firestore-lite, functions); emulatori se `FIREBASE_EMULATOR` |
+| `js/account/ui.js` | sezione "Account" nelle Impostazioni: accesso, verifica email, profilo e consensi, uscita, eliminazione |
+| `js/account/sync.js` | coda, cursori, pull incrementale, invio; stato "sincronizzato / in attesa" |
+| `js/account/sync-core.js` | parte pura: conversioni e regole di merge (testata in Node) |
+
+Scelte rispetto al progetto: Firestore **Lite** (nessun listener); `sync:vals`, `sync:last`, `sync:force`, `sync:bad`, `account:session` si aggiungono alle chiavi di §4.1 (tutte fuori dal backup: `NO_BACKUP` copre `sync:*` e `account:session`); i timbri delle impostazioni si ricavano **confrontando** i valori a ogni sincronizzazione, quindi non serve `setPref()` sparso nel codice; l'SDK si scarica solo se il dispositivo era già entrato o al primo tocco su "Accedi" (chi non usa l'account non contatta Google).
+
+Da verificare col progetto Firebase vero (gli emulatori non provano tutto): Google popup e domini autorizzati; email di verifica e reimpostazione password consegnate (modelli, mittente, spam); `deleteAccount` deployata (qui nei test è simulata) e accesso recente; trigger `onProfileUpdated` che cancella il battito alla revoca; indici; App Check in monitoraggio; costi di lettura reali.

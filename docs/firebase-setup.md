@@ -106,17 +106,60 @@ Dati iniziali da creare a mano in Firestore (scrivibili solo da console/server):
 
 Sono tutti **pubblici** (finiscono comunque nel codice del sito e dell'APK). La sicurezza la fanno le regole, App Check e le restrizioni delle chiavi.
 
+### 10.1 Cosa scrivere in `js/config.js` (login web, E3/E4)
+
+Il login compare **solo** se `FIREBASE_CONFIG` non è `null`. Con il valore di default (`null`) l'app non mostra nulla e non fa nessuna richiesta verso Firebase/Google: è il comportamento dei fork e della build `foss`.
+
+```js
+// js/config.js
+export const FIREBASE_CONFIG = {
+  apiKey: '…',                       // Impostazioni progetto → Le tue app → Web → firebaseConfig
+  authDomain: 'ID-PROGETTO.firebaseapp.com',
+  projectId: 'ID-PROGETTO',          // lo stesso di .firebaserc
+  appId: '1:…:web:…',
+  messagingSenderId: '…',
+};
+export const FIREBASE_EMULATOR = false;     // true solo nei test con gli emulatori
+export const FIREBASE_VERSION = '12.19.0';  // versione ESATTA dell'SDK, caricato da www.gstatic.com/firebasejs/<versione>/
+export const FIREBASE_REGION = 'europe-west1';   // regione delle funzioni (già giusta)
+export const SITE_URL = 'https://spindro.fit';   // da qui TERMS_URL e PRIVACY_URL (in italiano: /it/terms/ e /it/privacy/)
+export const TERMS_VERSION = '2026-11';          // data della bozza in docs/legal/: se cambia, l'app richiede una nuova accettazione
+export const PRIVACY_VERSION = '2026-11';
+export const HR_CONSENT_VERSION = '2026-11';     // testo del consenso al battito (account.hr.* in locales/)
+```
+
+Note:
+- `FIREBASE_CONFIG` si compila nella build **ufficiale** (workflow di pubblicazione, variabile `FIREBASE_WEB_CONFIG`) e **non** nella build `foss`. Nel repository resta `null`.
+- Il pezzo di `apiKey` non è un segreto; va comunque limitato ai domini del sito (sez. 8).
+- **Domini autorizzati** (Authentication → Impostazioni): il dominio del sito e `localhost`; il login con Google usa un popup (`signInWithPopup`) e non funziona dove il browser lo blocca.
+- Metodi di accesso usati: **Google** (popup) ed **email e password** con verifica dell'email obbligatoria (le regole la richiedono). Il link via email non è usato.
+- Nell'app Android (WebView) il pulsante Google è nascosto finché non c'è il login nativo (compito separato); email e password funzionano.
+- Se si cambia la versione dell'SDK, cambiare **solo** `FIREBASE_VERSION` (e rifare `tests/account.spec.mjs`: il test controlla che l'indirizzo contenga la versione).
+
+### 10.2 Altri valori
+
 | Valore | Dove si trova | Dove va |
 |---|---|---|
-| `apiKey`, `authDomain`, `projectId`, `appId`, `messagingSenderId` (e `storageBucket`, non usato) | Impostazioni progetto → Le tue app → Web → `firebaseConfig` | variabile di repository GitHub `FIREBASE_WEB_CONFIG` (JSON), scritta in `js/firebase-config.js` dal workflow del sito e nel source set `play` |
-| Chiave del sito reCAPTCHA Enterprise | Google Cloud → reCAPTCHA | variabile `RECAPTCHA_SITE_KEY` |
-| Regione delle funzioni | fissa: `europe-west1` | nel codice |
+| `firebaseConfig` (sopra) | Impostazioni progetto → Le tue app → Web | `js/config.js` → `FIREBASE_CONFIG` (in CI: variabile di repository `FIREBASE_WEB_CONFIG`, JSON) |
+| Chiave del sito reCAPTCHA Enterprise | Google Cloud → reCAPTCHA | variabile `RECAPTCHA_SITE_KEY` (App Check non è ancora nel codice web) |
+| Regione delle funzioni | fissa: `europe-west1` | `FIREBASE_REGION` |
 | `google-services.json` | Impostazioni progetto → Android | `android/app/src/play/google-services.json` (variabile o file in CI) |
 | ID client web OAuth (per il Google Sign-In nativo) | dentro `google-services.json` (`client_type: 3`) o Google Cloud → Credenziali | letto dal codice nativo `play` |
 
 Le variabili vanno in GitHub → Settings → Secrets and variables → Actions → **Variables** (non Secrets: non sono segrete, e come variabili si vedono nei log e si controllano facilmente).
 
 **Mai nel repository né nelle variabili dell'app:** chiavi di account di servizio (`*-adminsdk-*.json`), token di debug di App Check, segreti Strava. Le Cloud Functions non ne hanno bisogno.
+
+### 10.3 Provare in locale con gli emulatori
+
+```bash
+cd firebase && npm ci
+# in js/config.js (non committare): FIREBASE_CONFIG con projectId 'demo-spindro' e FIREBASE_EMULATOR = true
+npx firebase emulators:start --config ../firebase.json --project demo-spindro --only auth,firestore
+# oppure tutti i test dell'account in un colpo (serve Java):
+npx firebase emulators:exec --config ../firebase.json --project demo-spindro --only auth,firestore \
+  "cd .. && SPINDRO_EMULATOR=1 npx playwright test tests/account.spec.mjs --trace off"
+```
 
 ## 11. Controllo finale
 
@@ -130,4 +173,6 @@ Le variabili vanno in GitHub → Settings → Secrets and variables → Actions 
 - [ ] Chiavi API limitate
 - [ ] Regole, indici e funzioni pubblicati; test delle regole verdi
 - [ ] `boards/*` e la prima sfida del mese creati
+- [ ] `FIREBASE_CONFIG` compilato in `js/config.js` della build ufficiale (sez. 10.1), non in quella `foss`
 - [ ] Variabili `FIREBASE_WEB_CONFIG` e `RECAPTCHA_SITE_KEY` su GitHub
+- [ ] Prova a mano con l'account vero: registrazione, email di verifica, profilo e consensi, uscita sincronizzata, revoca del battito, eliminazione account (vedi la lista in `docs/account-architettura.md` sez. 15)

@@ -28,6 +28,7 @@ import './ui.js';
 import { coach, spokenTime } from './coach.js';
 import { glowSetting } from './games/kit3d.js';
 import { party, badges } from './celebrate.js';
+import { initAccount, dataChanged } from './account/index.js';
 import { createClickNav } from './clicknav.js';
 import { parseGpx, at as routeAt, SAMPLES as ROUTES, drawElevation, drawMap } from './route.js';
 import { workouts, WorkoutRunner, drawProfile, duration, tss, fmtTime as fmtClock, parseZwo } from './workouts.js';
@@ -413,7 +414,7 @@ function renderWorkoutList() {
   document.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => startWorkout(all.find((w) => w.id === b.dataset.wk))));
   document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
     if (!confirm(t('workouts.confirmDelete'))) return;
-    localStorage.setItem('customWorkouts', JSON.stringify(customWorkouts().filter((w) => w.id !== b.dataset.del))); renderWorkoutList();
+    localStorage.setItem('customWorkouts', JSON.stringify(customWorkouts().filter((w) => w.id !== b.dataset.del))); dataChanged('workouts', b.dataset.del, { deleted: true }); renderWorkoutList();
   }));
   $('wkNew').addEventListener('click', () => openEditor(null));
   document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openEditor(all.find((w) => w.id === b.dataset.edit))));
@@ -430,7 +431,7 @@ function renderWorkoutList() {
     const f = e.target.files[0]; if (!f) return;
     try {
       const w = parseZwo(await f.text(), f.name);
-      localStorage.setItem('customWorkouts', JSON.stringify([w, ...customWorkouts()].slice(0, 30)));
+      localStorage.setItem('customWorkouts', JSON.stringify([w, ...customWorkouts()].slice(0, 30))); dataChanged('workouts', w.id);
       toast(t('workouts.imported', { name: w.name })); renderWorkoutList();
     } catch (err) { toast(t('workouts.importFailed', { error: err.message })); }
   });
@@ -1135,8 +1136,10 @@ $('finishRide').addEventListener('click', () => {
     if (!hist.length) medals.push({ ico: '★', title: t('finish.first'), sub: t('finish.firstSub') });
   }
   if (!r.historySaved && r.elapsed >= 60) {
-    hist.push({ t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy), ...rideStats(r.log) });
+    const entry = { t: Date.now(), dur: Math.round(r.elapsed), km: +(r.distance / 1000).toFixed(2), avgW, kj: Math.round(r.energy), ...rideStats(r.log) };
+    hist.push(entry);
     saveHistory(hist.slice(-200)); r.historySaved = true; persist();
+    dataChanged('rides', String(entry.t));
   }
   const week = hist.filter((h) => Date.now() - h.t < 7 * 864e5).length;
   const mins = Math.round(r.elapsed / 60);
@@ -1220,7 +1223,7 @@ $('hrMax').value = localStorage.getItem('hrMax') || '';
 $('hrMax').addEventListener('change', (e) => { const v = Math.round(+e.target.value); if (v >= 120 && v <= 220) localStorage.setItem('hrMax', v); else { localStorage.removeItem('hrMax'); e.target.value = ''; } render(); });
 
 // ---------- Backup: esporta / importa i dati tra dispositivi ----------
-const NO_BACKUP = /^(stravaConfig|ride-freedom-session)$/;
+const NO_BACKUP = /^(stravaConfig|ride-freedom-session|account:session|sync:.*)$/; // token Strava, uscita in corso, stato dell'account e della sincronizzazione
 $('backupOut').addEventListener('click', () => {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!NO_BACKUP.test(k)) data[k] = localStorage.getItem(k); }
@@ -1265,7 +1268,7 @@ const editor = new WorkoutEditor($('editorBody'), {
   ftp: state.ftp,
   onSave: (w) => {
     const list = customWorkouts().filter((x) => x.id !== w.id);
-    localStorage.setItem('customWorkouts', JSON.stringify([w, ...list].slice(0, 30)));
+    localStorage.setItem('customWorkouts', JSON.stringify([w, ...list].slice(0, 30))); dataChanged('workouts', w.id);
     closeSheet('editorSheet'); toast(t('editor.saved', { name: w.name }));
     renderWorkoutList(); openSheet('workoutSheet');
   },
@@ -1399,3 +1402,6 @@ window.addEventListener('langchange', () => {
     else { $('gameTitle').textContent = t('games.title'); progress.renderMenu($('progressPanel')); }
   }
 });
+
+// ---------- Account facoltativo: compare solo se js/config.js ha FIREBASE_CONFIG ----------
+initAccount();
