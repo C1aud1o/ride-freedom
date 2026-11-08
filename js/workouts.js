@@ -10,12 +10,31 @@ const reps = (n, on, off, key = 'workouts.step.rep') => Array.from({ length: n }
   { ...on, label: t(key, { i: i + 1, n }) }, ...(off && i < n - 1 ? [{ ...off, label: t('workouts.step.rest') }] : []),
 ]).flat();
 
+// come reps, ma con l'etichetta del recupero scelta dal chiamante (es. "Fondo" invece di "Recupero")
+const series = (n, on, off, key, offKey = 'workouts.step.rest') => Array.from({ length: n }, (_, i) => [
+  { ...on, label: t(key, { i: i + 1, n }) }, ...(off && i < n - 1 ? [{ ...off, label: t(offKey) }] : []),
+]).flat();
+
+// Categorie per il filtro della lista (la voce vera sta in workouts.cat.<id>)
+export const CATEGORIES = ['brevi', 'resistenza', 'soglia', 'vo2', 'tecnica'];
+const CAT = {
+  sblocco: 'brevi', facile: 'brevi', fondo: 'resistenza', costante: 'resistenza', lungo60: 'resistenza', lungo75: 'resistenza', lungo90: 'resistenza',
+  sweet: 'soglia', soglia: 'soglia', tempo: 'soglia', piramide: 'soglia', vo2: 'vo2', trenta: 'vo2',
+  accensione: 'brevi', lampi: 'brevi', piramidecorta: 'brevi', cadenzalta: 'brevi', recuperoattivo: 'brevi',
+  fondostabile: 'resistenza', zona2allunghi: 'resistenza', fondoprogr: 'resistenza', tempolungo: 'resistenza', domenicalunga: 'resistenza',
+  sweetcrescente: 'soglia', doppiasoglia: 'soglia', overunder: 'soglia', scalasoglia: 'soglia',
+  cinquedatre: 'vo2', ottominuti: 'vo2', ventidieci: 'vo2', seiscatti: 'vo2',
+  unagamba: 'tecnica', cadenzevar: 'tecnica',
+};
+
 // Libreria: gli id restano fissi, nomi/descrizioni/etichette vengono dalle traduzioni (workouts.<id>.*).
 // È una funzione perché cambiando lingua i testi vanno rifatti.
 export function workouts() {
   const WARM = [ramp(300, 0.45, 0.7, t('workouts.step.warm')), s(120, 0.75, t('workouts.step.approach'))];
   const COOL = [ramp(300, 0.6, 0.4, t('workouts.step.cool'))];
-  const meta = (id) => ({ id, name: t(`workouts.${id}.name`), tag: t(`workouts.${id}.tag`), desc: t(`workouts.${id}.desc`) });
+  // mins: se c'è, la riga "Livello · N min" usa la durata reale calcolata dai passi
+  const meta = (id, mins) => ({ id, cat: CAT[id], name: t(`workouts.${id}.name`), tag: t(`workouts.${id}.tag`, mins != null ? { mins } : undefined), desc: t(`workouts.${id}.desc`) });
+  const mk = (id, steps) => ({ ...meta(id, Math.round(duration({ steps }) / 60)), steps });
   return [
     { ...meta('sblocco'), steps: [...WARM, ...reps(4, s(30, 1.05), s(150, 0.6), 'workouts.step.stride'), s(240, 0.6, t('workouts.step.endurance')), ...COOL] },
     { ...meta('fondo'), steps: [...WARM, s(1800, 0.68, t('workouts.step.endurance')), ...COOL] },
@@ -31,6 +50,32 @@ export function workouts() {
     { ...meta('lungo60'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(3000, 0.68, t('workouts.step.endurance')), ...COOL] },
     { ...meta('lungo75'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(3900, 0.68, t('workouts.step.endurance')), ...COOL] },
     { ...meta('lungo90'), steps: [ramp(300, 0.45, 0.65, t('workouts.step.warm')), s(4800, 0.68, t('workouts.step.endurance')), ...COOL] },
+    // ---- Libreria 2 (W1): 20 allenamenti originali, per categoria. Le intensità sono in % FTP.
+    // Brevi 20–30 min
+    mk('accensione', [...WARM, ...series(4, s(30, 1.1), s(90, 0.5), 'workouts.step.stride', 'workouts.step.rest'), s(480, 0.65, t('workouts.step.endurance')), ...COOL]),
+    mk('lampi', [...WARM, ...series(12, s(30, 1.12), s(30, 0.5), 'workouts.step.rep'), ...COOL]),
+    mk('piramidecorta', [...WARM, ...[[60, 0.95], [120, 1.0], [180, 1.05], [120, 1.0], [60, 0.95]].flatMap(([d, p], i, a) => [s(d, p, t('workouts.step.stepN', { i: i + 1, n: a.length })), ...(i < a.length - 1 ? [s(60, 0.5, t('workouts.step.rest'))] : [])]), ...COOL]),
+    mk('cadenzalta', [...WARM, ...series(6, s(120, 0.6), s(60, 0.5), 'workouts.step.spin'), ...COOL]),
+    mk('recuperoattivo', [ramp(300, 0.4, 0.55, t('workouts.step.warm')), s(900, 0.5, t('workouts.step.recover')), ...COOL]),
+    // Resistenza 45–90 min
+    mk('fondostabile', [...WARM, s(2700, 0.66, t('workouts.step.endurance')), ...COOL]),
+    mk('zona2allunghi', [...WARM, s(900, 0.65, t('workouts.step.endurance')), ...series(5, s(60, 0.9), s(240, 0.65), 'workouts.step.stride', 'workouts.step.endurance'), s(600, 0.65, t('workouts.step.endurance')), ...COOL]),
+    mk('fondoprogr', [...WARM, ...[0.6, 0.66, 0.72, 0.78].map((p, i) => s(600, p, t('workouts.step.stepN', { i: i + 1, n: 4 }))), ...COOL]),
+    mk('tempolungo', [...WARM, ...series(3, s(900, 0.8), s(300, 0.6), 'workouts.step.block', 'workouts.step.endurance'), ...COOL]),
+    mk('domenicalunga', [...WARM, s(3600, 0.66, t('workouts.step.endurance')), s(480, 0.6, t('workouts.step.endurance')), s(600, 0.72, t('workouts.step.endurance')), ...COOL]),
+    // Soglia e sweet spot
+    mk('sweetcrescente', [...WARM, ...[0.88, 0.91, 0.94].flatMap((p, i) => [s(600, p, t('workouts.step.block', { i: i + 1, n: 3 })), ...(i < 2 ? [s(300, 0.55, t('workouts.step.rest'))] : [])]), ...COOL]),
+    mk('doppiasoglia', [...WARM, ...series(2, s(1200, 0.98), s(420, 0.55), 'workouts.step.threshold'), ...COOL]),
+    mk('overunder', [...WARM, ...[0, 1].flatMap((b) => [...[0, 1, 2].flatMap((r) => [s(240, 0.9, t('workouts.step.under', { i: r + 1, n: 3 })), s(60, 1.05, t('workouts.step.over', { i: r + 1, n: 3 }))]), ...(b < 1 ? [s(300, 0.55, t('workouts.step.rest'))] : [])]), ...COOL]),
+    mk('scalasoglia', [...WARM, ...[[180, 0.85], [240, 0.9], [300, 0.95], [360, 1.0], [300, 0.95], [240, 0.9], [180, 0.85]].flatMap(([d, p], i, a) => [s(d, p, t('workouts.step.stepN', { i: i + 1, n: a.length })), ...(i < a.length - 1 ? [s(120, 0.5, t('workouts.step.rest'))] : [])]), ...COOL]),
+    // VO2max e anaerobico
+    mk('cinquedatre', [...WARM, ...series(5, s(180, 1.12), s(120, 0.5), 'workouts.step.rep'), ...COOL]),
+    mk('ottominuti', [...WARM, ...series(8, s(60, 1.18), s(60, 0.5), 'workouts.step.rep'), ...COOL]),
+    mk('ventidieci', [...WARM, ...[0, 1, 2].flatMap((b) => [...series(8, s(20, 1.35), s(10, 0.45), 'workouts.step.rep'), ...(b < 2 ? [s(120, 0.5, t('workouts.step.rest'))] : [])]), ...COOL]),
+    mk('seiscatti', [...WARM, ...series(6, s(15, 1.5), s(240, 0.45), 'workouts.step.stride'), ...COOL]),
+    // Tecnica
+    mk('unagamba', [...WARM, ...[0, 1, 2, 3, 4, 5].flatMap((b) => [s(45, 0.5, t('workouts.step.legLeft', { i: b + 1, n: 6 })), s(45, 0.5, t('workouts.step.legRight', { i: b + 1, n: 6 })), ...(b < 5 ? [s(60, 0.5, t('workouts.step.rest'))] : [])]), ...COOL]),
+    mk('cadenzevar', [...WARM, ...[90, 100, 80, 110, 70, 95].map((rpm) => s(150, 0.7, t('workouts.step.rpm', { rpm }))), ...COOL]),
     { ...meta('ramp'), test: true,
       steps: [{ d: 300, w: 90, label: t('workouts.step.warm') }, ...Array.from({ length: 40 }, (_, i) => ({ d: 60, w: 100 + i * 20, label: t('workouts.step.rampStep', { i: i + 1 }) }))] },
   ];
