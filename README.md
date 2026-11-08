@@ -26,8 +26,8 @@ leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in 
   anche se ricarichi la pagina.
 - **Giochi** (pulsante *🎮 Gioca*), grafica pixel-art, musica chiptune che segue la tua cadenza,
   le salite arrivano sul rullo come pendenza reale. Vedi [docs/giochi.md](docs/giochi.md).
-  - **Turbo Pedali 3D**: tappa in linea in 3D (Three.js + modelli Kenney CC0) con 8 corridori con
-    nome e carattere, 3 tappe (mare, montagna, colline), scia, monete, oggetti attivati con uno sprint
+  - **Turbo Pedali 3D**: tappa in linea in 3D (Three.js + modelli Quaternius e Kenney CC0) con 8 ciclisti
+    animati con nome e carattere, + / − per il cambio, pubblico in salita, arrivo al rallentatore e podio, 3 tappe (mare, montagna, colline), scia, monete, oggetti attivati con uno sprint
     vero, traguardo volante e GPM con maglie, profilo altimetrico, podio e record.
   - **Pedal Strike 3D**: sparatutto a scorrimento laterale in 3D con 3 eroi, 3 missioni (campagna,
     deserto, cimitero del Barone), 5 armi, prigionieri da liberare, 3 boss; i watt decidono la cadenza
@@ -106,6 +106,9 @@ python3 -m http.server 8000
 ## Crediti
 - Modelli 3D: [Kenney](https://kenney.nl) — Racing Kit, Nature Kit, Blocky Characters, Graveyard Kit,
   Blaster Kit, Platformer Kit (gioielli e monete) (CC0), in `assets/3d`.
+- Modelli 3D: [Quaternius](https://quaternius.com) — Ultimate Modular Men (ciclista e pubblico), Simple Nature Pack,
+  Farm Buildings, Simple Buildings (CC0), in `assets/3d/quaternius` (convertiti e ottimizzati).
+- Decoder meshopt: [meshoptimizer](https://github.com/zeux/meshoptimizer) (MIT), in `vendor/three/addons/libs`.
 - Particelle: Kenney — Particle Pack (CC0), in `assets/fx` (scie dei colpi, lampi, fumo, scintille).
 - Jingle: Kenney — Music Jingles (CC0), in `assets/audio/jingles`.
 - Motore 3D: [three.js](https://threejs.org) (MIT), in `vendor/three`.

@@ -130,6 +130,12 @@ export class GameAudio {
       case 'go': this.tone({ freq: 1320, dur: 0.4, vol: 0.09 }); break;
       case 'select': this.tone({ freq: 520, to: 780, dur: 0.07, vol: 0.06 }); break;
       case 'boost': this.noise({ dur: 0.5, vol: 0.12, freq: 400, sweep: 3000 }); break;
+      case 'whoosh': this.noise({ dur: 0.45, vol: 0.14, freq: 2600, sweep: 300, type: 'bandpass' }); break;
+      case 'cheer': for (let i = 0; i < 3; i++) this.noise({ dur: 0.9, vol: 0.05, freq: 900 + i * 500, type: 'bandpass', at: t + i * 0.12 }); [0, 4, 7].forEach((n, i) => this.tone({ freq: mtof(79 + n), dur: 0.12, vol: 0.02, type: 'triangle', at: t + 0.1 + i * 0.09 })); break;
+      case 'pass': this.tone({ freq: mtof(76), dur: 0.07, vol: 0.07, type: 'triangle', at: t }); this.tone({ freq: mtof(83), dur: 0.12, vol: 0.07, type: 'triangle', at: t + 0.07 }); break;
+      case 'shiftUp': this.noise({ dur: 0.03, vol: 0.08, freq: 4000, type: 'highpass' }); this.tone({ freq: 620, to: 880, dur: 0.06, vol: 0.05, type: 'triangle' }); break;
+      case 'shiftDown': this.noise({ dur: 0.03, vol: 0.08, freq: 4000, type: 'highpass' }); this.tone({ freq: 700, to: 460, dur: 0.06, vol: 0.05, type: 'triangle' }); break;
+      case 'bell': [0, 0.28].forEach((d) => { this.tone({ freq: 1320, dur: 0.5, vol: 0.06, type: 'sine', at: t + d }); this.tone({ freq: 1980, dur: 0.3, vol: 0.03, type: 'sine', at: t + d }); }); break;
       case 'win': [0, 4, 7, 12, 7, 12, 16, 19, 24].forEach((n, i) => this.tone({ freq: mtof(67 + n), dur: 0.16, vol: 0.08, type: 'square', at: t + i * 0.11 })); break;
       case 'lose': [7, 6, 5, 4, 0].forEach((n, i) => this.tone({ freq: mtof(60 + n), dur: 0.25, vol: 0.08, type: 'triangle', at: t + i * 0.2 })); break;
       default: break;

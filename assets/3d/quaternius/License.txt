@@ -1,0 +1,21 @@
+Modelli 3D di Quaternius (https://quaternius.com) — licenza CC0 1.0 Universal (pubblico dominio)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Pacchetti usati (scaricati il 2026-11-08 dalle pagine ufficiali, licenza CC0 indicata sulla pagina e nel License.txt del pacchetto):
+- cyclist.glb      ← "Ultimate Modular Men" / Ultimate Modular Characters (Casual_2.gltf) — https://quaternius.com/packs/ultimatemodularcharacters.html
+- nature/*.glb     ← "Simple Nature Pack" — https://quaternius.com/packs/simplenature.html
+- farm/*.glb       ← "Farm Buildings" — https://quaternius.com/packs/farmbuildings.html
+- town/*.glb       ← "Simple Buildings" — https://quaternius.com/packs/simplebuildings.html
+
+Modifiche (consentite dalla CC0): conversione OBJ→glTF, rimozione di animazioni e shape key,
+semplificazione, quantizzazione e compressione meshopt (EXT_meshopt_compression), materiali opachi.
+
+Testo originale del License.txt del pacchetto:
+------------------------------------------------------
+Ultimate Modular Males / LowPoly Models by @Quaternius
+https://www.patreon.com/quaternius
+-------------------------------------------------------
+License:
+CC0 1.0 Universal (CC0 1.0)
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
