@@ -62,9 +62,19 @@ jobs:
             echo "SPINDRO_SIGNED=false" >> "$GITHUB_ENV"
             echo "::warning title=APK debug (fallback)::Secret ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD mancanti: compilo l'APK DEBUG come prima, niente AAB. Vedi docs/android-release.md"
           fi
+      - name: Cache di Gradle (distribuzione e dipendenze)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper/dists
+            ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/**/*.gradle') }}
+          restore-keys: gradle-${{ runner.os }}-
       - name: Scarica Gradle (con nuovi tentativi se il server è lento)
         working-directory: android
-        run: for i in 1 2 3 4; do ./gradlew --version --no-daemon && break; echo "tentativo $i fallito, riprovo"; sleep $((i * 20)); done
+        run: |
+          for i in 1 2 3 4 5; do ./gradlew --version --no-daemon && exit 0; echo "tentativo $i fallito, riprovo"; sleep $((i * 30)); done
+          echo "::error::Impossibile scaricare Gradle (server di distribuzione non raggiungibile)"; exit 1
       - name: Compila (release firmata, oppure debug se mancano i Secret)
         working-directory: android
         env:
