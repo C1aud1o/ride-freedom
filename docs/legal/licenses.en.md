@@ -15,6 +15,7 @@ Spindro's code is released under the **GNU GPL-3.0** licence *(planned licence: 
 | Component | Version | Licence | Where |
 |---|---|---|---|
 | **three.js** (Mrdoob and the three.js authors) | r170 | MIT | `vendor/three/three.module.min.js` and `vendor/three/addons/` (GLTFLoader, EffectComposer, UnrealBloomPass and other effects). Text: `vendor/three/LICENSE`. © 2010-2024 three.js authors |
+| **meshoptimizer** — decoder (Arseny Kapoulkine) | 0.18+ (copy from three r170) | MIT | `vendor/three/addons/libs/meshopt_decoder.module.js`: decompresses the optimised 3D models. Licence in the file header. |
 | **Capacitor Core** (Drifty Co.) | 7.6.10 | MIT | `vendor/capacitor/capacitor.js` (build of `@capacitor/core`). Text: `vendor/capacitor/LICENSE`. © 2017-present Drifty Co. |
 | **@capacitor/android** | 7.6.10 | MIT | `package.json` dependency, part of the Android app |
 | **@capacitor-community/bluetooth-le** | 7.3.2 | MIT | `package.json` dependency, Bluetooth of the Android app |
@@ -37,7 +38,7 @@ The licences of the other indirect dependencies in the lockfile (`package-lock.j
 
 ## Graphics, 3D models and sounds
 
-Everything comes from **Kenney** ([kenney.nl](https://www.kenney.nl)), under the **Creative Commons Zero (CC0 1.0)** licence: free to use, also commercially, credit not required. We gladly give it.
+They come from **Kenney** ([kenney.nl](https://www.kenney.nl)) and **Quaternius** ([quaternius.com](https://quaternius.com)), under the **Creative Commons Zero (CC0 1.0)** licence: free to use, also commercially, credit not required. We gladly give it.
 
 | Folder | Content | Files | Licence |
 |---|---|---|---|
@@ -47,12 +48,13 @@ Everything comes from **Kenney** ([kenney.nl](https://www.kenney.nl)), under the
 | `assets/3d/nature/` | Nature Kit 2.1 (trees, rocks, plants) | 30 | CC0 |
 | `assets/3d/pickups/` | Platformer Kit 4.1 (coins, heart, gem, star) | 4 | CC0 |
 | `assets/3d/racing/` | Racing Kit 1.2 (barriers, flags, grandstands) | 30 | CC0 |
+| `assets/3d/quaternius/` | **Quaternius**: Ultimate Modular Men (cyclist and crowd), Simple Nature Pack, Farm Buildings, Simple Buildings — converted and optimised | 26 | CC0 |
 | `assets/audio/jingles/` | Music Jingles (game jingles) | 9 | CC0 |
 | `assets/fx/` | Particle Pack (particles and effects) | 12 | CC0 |
 
-Each folder contains Kenney's original `License.txt` file.
+Each folder contains the original `License.txt` file (Kenney's or Quaternius's, with the list of packs and changes).
 
-**Thank you, Kenney.**
+**Thank you, Kenney and Quaternius.**
 
 ## Other resources
 

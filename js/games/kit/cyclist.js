@@ -289,7 +289,6 @@ export class Cyclist {
     _q.setFromUnitVectors(_v, _v2.copy(dir).normalize()).multiply(r.q);
     if (twist) _q.premultiply(_q2.setFromAxisAngle(_v2, twist));
     // quaternione locale = (quaternione del padre nello spazio lean)^-1 · desiderato
-    b.parent.updateWorldMatrix(true, false);
     const pq = this.leanQinv.clone().multiply(b.parent.getWorldQuaternion(_q2));
     b.quaternion.copy(pq.invert().multiply(_q));
     b.updateMatrixWorld(true);
@@ -298,7 +297,6 @@ export class Cyclist {
   orient(name, rot) {
     const r = this.ref[name]; const b = this.bones[name]; if (!r || !b) return;
     _q.copy(rot).multiply(r.q);
-    b.parent.updateWorldMatrix(true, false);
     const pq = this.leanQinv.clone().multiply(b.parent.getWorldQuaternion(_q2));
     b.quaternion.copy(pq.invert().multiply(_q));
     b.updateMatrixWorld(true);
@@ -422,9 +420,17 @@ export async function makeCrowdGeometry(url = FAN_URL) {
   for (let i = 0; i < n; i++) tint[i] = part[i] === 1 || part[i] === 2 ? 1 : 0;
   geo.setAttribute('tint', new THREE.BufferAttribute(tint, 1));
   geo.setAttribute('color', body.geometry.attributes.color);
-  geo.computeVertexNormals(); geo.computeBoundingSphere();
+  // il pubblico non porta casco né occhiali: si tolgono quei triangoli (meno lavoro per la GPU)
+  const keep = []; for (let i = 0; i < n; i += 3) if (part[i] !== 7 && part[i] !== 8) keep.push(i);
+  const out2 = new THREE.BufferGeometry();
+  for (const k of ['position', 'tint', 'color']) {
+    const a = geo.attributes[k]; const sz = a.itemSize; const arr = new Float32Array(keep.length * 3 * sz);
+    keep.forEach((v, j) => arr.set(a.array.subarray(v * sz, (v + 3) * sz), j * 3 * sz));
+    out2.setAttribute(k, new THREE.BufferAttribute(arr, sz));
+  }
+  out2.computeVertexNormals(); out2.computeBoundingSphere();
   dummy.dispose();
-  return geo;
+  return out2;
 }
 
 export function crowdMaterial() {

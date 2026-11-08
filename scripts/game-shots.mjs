@@ -61,7 +61,7 @@ for (const [w, h] of sizes) {
   // via
   await page.evaluate(() => { window.__game.selT = 1; window.__game.input(1); });
   if (scenes.includes('start')) { await page.waitForTimeout(1200); await shot('partenza'); }
-  await page.waitForFunction(() => window.__game.state === 'race', null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__game.state === 'race', null, { timeout: 90000 });
   if (scenes.includes('climb')) {
     await teleport(page, 'climb'); await page.waitForTimeout(2500); await shot('salita');
   }
@@ -72,21 +72,48 @@ for (const [w, h] of sizes) {
   if (scenes.includes('podium')) {
     await page.evaluate(() => { window.__fakeBle.setPower(400); });
     await teleport(page, 'finish');
-    await page.waitForFunction(() => window.__game.state === 'finishCam', null, { timeout: 15000 });
+    await page.waitForFunction(() => window.__game.state === 'finishCam', null, { timeout: 90000 });
     await page.waitForTimeout(700); await shot('arrivo');
-    await page.waitForFunction(() => window.__game.state === 'results', null, { timeout: 15000 });
+    await page.waitForFunction(() => window.__game.state === 'results', null, { timeout: 90000 });
     await page.waitForTimeout(2600); await shot('podio');
   }
   if (args.includes('--fps')) {
-    // fps in gara con la CPU rallentata 4x (come un Android medio), qualità decisa dall'automatico
+    // misura in gara con la CPU rallentata 4x (come un Android medio):
+    // - fps del browser (qui il disegno è software, SwiftShader: non rappresenta la GPU di un telefono);
+    // - tempo JS per fotogramma (logica + preparazione del disegno), draw call e triangoli per fotogramma.
     const cdp = await ctx.newCDPSession(page);
-    await page.evaluate(() => { window.__game.newRace(); });
-    await page.waitForFunction(() => window.__game.state === 'race', null, { timeout: 15000 });
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-    const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 6000) requestAnimationFrame(f); else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); }));
-    const info = await page.evaluate(() => { const g = window.__game; const r = g.stage.renderer.info.render; return { level: g.quality.level, calls: r.calls, tris: r.triangles }; });
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-    console.log(`fps ${w}x${h} (CPU 4x): ${fps.toFixed(1)} · qualità ${info.level} · draw call ${info.calls} · triangoli ${info.tris}`);
+    for (const level of ['high', 'medium', 'low']) {
+      await page.evaluate((level) => { const g = window.__game; g.quality.auto = false; g.quality.decided = true; g.quality.set(level); g.newRace(); }, level);
+      await page.waitForFunction(() => window.__game.state === 'race', null, { timeout: 90000 });
+      await page.evaluate(() => { const g = window.__game; g.s = g.climbs[Math.floor(g.climbs.length / 2)] - 20; g.rivals.forEach((r, i) => { r.s = g.s + (i - 3) * 4; }); });
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      const m = await page.evaluate(() => new Promise((res) => {
+        const g = window.__game; const st = g.stage; const r = st.renderer;
+        // costo CPU = logica + pose + preparazione del disegno + HUD; il primo render del fotogramma aspetta la GPU
+        // emulata, quindi si misura il costo di un secondo render identico subito dopo (GPU libera)
+        const T = { cpu: 0, frames: 0, calls: 0, tris: 0 }; const saved = {};
+        const wrap = (obj, name, fn) => { saved[name] = obj[name]; const o = obj[name].bind(obj); obj[name] = (...x) => fn(o, ...x); };
+        wrap(g, 'update', (o, ...x) => { const t = performance.now(); o(...x); T.cpu += performance.now() - t; });
+        wrap(g, 'drawHud', (o, ...x) => { const t = performance.now(); o(...x); T.cpu += performance.now() - t; });
+        let inRender = 0;
+        wrap(g, 'draw', (o, ...x) => { const t = performance.now(); inRender = 0; o(...x); T.cpu += performance.now() - t - inRender; T.frames++; });
+        const sr = st.render.bind(st);
+        st.render = () => {
+          const a = performance.now(); r.info.autoReset = false; r.info.reset(); sr(); const b = performance.now();
+          T.calls += r.info.render.calls; T.tris += r.info.render.triangles; r.info.autoReset = true;
+          if (st.composer) st.composer.render(); else r.render(st.scene, st.camera);
+          const c = performance.now(); inRender = c - a; T.cpu += c - b;
+        };
+        const t0 = performance.now();
+        setTimeout(() => {
+          for (const k of Object.keys(saved)) g[k] = saved[k]; st.render = sr;
+          const sec = (performance.now() - t0) / 1000;
+          res({ fps: T.frames / sec, js: T.cpu / T.frames, calls: T.calls / T.frames, tris: T.tris / T.frames });
+        }, 8000);
+      }));
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      console.log(`${w}x${h} qualità ${level}: fps nel browser di prova (GPU software) ${m.fps.toFixed(1)} · CPU ${m.js.toFixed(1)} ms/fotogramma con CPU 4x (≈ ${Math.min(60, 1000 / m.js).toFixed(0)} fps se la GPU regge) · draw call ${Math.round(m.calls)} · triangoli ${Math.round(m.tris / 1000)}k`);
+    }
   }
   if (errors.length) console.log('ERRORI:', errors.join('\n'));
   await ctx.close();

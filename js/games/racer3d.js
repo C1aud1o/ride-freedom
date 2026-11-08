@@ -388,7 +388,10 @@ export class Racer3D {
       const p = this.at(s);
       const plane = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W + 1.2, 1.3), toonMaterial({ map: labelTexture(text, color, fg), side: THREE.DoubleSide, emissive: '#222222' }));
       plane.position.set(p.x, p.y + 4.6, p.z); plane.rotation.y = p.h + Math.PI;
-      this.scene.add(plane);
+      plane.material.side = THREE.FrontSide;
+      // retro: la stessa scritta leggibile anche da dopo la linea
+      const backP = plane.clone(); backP.rotation.y = p.h; backP.position.set(p.x + Math.sin(p.h) * 0.02, p.y + 4.6, p.z + Math.cos(p.h) * 0.02);
+      this.scene.add(plane, backP);
       for (const side of [-1, 1]) {
         const q = this.at(s, side * (ROAD_W / 2 + 0.7));
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.3, 0.4), toonMaterial({ color }));
@@ -782,7 +785,7 @@ export class Racer3D {
     this.finished = true; this.finishT = this.raceT;
     this.standing = this.ranking();
     const place = this.place();
-    this.state = 'finishCam'; this.stateT = 0; this.camMode = 'finish';
+    this.state = 'finishCam'; this.stateT = 0; this.camMode = 'finish'; this.camInit = false;
     this.time.slowmo(0.22, 2.4); this.shake.add(0.35);
     this.audio.stopSong(); this.audio.sfx(place <= 3 ? 'win' : 'lose'); this.audio.sfx('cheer');
     const p = this.at(this.length); this.confetti.burst(p.x, p.y + 5, p.z, 160, 5);
@@ -800,7 +803,7 @@ export class Racer3D {
   }
 
   toPodium() {
-    this.state = 'results'; this.stateT = 0; this.camMode = 'podium';
+    this.state = 'results'; this.stateT = 0; this.camMode = 'podium'; this.camInit = false;
     // chi non è ancora arrivato prende il tempo stimato
     for (const r of this.rivals) if (r.finished == null) r.finished = this.raceT + (this.length - r.s) / Math.max(3, r.speed);
     this.standing = this.ranking();
@@ -847,7 +850,10 @@ export class Racer3D {
       const far = Math.abs(r.s - this.s) > 120; cy.root.visible = !far;
       if (far) return;
       const rc = this.state === 'countdown' ? 0 : 80 + (r.speed / 8) * 12;
-      this.poseRider(cy, r.s, r.x, rc, this.state === 'countdown' ? 0 : r.speed, dt, { stand: r.boost > 0 || this.at(r.s).grade > 5 ? 1 : 0 });
+      // lontani (> 35 m): la posa si aggiorna a fotogrammi alterni
+      const mid = Math.abs(r.s - this.s) > 35;
+      if (mid && (this.frame + i) % 2) { const p = this.at(r.s, r.x); cy.root.position.set(p.x, p.y, p.z); return; }
+      this.poseRider(cy, r.s, r.x, rc, this.state === 'countdown' ? 0 : r.speed, mid ? dt * 2 : dt, { stand: r.boost > 0 || this.at(r.s).grade > 5 ? 1 : 0 });
     });
   }
 
@@ -895,8 +901,8 @@ export class Racer3D {
     } else if (this.state === 'results') {
       const a = this.stateT * 0.12;
       const port = this.H > this.W;
-      const c = this.podium.localToWorld(new THREE.Vector3(Math.sin(a) * 1.0, port ? 2.3 : 2.0, (port ? 6.4 : 5.6) + Math.cos(a) * 0.3));
-      pos = c; look = this.podium.localToWorld(new THREE.Vector3(0, port ? 0.55 : 1.3, 0)); fov = port ? 50 : 42;
+      const c = this.podium.localToWorld(new THREE.Vector3(Math.sin(a) * 1.0 + (port ? 0 : 2.4), port ? 3.2 : 2.3, (port ? 13 : 8.2) + Math.cos(a) * 0.3));
+      pos = c; look = this.podium.localToWorld(new THREE.Vector3(port ? 0 : 2.6, port ? -0.6 : 1.6, 0)); fov = port ? 44 : 40;
     } else {
       const off = sel ? 0 : (this.x || 0) * 0.6;
       const speedK = clamp((this.speed || 0) / 14, 0, 1);
@@ -1113,8 +1119,10 @@ export class Racer3D {
 
   drawResults(ctx, W, H, dt) {
     const u = uiScale(W, H); const place = this.place();
-    const g = ctx.createLinearGradient(0, H * 0.45, 0, H); g.addColorStop(0, 'rgba(8,8,12,0)'); g.addColorStop(0.25, 'rgba(8,8,12,.85)'); g.addColorStop(1, 'rgba(8,8,12,.95)');
-    ctx.fillStyle = g; ctx.fillRect(0, H * 0.45, W, H * 0.55);
+    if (H >= W * 0.83) {
+      const g = ctx.createLinearGradient(0, H * 0.45, 0, H); g.addColorStop(0, 'rgba(8,8,12,0)'); g.addColorStop(0.25, 'rgba(8,8,12,.85)'); g.addColorStop(1, 'rgba(8,8,12,.95)');
+      ctx.fillStyle = g; ctx.fillRect(0, H * 0.45, W, H * 0.55);
+    }
     const g2 = ctx.createLinearGradient(0, 0, 0, 150 * u); g2.addColorStop(0, 'rgba(8,8,12,.75)'); g2.addColorStop(1, 'rgba(8,8,12,0)');
     ctx.fillStyle = g2; ctx.fillRect(0, 0, W, 150 * u);
     txt(ctx, place === 1 ? t('games.racer.victory') : place <= 3 ? t('games.racer.podium') : t('games.racer.finish'), W / 2, 100 * u, { size: 44 * u, align: 'center', color: place <= 3 ? HUD.lime : HUD.white, italic: true });
@@ -1126,15 +1134,17 @@ export class Racer3D {
       v.copy(cy.root.position); v.y += 2.15; v.project(this.camera);
       txt(ctx, `${i + 1}. ${e.me ? you() : first(e.name)}`, (v.x + 1) / 2 * W, (1 - v.y) / 2 * H, { size: 18 * u, align: 'center', color: e.me ? HUD.lime : HUD.white });
     });
-    const y0 = H * 0.6;
+    const land = W > H * 1.2;
+    const cx = land ? W * 0.74 : W / 2; const y0 = land ? H * 0.3 : H * 0.6;
+    if (land) { panel(ctx, cx - 190 * u * 0.85, y0 - 30 * u, 380 * u * 0.85, (60 + this.standing.length * 22) * u, { fill: 'rgba(8,8,12,.72)' }); }
     const gr = this.leader('green'); const km = this.leader('kom');
-    txt(ctx, t('games.racer.jerseysEnd', { green: gr ? who(gr.name) : '-', dots: km ? who(km.name) : '-' }), W / 2, y0, { size: 15 * u, align: 'center', color: HUD.dim });
-    const lh = 22 * u;
+    txt(ctx, t('games.racer.jerseysEnd', { green: gr ? who(gr.name) : '-', dots: km ? who(km.name) : '-' }), cx, y0, { size: 15 * u, align: 'center', color: HUD.dim });
+    const lh = 22 * u; const cw = land ? 0.85 : 1;
     this.standing.forEach((r, i) => {
       const y = y0 + 30 * u + i * lh;
-      txt(ctx, `${i + 1}.`, W / 2 - 130 * u, y, { size: 17 * u, align: 'right', color: r.me ? HUD.lime : HUD.dim });
-      txt(ctx, r.me ? you() : r.name, W / 2 - 120 * u, y, { size: 17 * u, color: r.me ? HUD.lime : HUD.white });
-      txt(ctx, r.fin != null ? fmt(r.fin) : '', W / 2 + 140 * u, y, { size: 17 * u, align: 'right', color: r.me ? HUD.lime : HUD.dim });
+      txt(ctx, `${i + 1}.`, cx - 130 * u * cw, y, { size: 17 * u, align: 'right', color: r.me ? HUD.lime : HUD.dim });
+      txt(ctx, r.me ? you() : r.name, cx - 120 * u * cw, y, { size: 17 * u, color: r.me ? HUD.lime : HUD.white });
+      txt(ctx, r.fin != null ? fmt(r.fin) : '', cx + 140 * u * cw, y, { size: 17 * u, align: 'right', color: r.me ? HUD.lime : HUD.dim });
     });
     if (this.stateT > 2) txt(ctx, t('games.racer.endKeys'), W / 2, H - 30 * u, { size: 20 * u, align: 'center', color: HUD.lime });
     this.hooks.progress?.drawToasts(ctx, W, dt);
@@ -1146,8 +1156,11 @@ export class Racer3D {
     this.last = now;
     const dt = this.time.step(realDt);
     this.update(dt, realDt);
+    this.frame = (this.frame || 0) + 1;
     if (this.scene && this.state !== 'error') this.draw(dt, realDt);
-    this.drawHud(realDt);
+    // l'HUD (canvas 2D, testo con contorno) si ridisegna a 30 Hz: basta per i numeri e costa la metà
+    this.hudDt = (this.hudDt || 0) + realDt;
+    if (this.frame % 2 === 0 || this.state === 'loading') { this.drawHud(this.hudDt); this.hudDt = 0; }
     requestAnimationFrame(this.loop);
   }
 }
@@ -1196,7 +1209,7 @@ function podiumBackTexture(title) {
   const g = c.getContext('2d');
   const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#1b1a24'); gr.addColorStop(1, '#2c2a3a'); g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
   for (let i = 0; i < 9; i++) { g.fillStyle = i % 2 ? '#d9ff3d' : '#4de3ff'; g.globalAlpha = 0.18; g.fillRect(i * 64 - 30, 0, 26, 256); }
-  g.globalAlpha = 1; g.fillStyle = '#d9ff3d'; g.font = 'italic 900 64px "Roboto Condensed", "Arial Narrow", sans-serif'; g.textAlign = 'center'; g.fillText(title, 256, 92, 480);
+  g.globalAlpha = 1; g.fillStyle = '#b8dc2c'; g.font = 'italic 900 64px "Roboto Condensed", "Arial Narrow", sans-serif'; g.textAlign = 'center'; g.fillText(title, 256, 92, 480);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 function questionTexture() {
