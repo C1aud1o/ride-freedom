@@ -1,109 +1,73 @@
 # Spindro: Smart Trainer Cycling
 
-Webapp (PWA) per controllare dal telefono il rullo **Van Rysel D100** via Bluetooth,
-leggere i dati e cambiare l'intensità con un **cambio virtuale a 24 marce** in stile Zwift Cog.
+**Free, open-source indoor cycling app for smart trainers. No subscription, no account needed.**
 
-## Funzioni
+Spindro runs in your browser (Android, PC, Mac) or as an Android app. It connects to your trainer over Bluetooth, gives you virtual gears, structured workouts and games driven by your real power, and can turn your phone into a sensor so the ride lands on your watch.
 
-- Connessione al rullo via Bluetooth, con scelta automatica del protocollo (`js/trainers/index.js`):
-  **FTMS** → **Tacx FE-C over BLE** (Flux, Vortex, Neo… anche con firmware senza FTMS) →
-  **Wahoo legacy** (Kickr / Snap / Core con firmware vecchio) → sola lettura Cycling Power / Speed & Cadence.
-  FE-C e Wahoo legacy sono provati solo con un rullo simulato (`node tests/trainers/run.mjs`).
-- Lettura in tempo reale: potenza, cadenza, velocità, frequenza cardiaca (se trasmessa).
-- Quattro modalità:
-  - **Cambio** – cambio virtuale a 24 rapporti: la potenza richiesta al rullo (ERG) viene calcolata
-    con un modello fisico da cadenza, marcia, pendenza e peso. Come con lo Zwift Cog, cambi rapporto
-    e senti la resistenza cambiare.
-  - **ERG** – potenza fissa (0–600 W, il massimo del D100).
-  - **Pendenza** – simulazione pendenza FTMS (il D100 arriva a circa il 6%).
-  - **Resistenza** – livello di resistenza in %.
-- Cambiate con i pulsanti a schermo, con la tastiera / telecomandi Bluetooth che inviano frecce o
-  pagina su/giù, oppure con lo **Zwift Click** (supporto sperimentale).
-- Contatore sessione (tempo, distanza, W medi, kJ), schermo sempre acceso durante l'allenamento,
-  installabile come app sulla home.
-- **Registrazione in file .FIT** (formato Garmin), da importare in Garmin Connect
-  (connect.garmin.com → Importa dati) e, a cascata, Strava. La sessione resta salvata nel telefono
-  anche se ricarichi la pagina.
-- **Giochi** (pulsante *🎮 Gioca*), grafica pixel-art, musica chiptune che segue la tua cadenza,
-  le salite arrivano sul rullo come pendenza reale. Vedi [docs/giochi.md](docs/giochi.md).
-  - **Turbo Pedali 3D**: tappa in linea in 3D (Three.js + modelli Quaternius e Kenney CC0) con 8 ciclisti
-    animati con nome e carattere, + / − per il cambio, pubblico in salita, arrivo al rallentatore e podio, 3 tappe (mare, montagna, colline), scia, monete, oggetti attivati con uno sprint
-    vero, traguardo volante e GPM con maglie, profilo altimetrico, podio e record.
-  - **Pedal Strike 3D**: sparatutto a scorrimento laterale in 3D con 3 eroi, 3 missioni (campagna,
-    deserto, cimitero del Barone), 5 armi, prigionieri da liberare, 3 boss; i watt decidono la cadenza
-    di tiro e lo sprint scatena l'OVERDRIVE.
-  - **L'Orda**: sparatutto "a orde" in 3D. Si parte con una pistola contro pochi zombi, le ondate
-    crescono senza fine (scheletri, fantasmi, vampiri, il Custode gigante), l'arma evolve in 10 passi
-    fino al laser e i portali danno alleati che sparano con te. Più watt = più colpi.
-- **Altri giochi 3D**: **Planata** (aereo a pedali, i watt sono la quota: un allenamento a intervalli
-    travestito), **Gruppetto** (raccogli i ciclisti che si accodano alla tua scia; la pendenza sale con il
-    gruppo), **Mattoni** (rimbalzi: la cadenza è la velocità della palla). Nei giochi si sterza tenendo
-    premuto + / −.
-- **Pedala su un video**: un video YouTube o un file tuo che scorre alla tua velocità.
-- **Allenamenti strutturati** in ERG (sblocco, fondo, sweet spot, soglia, VO2max, piramide, 30/30)
-  calcolati sulla FTP, con + / − che regolano l'intensità, e **test FTP a rampa**.
-- **Percorsi GPX**: la pendenza segue il tracciato (realismo 50/75/100%), profilo e mini mappa,
-  sfida al tuo record sullo stesso percorso; il .FIT contiene la traccia GPS (mappa su Strava).
-- **Storico**: minuti settimanali, record 5 s / 1 / 5 / 20 min, FTP stimata, grafico di ogni uscita.
-- **Cambio automatico** (solo qui): con il cambio virtuale scegli la cadenza (80–95 rpm) e l'app cambia
-  marcia da sola per tenerla, come una bici con il cambio automatico; + / − restano attivi.
-- **Coach vocale in italiano**: annuncia tratti e watt degli allenamenti, gli ultimi 10 secondi,
-  le salite in arrivo sui percorsi, i traguardi e l'arrivo.
-- **Editor di allenamenti** a blocchi ed **esportazione** di ogni allenamento in .FIT "workout" per
-  Garmin (copia in GARMIN/NewFiles o tramite intervals.icu) e in .zwo; import di file .zwo.
-- Avvio e pausa automatici, potenza media 3 s, schermo intero, obiettivo settimanale, zone cardio,
-  backup dei dati tra dispositivi.
-- **PC e Mac**: stessa webapp con Chrome o Edge (Bluetooth del computer), layout a due colonne e
-  scorciatoie (frecce o + / − per le marce, Spazio avvia/pausa, G giochi). Mancano solo le funzioni
-  che richiedono l'app Android: ponte Garmin e comandi musica.
-- **App Android** (APK): tutto quanto sopra più il **ponte Garmin** (il telefono trasmette potenza,
-  cadenza e velocità all'orologio come un sensore) e la **musica dal Click** (pressione lunga).
-- **Pagina di debug** (pulsante *Debug* in alto): per ogni sensore mostra stato, servizi Bluetooth,
-  valori, pacchetti grezzi e log copiabili. Per lo Zwift Click mostra i tasti premuti e permette di
-  assegnarli a cambiata +/−.
-- **Strava**: caricamento automatico con il tasto 🏁 *Termina*. Per tutti gli utenti ("Connetti con
-  Strava" → Consenti) grazie a un piccolo ponte su Cloudflare Workers che custodisce il Client Secret:
-  vedi [docs/strava.md](docs/strava.md). Senza ponte resta la modalità personale (ognuno la propria app).
-- **Cardio**: fascia Bluetooth o orologio Garmin con "Trasmetti frequenza cardiaca" attivo.
+<p>
+<img src="store/screenshots/en/01.png" width="200" alt="Home screen with live power">
+<img src="store/screenshots/en/04.png" width="200" alt="Turbo Pedals 3D race">
+<img src="store/screenshots/en/02.png" width="200" alt="Workout library">
+<img src="store/screenshots/en/07.png" width="200" alt="Ride summary with medals">
+</p>
 
-## Requisiti
+- **Web app:** https://mta-world.com (Chrome or Edge)
+- **Android APK:** https://mta-world.com/app/spindro.apk
 
-- **Android**: Chrome (Web Bluetooth supportato) o l'app (https://mta-world.com/app/spindro.apk).
-- **PC / Mac / Linux / ChromeOS**: Chrome o Edge (serve il Bluetooth nel computer o una chiavetta Bluetooth 4.0+).
-- **iPhone/iPad**: Safari non supporta Web Bluetooth → usa il browser gratuito **Bluefy**.
-- La pagina deve essere servita in **HTTPS** (o da `localhost`).
+## What it does
 
-## Come usarla
+- **Virtual gears** (24 ratios) on any controllable trainer, like a Zwift Cog setup, plus ERG, slope and resistance modes. Optional auto-shift keeps your cadence.
+- **Zwift Click, Play and Ride** as shifters and as a full remote: you can drive the whole app from the handlebar.
+- **Workouts:** 34 structured workouts, 4 multi-week plans, a ramp FTP test, a block editor, `.zwo` import, export to `.zwo` and Garmin workout `.fit`.
+- **Games in 3D** driven by your watts: a stage race with drafting and climbs that load the trainer, a horde shooter, a peloton builder.
+- **Routes:** load a GPX and the slope follows the course. **Video rides:** a YouTube video or your own file plays at your speed.
+- **Your watch as the head unit** (Android app): the phone broadcasts power, cadence and speed as a Bluetooth sensor.
+- **Records and history**, monthly challenges, a share card, `.fit` export with GPS for Garmin Connect, optional Strava upload.
+- **5 languages:** English, Italian, French, Spanish, German. Voice coach included.
+- **Private by default:** everything stays on your device. The optional account and anonymous statistics are off unless a deployment configures them.
 
-1. Chiudi Zwift (o qualsiasi altra app collegata al rullo): il D100 accetta **una sola connessione
-   Bluetooth** alla volta.
-2. Apri la webapp e premi **Connetti rullo**, poi scegli il D100 dalla lista.
-3. (Opzionale) **Connetti Zwift Click** per cambiare con i tasti +/−.
-4. Scegli la modalità e pedala.
+## Compatibility
 
-## Pubblicazione
+| | Status |
+|---|---|
+| Van Rysel D100 (FTMS) | Tested on the real trainer |
+| Other FTMS trainers (most trainers since 2020) | Should work; please report |
+| Tacx FE-C over BLE, Wahoo legacy (old Kickr/Snap/Core firmware) | Implemented, tested only against simulated devices |
+| Zwift Click | Tested on the real device |
+| Zwift Play, Zwift Ride | Implemented, tested only against simulated devices |
+| Garmin watches (sensor bridge) | Tested |
+| Wahoo Elemnt, Coros, Suunto, Polar, Apple Watch | Should work; please report |
 
-Il sito è pubblicato su **https://mta-world.com** (file `CNAME`). Il workflow `.github/workflows/pages.yml`
-pubblica su GitHub Pages a ogni push su `main` (o sul branch di sviluppo)
-(abilita *Settings → Pages → Source: GitHub Actions*). In locale:
+Use **Settings → Report your trainer** in the app, or open a [trainer compatibility issue](../../issues/new/choose). Reports are how this table grows.
+
+**Requirements:** Android with Chrome or the app; PC, Mac, Linux or ChromeOS with Chrome or Edge and Bluetooth. iPhone and iPad: Safari has no Web Bluetooth, so use the free Bluefy browser. A trainer accepts one Bluetooth connection at a time: close other apps first.
+
+## Run it locally
 
 ```sh
-python3 -m http.server 8000
-# poi apri http://localhost:8000 (su desktop con Chrome)
+npm ci
+node tests/serve.mjs          # http://127.0.0.1:4173
+npm test                      # Playwright tests with a simulated trainer
+node tests/trainers/run.mjs   # trainer protocol tests
 ```
 
-## Limiti noti
+No build step: plain ES modules in `js/`, three.js vendored in `vendor/`. The Android app is the same web app in a Capacitor shell (`android/`, see [docs/android.md](docs/android.md)).
 
-- Un browser non può fare da "ponte" Bluetooth verso Zwift: se la webapp è connessa al rullo, Zwift
-  non può esserlo contemporaneamente. La webapp sostituisce Zwift per il controllo dell'intensità.
-- Il cambio virtuale "nativo" di Zwift usa un protocollo proprietario: qui il cambio virtuale è
-  implementato dalla webapp tramite comandi FTMS standard (ERG).
-- Il caricamento su Garmin Connect non è automatico: l'API di upload Garmin è riservata ai partner
-  approvati e richiede un server. Si carica a mano il file .FIT.
-- Il supporto Zwift Click è ricostruito da progetti open source: se il firmware del Click richiede la
-  cifratura i tasti potrebbero non arrivare; in quel caso usa i pulsanti a schermo.
+## Contributing
 
-## Crediti
+Trainer support, translations and games are the best places to start: see [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
+
+## Known limits
+
+- The app replaces Zwift as the trainer controller: both cannot be connected at once.
+- Garmin Connect has no public upload API: export the `.fit` and import it on the Garmin Connect website, or record on the watch through the sensor bridge.
+- On trainers that do not send cadence (the D100 for one), cadence is estimated from flywheel speed: calibrate it in Settings, or pair a cadence sensor.
+
+## License
+
+[GPL-3.0](LICENSE). Zwift, Garmin, Strava, Tacx, Wahoo, Van Rysel and the other names are trademarks of their owners; Spindro is not affiliated with them.
+
+## Credits
 - Modelli 3D: [Kenney](https://kenney.nl) — Racing Kit, Nature Kit, Blocky Characters, Graveyard Kit,
   Blaster Kit, Platformer Kit (gioielli e monete) (CC0), in `assets/3d`.
 - Modelli 3D: [Quaternius](https://quaternius.com) — Ultimate Modular Men (ciclista e pubblico), Simple Nature Pack,
