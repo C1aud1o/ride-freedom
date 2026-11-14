@@ -540,7 +540,7 @@ export class Racer3D {
   // ---------- gara ----------
   newRace() {
     this.s = START; this.x = 0; this.lane = 1; this.speed = 0; this.raceT = 0;
-    this.item = null; this.boost = 0; this.boostKind = null; this.shield = false; this.bumpT = 0;
+    this.item = null; this.boost = 0; this.boostKind = null; this.shield = false; this.bumpT = 0; this.capV = null; this.blockT = 0;
     this.draft = 0; this.coinsTaken = 0; this.sprintHeld = 0; this.finished = false; this.lean = 0;
     this.points = { green: {}, kom: {} }; this.lineCount = {}; this.draftAcc = 0; this.passed = 0; this.prevPlace = 8;
     this.rivals = RIVALS.map((r, i) => ({ ...r, name: t(r.name), line: t(r.line), i, s: START - 3 + (6 - i) * 1.7, x: LANES[i % 3], targetX: LANES[i % 3], speed: 0, finished: null, boost: 0, slow: 0, said: 0, phase: Math.random() * 6 }));
@@ -624,7 +624,10 @@ export class Racer3D {
     if (this.draft > 0.99) mult += 0.12;
     if (this.boost > 0) { this.boost -= dt; mult += this.boostKind === 'gel' ? 0.4 : 0.25; if (this.boost <= 0) this.boostKind = null; }
     if (this.bumpT > 0) { this.bumpT -= dt; mult *= 0.6; }
-    v *= mult; this.speed = v;
+    v *= mult;
+    if (this.capV != null) v = Math.min(v, this.capV);
+    // inerzia: la bici non cambia velocità di colpo (niente scatti del numero né della scena)
+    v = this.speed + (v - this.speed) * Math.min(1, dt * (v > this.speed ? 1.6 : 2.4)); this.speed = v;
     this.chooseLine(dt);
     this.x = lerp(this.x, LANES[this.lane], Math.min(1, dt * 2.2));
     this.raceT += dt;
@@ -733,7 +736,7 @@ export class Racer3D {
 
   updateRivals(dt, playerV, after = false) {
     const avgV = Math.max(4, ((this.effort.avg || 150) / 160) * 8.3 * WORLD_SCALE);
-    let drafting = false; let draftOf = null;
+    let drafting = false; let draftOf = null; let blocked = null;
     for (const r of this.rivals) {
       if (r.finished != null && !after) continue;
       const gap = r.s - this.s;
@@ -755,10 +758,20 @@ export class Racer3D {
       r.x = lerp(r.x, r.targetX, Math.min(1, dt * 1.6));
       const same = Math.abs(r.x - this.x) < 1.1;
       if (same && gap > 1.6 && gap < 12) { drafting = true; if (!draftOf || gap < draftOf.gap) draftOf = { r, gap }; }
-      if (same && gap > -0.3 && gap < 1.5 && playerV > r.speed) { this.bump(t('games.racer.crash')); r.boost = 0.6; }
+      if (same && gap > 0 && gap < 2.2 && playerV > r.speed && (!blocked || gap < blocked.gap)) blocked = { r, gap };
       if (gap < -1 && gap > -4 && r.said < this.t - 25 && Math.random() < dt * 2) { r.said = this.t; this.say(`${r.name}: "${r.line}"`, r.color, 2.2); }
     }
     if (after) return;
+    // Chi è più veloce di chi ha davanti non lo tampona: resta a ruota (alla sua velocità) per un attimo,
+    // poi si sposta nella corsia libera più vicina e passa.
+    if (blocked) {
+      this.capV = blocked.r.speed; this.blockT = (this.blockT || 0) + dt;
+      if (this.blockT > 0.5) {
+        const free = (i) => !this.rivals.some((q) => Math.abs(q.x - LANES[i]) < 1.1 && q.s - this.s > -2.5 && q.s - this.s < 7);
+        const opts = LANES.map((_, i) => i).filter((i) => i !== this.lane && free(i)).sort((a, b) => Math.abs(a - this.lane) - Math.abs(b - this.lane));
+        if (opts.length) { this.lean = Math.sign(opts[0] - this.lane); this.lane = opts[0]; this.lineT = 2.5; this.blockT = 0; this.capV = null; }
+      }
+    } else { this.capV = null; this.blockT = 0; }
     this.draftOf = draftOf?.r || null;
     // la scia si vede (cuneo) anche mentre si sta entrando
     if (!this.draftOf) { let near = null; for (const r of this.rivals) { const gap = r.s - this.s; if (gap > 1.6 && gap < 16 && (!near || gap < near.gap)) near = { r, gap }; } this.draftNear = near?.r || null; } else this.draftNear = this.draftOf;
@@ -854,6 +867,8 @@ export class Racer3D {
       const mid = Math.abs(r.s - this.s) > 35;
       if (mid && (this.frame + i) % 2) { const p = this.at(r.s, r.x); cy.root.position.set(p.x, p.y, p.z); return; }
       this.poseRider(cy, r.s, r.x, rc, this.state === 'countdown' ? 0 : r.speed, mid ? dt * 2 : dt, { stand: r.boost > 0 || this.at(r.s).grade > 5 ? 1 : 0 });
+      // chi è dietro di te, tra la tua bici e la telecamera, non si disegna: altrimenti copre la scena con una sagoma enorme
+      if (this.s - r.s > 2.2 && cy.root.position.distanceTo(this.camera.position) < 8) cy.root.visible = false;
     });
   }
 
@@ -1045,10 +1060,10 @@ export class Racer3D {
     this.hooks.progress?.drawToasts(ctx, W, dt);
   }
 
-  // nomi sopra i rivali vicini (al massimo 4, senza sovrapposizioni)
+  // nomi sopra i due rivali più vicini davanti (senza sovrapposizioni)
   drawTags(ctx, W, H, u) {
     const v = new THREE.Vector3(); const boxes = [];
-    const near = (this.rivals || []).map((r) => ({ r, gap: r.s - this.s })).filter((e) => e.gap > -2 && e.gap < 36).sort((a, b) => Math.abs(a.gap) - Math.abs(b.gap)).slice(0, 4);
+    const near = (this.rivals || []).map((r) => ({ r, gap: r.s - this.s })).filter((e) => e.gap > 1 && e.gap < 30).sort((a, b) => a.gap - b.gap).slice(0, 2);
     for (const { r, gap } of near) {
       const p = this.at(r.s, r.x); v.set(p.x, p.y + 2.0, p.z).project(this.camera);
       if (v.z > 1) continue;

@@ -125,9 +125,9 @@ test.describe('giochi', () => {
     await page.click('#openGame');
     const ids = await page.$$eval('.game-card', (els) => els.map((e) => e.dataset.game));
     expect(ids.sort()).toEqual([...GAMES].sort());
-    // per l'utente normale il menu ha solo i tre giochi curati e il video
+    // per l'utente normale il menu ha solo il gioco curato e il video
     const shown = await page.$$eval('.game-card', (els) => els.filter((e) => e.offsetParent).map((e) => e.dataset.game));
-    expect(shown.sort()).toEqual(['gruppetto', 'horde', 'racer', 'video']);
+    expect(shown.sort()).toEqual(['racer', 'video']);
   });
 });
 
