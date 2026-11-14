@@ -43,6 +43,7 @@ test('Turbo Pedali: si carica, parte e + / − cambiano marcia', async ({ page }
 for (const kind of ['horde', 'shooter']) {
   test(`${kind}: il gioco 3D si carica con la nuova base`, async ({ page }) => {
     await page.click('#openGame');
+    await page.evaluate(() => document.body.classList.add('dev'));
     await page.click(`[data-game=${kind}]`);
     await expect.poll(() => page.evaluate(() => window.__game?.state), { timeout: 120_000 }).toMatch(/menu|select|play|intro|hero/);
     await page.waitForTimeout(1500);

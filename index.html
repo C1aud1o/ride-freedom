@@ -377,32 +377,33 @@
       <h2 data-i18n="games.choose"></h2>
       <div id="progressPanel" class="prog"></div>
       <div id="boardPanel" class="boards" hidden></div>
-      <button class="game-card video-card" data-game="video">
-        <span class="game-emoji" aria-hidden="true">▶</span>
-        <span><b data-i18n="games.video.name"></b><small data-i18n="games.video.desc"></small></span>
+      <button class="game-card" data-game="racer">
+        <span class="game-emoji" aria-hidden="true">01</span>
+        <span><b data-i18n="games.racer.name"></b><small data-i18n="games.racer.desc"></small></span>
       </button>
       <button class="game-card" data-game="horde">
-        <span class="game-emoji" aria-hidden="true">01</span>
-        <span><b data-i18n="games.horde.name"></b><small data-i18n="games.horde.desc"></small></span>
-      </button>
-      <button class="game-card" data-game="planata">
         <span class="game-emoji" aria-hidden="true">02</span>
-        <span><b data-i18n="games.planata.name"></b><small data-i18n="games.planata.desc"></small></span>
+        <span><b data-i18n="games.horde.name"></b><small data-i18n="games.horde.desc"></small></span>
       </button>
       <button class="game-card" data-game="gruppetto">
         <span class="game-emoji" aria-hidden="true">03</span>
         <span><b data-i18n="games.gruppetto.name"></b><small data-i18n="games.gruppetto.desc"></small></span>
       </button>
-      <button class="game-card" data-game="mattoni">
-        <span class="game-emoji" aria-hidden="true">04</span>
+      <button class="game-card video-card" data-game="video">
+        <span class="game-emoji" aria-hidden="true">▶</span>
+        <span><b data-i18n="games.video.name"></b><small data-i18n="games.video.desc"></small></span>
+      </button>
+      <!-- giochi in officina: visibili solo in modalità sviluppatore finché non raggiungono il livello degli altri -->
+      <button class="game-card lab-game" data-game="planata">
+        <span class="game-emoji" aria-hidden="true">L1</span>
+        <span><b data-i18n="games.planata.name"></b><small data-i18n="games.planata.desc"></small></span>
+      </button>
+      <button class="game-card lab-game" data-game="mattoni">
+        <span class="game-emoji" aria-hidden="true">L2</span>
         <span><b data-i18n="games.mattoni.name"></b><small data-i18n="games.mattoni.desc"></small></span>
       </button>
-      <button class="game-card" data-game="racer">
-        <span class="game-emoji" aria-hidden="true">05</span>
-        <span><b data-i18n="games.racer.name"></b><small data-i18n="games.racer.desc"></small></span>
-      </button>
-      <button class="game-card" data-game="shooter">
-        <span class="game-emoji" aria-hidden="true">06</span>
+      <button class="game-card lab-game" data-game="shooter">
+        <span class="game-emoji" aria-hidden="true">L3</span>
         <span><b data-i18n="games.shooter.name"></b><small data-i18n="games.shooter.desc"></small></span>
       </button>
       <label class="switch"><input type="checkbox" id="gameGlow"><span data-i18n="games.glow"></span></label>

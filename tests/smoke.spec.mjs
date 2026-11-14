@@ -109,6 +109,7 @@ test.describe('giochi', () => {
     test(`si apre e si chiude: ${id}`, async ({ page }) => {
       await page.click('#openGame');
       await expect(page.locator('#gameMenu')).toBeVisible();
+      await page.evaluate(() => document.body.classList.add('dev')); // i giochi in officina si vedono solo in modalità sviluppatore
       await page.click(`.game-card[data-game="${id}"]`);
       await expect(page.locator('#gameMenu')).toBeHidden();
       await expect(page.locator('#gameTitle')).not.toHaveText('Giochi');
@@ -124,6 +125,9 @@ test.describe('giochi', () => {
     await page.click('#openGame');
     const ids = await page.$$eval('.game-card', (els) => els.map((e) => e.dataset.game));
     expect(ids.sort()).toEqual([...GAMES].sort());
+    // per l'utente normale il menu ha solo i tre giochi curati e il video
+    const shown = await page.$$eval('.game-card', (els) => els.filter((e) => e.offsetParent).map((e) => e.dataset.game));
+    expect(shown.sort()).toEqual(['gruppetto', 'horde', 'racer', 'video']);
   });
 });
 
