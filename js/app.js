@@ -914,6 +914,12 @@ pm.addEventListener('data', (e) => {
 });
 pm.addEventListener('disconnected', () => { state.pmCadence = false; setStatus('pmStatus', t('status.notConnected')); $('connectPm').textContent = t('pm.connect'); });
 
+// ---------- Scelte rapide in home (allenamenti, giochi, storico): spariscono mentre pedali ----------
+document.querySelectorAll('#quickPick [data-open]').forEach((b) => b.addEventListener('click', () => {
+  if (b.dataset.open === 'history') openHistory(); else $(b.dataset.open).click();
+}));
+setInterval(() => { $('quickPick').hidden = state.ride.running || !!workout || !!route; }, 1000);
+
 // ---------- Cambio virtuale: calibrazione della cadenza e durezza ----------
 function renderGearSettings() {
   $('cadFactorInfo').textContent = t('calib.current', { f: RPM_PER_KMH.toFixed(2) }) + (RPM_PER_KMH === DEFAULT_FACTOR ? ` · ${t('calib.notYet')}` : '');

@@ -1078,5 +1078,11 @@
   "ftpAsk.strong": "Sono molto allenato",
   "ftpAsk.own": "La conosco:",
   "ftpAsk.test": "Fai il test (20 min)",
-  "ftpAsk.ok": "Conferma"
+  "ftpAsk.ok": "Conferma",
+  "quick.label": "Cosa vuoi fare",
+  "quick.workouts": "Allenamenti",
+  "quick.workoutsSub": "Sedute, piani, percorsi",
+  "quick.gamesSub": "Gare e sfide in 3D",
+  "quick.history": "Storico",
+  "quick.historySub": "Record e progressi"
 }

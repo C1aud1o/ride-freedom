@@ -35,7 +35,7 @@ Spindro runs in your browser (Android, PC, Mac) or as an Android app. It connect
 | Tacx FE-C over BLE, Wahoo legacy (old Kickr/Snap/Core firmware) | Implemented, tested only against simulated devices |
 | Zwift Click | Tested on the real device |
 | Zwift Play, Zwift Ride | Implemented, tested only against simulated devices |
-| Garmin watches (sensor bridge) | Tested |
+| Garmin watches (sensor bridge) | Built and used with a Garmin watch; please report your model |
 | Wahoo Elemnt, Coros, Suunto, Polar, Apple Watch | Should work; please report |
 
 Use **Settings → Report your trainer** in the app, or open a [trainer compatibility issue](../../issues/new/choose). Reports are how this table grows.

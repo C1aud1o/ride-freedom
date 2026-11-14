@@ -54,6 +54,13 @@ Chiunque abbia un rullo smart deve potersi allenare bene, divertirsi e avere i d
 Test: 49 sull'app, 47 sui rulli, controller e traduzioni: tutti verdi.
 **Bloccato da:** azioni del proprietario 3, 4 e 5 (account Play, tester, chiave). Finché l'account Play non c'è, solo piccole correzioni, per risparmiare il limite settimanale.
 
+## Aggiornamento 2026-11-14
+- Il repo è **già pubblico**: la vecchia chiave di firma è quindi da considerare compromessa. Nuova chiave = azione n. 1 del proprietario.
+- I test su GitHub erano rossi dall'unione degli account (Node 20): corretti con Node 22. Regola: una sottosessione è "finita" solo con la CI verde, non con i test locali.
+- Menu giochi ridotto a Turbo Pedali, L'Orda, Gruppetto e video; gli altri tre solo in modalità sviluppatore.
+- Controllo del rullo: ERG ripetuto ogni ~2 s, calibrazione cadenza, durezza del cambio. **In attesa di conferma sul rullo vero**; nessun'altra modifica al controllo finché non arriva.
+- Da fare quando serve: dividere `js/app.js` (1.500 righe), ramo principale `main`, revisione madrelingua di FR/ES/DE.
+
 ## Decisioni prese
 | Data | Decisione | Motivo |
 |---|---|---|

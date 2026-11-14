@@ -1078,5 +1078,11 @@
   "ftpAsk.strong": "I'm very fit",
   "ftpAsk.own": "I know it:",
   "ftpAsk.test": "Take the test (20 min)",
-  "ftpAsk.ok": "Confirm"
+  "ftpAsk.ok": "Confirm",
+  "quick.label": "What to do",
+  "quick.workouts": "Workouts",
+  "quick.workoutsSub": "Sessions, plans, routes",
+  "quick.gamesSub": "Races and games in 3D",
+  "quick.history": "History",
+  "quick.historySub": "Records and progress"
 }

@@ -652,7 +652,7 @@ export class Racer3D {
     // sorpassi: suono, testo e, nel finale, un attimo di rallentatore
     const place = this.place();
     if (place < this.prevPlace) {
-      this.audio.sfx('pass'); this.pop(t('games.racer.passed'), '#4de3ff', 0.9);
+      this.audio.sfx('pass'); if (!this.texts.some((x) => x.big)) this.pop(t('games.racer.passed'), '#4de3ff', 0.9); // non sopra un messaggio grande (VIA!, ultimi 500 m)
       if (this.s > this.length - 400) { this.time.slowmo(0.45, 0.7); this.shake.add(0.15); }
     }
     this.prevPlace = place;
@@ -1138,7 +1138,7 @@ export class Racer3D {
     const cx = land ? W * 0.74 : W / 2; const y0 = land ? H * 0.3 : H * 0.6;
     if (land) { panel(ctx, cx - 190 * u * 0.85, y0 - 30 * u, 380 * u * 0.85, (60 + this.standing.length * 22) * u, { fill: 'rgba(8,8,12,.72)' }); }
     const gr = this.leader('green'); const km = this.leader('kom');
-    txt(ctx, t('games.racer.jerseysEnd', { green: gr ? who(gr.name) : '-', dots: km ? who(km.name) : '-' }), cx, y0, { size: 15 * u, align: 'center', color: HUD.dim });
+    if (gr || km) txt(ctx, t('games.racer.jerseysEnd', { green: gr ? who(gr.name) : '-', dots: km ? who(km.name) : '-' }), cx, y0, { size: 15 * u, align: 'center', color: HUD.dim }); // niente riga vuota se nessuno ha preso punti
     const lh = 22 * u; const cw = land ? 0.85 : 1;
     this.standing.forEach((r, i) => {
       const y = y0 + 30 * u + i * lh;

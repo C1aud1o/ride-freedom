@@ -53,6 +53,11 @@
 
     <!-- stato vuoto: benvenuto (utente nuovo) o ultimo allenamento (utente che torna) -->
     <section id="welcome" class="card welcome" hidden></section>
+    <nav id="quickPick" class="quick-pick" data-i18n-attr="aria-label:quick.label">
+      <button data-open="openWorkouts"><b data-i18n="quick.workouts"></b><small data-i18n="quick.workoutsSub"></small></button>
+      <button data-open="openGame"><b data-i18n="nav.games"></b><small data-i18n="quick.gamesSub"></small></button>
+      <button data-open="history"><b data-i18n="quick.history"></b><small data-i18n="quick.historySub"></small></button>
+    </nav>
     <section id="planCard" class="card plan-card" hidden></section>
     <section id="challengeCard" class="card challenges" hidden></section>
     <section id="garminBanner" class="card banner" hidden></section>
